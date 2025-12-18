@@ -12,7 +12,11 @@ Texte "Saturant" :
 
 import re
 from statistics import mean
-from typing import Dict, List
+from typing import Dict, Iterable, List, Optional
+
+import pandas as pd
+
+from densite import build_text_from_dataframe, filter_dataframe_by_modalities
 
 
 def _build_connector_pattern(connectors: Dict[str, str]) -> re.Pattern[str]:
@@ -85,3 +89,39 @@ def average_segment_length(text: str, connectors: Dict[str, str]) -> float:
         return 0.0
 
     return float(mean(lengths))
+
+
+def average_segment_length_by_modality(
+    dataframe: pd.DataFrame,
+    variable: Optional[str],
+    connectors: Dict[str, str],
+    modalities: Optional[Iterable[str]] = None,
+) -> pd.DataFrame:
+    """Calculer la LMS par modalité pour une variable donnée."""
+
+    if dataframe.empty:
+        return pd.DataFrame(columns=["modalite", "segments", "lms", "min", "max"])
+
+    filtered_df = filter_dataframe_by_modalities(dataframe, variable, modalities)
+
+    if not variable or variable not in filtered_df.columns or filtered_df.empty:
+        return pd.DataFrame(columns=["modalite", "segments", "lms", "min", "max"])
+
+    rows: List[Dict[str, float | int | str]] = []
+
+    for modality, subset in filtered_df.groupby(variable):
+        text_value = build_text_from_dataframe(subset)
+        lengths = compute_segment_word_lengths(text_value, connectors)
+        lms_value = float(mean(lengths)) if lengths else 0.0
+
+        rows.append(
+            {
+                "modalite": modality,
+                "segments": len(lengths),
+                "lms": lms_value,
+                "min": min(lengths) if lengths else 0,
+                "max": max(lengths) if lengths else 0,
+            }
+        )
+
+    return pd.DataFrame(rows).sort_values("modalite").reset_index(drop=True)
