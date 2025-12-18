@@ -7,7 +7,11 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from analyses import annotate_connectors, count_connectors, load_connectors
+from analyses import (
+    annotate_connectors_html,
+    count_connectors,
+    load_connectors,
+)
 
 
 def parse_iramuteq(content: str) -> List[Dict[str, str]]:
@@ -102,10 +106,57 @@ def main() -> None:
         return
 
     connectors = load_connectors(Path(__file__).parent / "dictionnaires" / "connecteurs.json")
-    annotated_text = annotate_connectors(combined_text, connectors)
+    annotated_html = annotate_connectors_html(combined_text, connectors)
 
     st.subheader("Texte annoté par connecteurs")
-    st.text_area("", annotated_text, height=200)
+    annotation_style = """
+    <style>
+    .connector-annotation {
+        background-color: #eef3ff;
+        border-radius: 4px;
+        padding: 2px 6px;
+        margin: 0 2px;
+        display: inline-block;
+    }
+    .connector-label {
+        color: #1a56db;
+        font-weight: 700;
+        margin-right: 6px;
+    }
+    .connector-text {
+        color: #111827;
+        font-weight: 500;
+    }
+    .annotated-container {
+        line-height: 1.6;
+        font-size: 15px;
+    }
+    </style>
+    """
+
+    st.markdown(annotation_style, unsafe_allow_html=True)
+    st.markdown(
+        f"<div class='annotated-container'>{annotated_html}</div>",
+        unsafe_allow_html=True,
+    )
+
+    downloadable_html = f"""<!DOCTYPE html>
+    <html lang=\"fr\">
+    <head>
+    <meta charset=\"utf-8\" />
+    {annotation_style}
+    </head>
+    <body>
+    <div class='annotated-container'>{annotated_html}</div>
+    </body>
+    </html>"""
+
+    st.download_button(
+        label="Télécharger le texte annoté (HTML)",
+        data=downloadable_html,
+        file_name="texte_annote.html",
+        mime="text/html",
+    )
 
     stats_df = count_connectors(combined_text, connectors)
 
