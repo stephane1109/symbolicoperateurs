@@ -25,6 +25,7 @@ def parse_iramuteq(content: str) -> List[Dict[str, str]]:
         line = lines[index].strip()
 
         if line.startswith("****"):
+            header_line = line
             tokens = line[4:].strip().split()
             variables: Dict[str, str] = {}
 
@@ -40,7 +41,9 @@ def parse_iramuteq(content: str) -> List[Dict[str, str]]:
                 text_lines.append(lines[index])
                 index += 1
 
-            records.append({**variables, "texte": "\n".join(text_lines).strip()})
+            records.append(
+                {"entete": header_line, **variables, "texte": "\n".join(text_lines).strip()}
+            )
         else:
             index += 1
 
@@ -78,10 +81,16 @@ def main() -> None:
         return
 
     df = build_dataframe(records)
+    ordered_columns = [
+        "entete",
+        *[col for col in df.columns if col not in ("entete", "texte")],
+        "texte",
+    ]
+    df = df[ordered_columns]
     st.subheader("Données importées")
     st.dataframe(df)
 
-    variable_names = [column for column in df.columns if column != "texte"]
+    variable_names = [column for column in df.columns if column not in {"texte", "entete"}]
     st.subheader("Filtrer par variables")
     selected_variables = st.multiselect(
         "Variables disponibles", variable_names, default=variable_names
@@ -98,7 +107,22 @@ def main() -> None:
         modality_filters[variable] = selected_modalities
         filtered_df = filtered_df[filtered_df[variable].isin(selected_modalities)]
 
-    combined_text = " ".join(filtered_df["texte"].dropna()).strip()
+    combined_parts: List[str] = []
+    for _, row in filtered_df.iterrows():
+        raw_header = row.get("entete", "")
+        raw_text = row.get("texte", "")
+
+        header = str(raw_header).strip() if pd.notna(raw_header) else ""
+        text = str(raw_text).strip() if pd.notna(raw_text) else ""
+
+        if header and text:
+            combined_parts.append(f"{header}\n{text}")
+        elif header:
+            combined_parts.append(header)
+        elif text:
+            combined_parts.append(text)
+
+    combined_text = "\n\n".join(part for part in combined_parts if part).strip()
 
     st.subheader("Texte combiné")
     if combined_text:
@@ -108,9 +132,30 @@ def main() -> None:
         return
 
     connectors = load_connectors(Path(__file__).parent / "dictionnaires" / "connecteurs.json")
-    annotated_html = annotate_connectors_html(combined_text, connectors)
+    st.subheader("Sélection des connecteurs")
+    connector_labels = sorted({label for label in connectors.values()})
+    selected_labels = st.multiselect(
+        "Labels de connecteurs à inclure",
+        connector_labels,
+        default=connector_labels,
+    )
+    available_connectors = [
+        connector for connector, label in connectors.items() if label in selected_labels
+    ]
+    selected_connectors = st.multiselect(
+        "Connecteurs à annoter dans le texte",
+        available_connectors,
+        default=available_connectors,
+    )
+    selected_connector_map = {key: connectors[key] for key in selected_connectors}
 
     st.subheader("Texte annoté par connecteurs")
+    if not selected_connector_map:
+        st.info("Sélectionnez au moins un connecteur pour afficher l'annotation et les statistiques.")
+        return
+
+    annotated_html = annotate_connectors_html(combined_text, selected_connector_map)
+
     annotation_style = """
     <style>
     .connector-annotation {
@@ -160,7 +205,7 @@ def main() -> None:
         mime="text/html",
     )
 
-    stats_df = count_connectors(combined_text, connectors)
+    stats_df = count_connectors(combined_text, selected_connector_map)
 
     st.subheader("Statistiques des connecteurs")
     if stats_df.empty:
