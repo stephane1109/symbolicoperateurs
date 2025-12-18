@@ -109,109 +109,112 @@ def main() -> None:
         st.warning("Aucune entrée valide trouvée dans le fichier fourni.")
         return
 
-    df = build_dataframe(records)
-    st.subheader("Données importées")
-    st.dataframe(df)
+    tabs = st.tabs(["Analyses stats"])
 
-    variable_names = [column for column in df.columns if column != "texte"]
-    st.subheader("Filtrer par variables")
-    selected_variables = st.multiselect(
-        "Variables disponibles", variable_names, default=variable_names
-    )
+    with tabs[0]:
+        df = build_dataframe(records)
+        st.subheader("Données importées")
+        st.dataframe(df)
 
-    modality_filters: Dict[str, List[str]] = {}
-    filtered_df = df.copy()
-
-    for variable in selected_variables:
-        options = sorted(filtered_df[variable].dropna().unique().tolist())
-        selected_modalities = st.multiselect(
-            f"Modalités pour {variable}", options, default=options
+        variable_names = [column for column in df.columns if column != "texte"]
+        st.subheader("Filtrer par variables")
+        selected_variables = st.multiselect(
+            "Variables disponibles", variable_names, default=variable_names
         )
-        modality_filters[variable] = selected_modalities
-        filtered_df = filtered_df[filtered_df[variable].isin(selected_modalities)]
 
-    combined_text = " ".join(filtered_df["texte"].dropna()).strip()
+        modality_filters: Dict[str, List[str]] = {}
+        filtered_df = df.copy()
 
-    st.subheader("Texte combiné")
-    if combined_text:
-        st.text_area("", combined_text, height=200)
-    else:
-        st.info("Aucun texte ne correspond aux filtres sélectionnés.")
-        return
+        for variable in selected_variables:
+            options = sorted(filtered_df[variable].dropna().unique().tolist())
+            selected_modalities = st.multiselect(
+                f"Modalités pour {variable}", options, default=options
+            )
+            modality_filters[variable] = selected_modalities
+            filtered_df = filtered_df[filtered_df[variable].isin(selected_modalities)]
 
-    connectors = load_connectors(Path(__file__).parent / "dictionnaires" / "connecteurs.json")
-    annotated_html = annotate_connectors_html(combined_text, connectors)
+        combined_text = " ".join(filtered_df["texte"].dropna()).strip()
 
-    st.subheader("Texte annoté par connecteurs")
-    annotation_style = """
-    <style>
-    .connector-annotation {
-        background-color: #eef3ff;
-        border-radius: 4px;
-        padding: 2px 6px;
-        margin: 0 2px;
-        display: inline-block;
-    }
-    .connector-label {
-        color: #1a56db;
-        font-weight: 700;
-        margin-right: 6px;
-    }
-    .connector-text {
-        color: #111827;
-        font-weight: 500;
-    }
-    .annotated-container {
-        line-height: 1.6;
-        font-size: 15px;
-    }
-    </style>
-    """
+        st.subheader("Texte combiné")
+        if combined_text:
+            st.text_area("", combined_text, height=200)
+        else:
+            st.info("Aucun texte ne correspond aux filtres sélectionnés.")
+            return
 
-    st.markdown(annotation_style, unsafe_allow_html=True)
-    st.markdown(
-        f"<div class='annotated-container'>{annotated_html}</div>",
-        unsafe_allow_html=True,
-    )
+        connectors = load_connectors(Path(__file__).parent / "dictionnaires" / "connecteurs.json")
+        annotated_html = annotate_connectors_html(combined_text, connectors)
 
-    downloadable_html = f"""<!DOCTYPE html>
-    <html lang=\"fr\">
-    <head>
-    <meta charset=\"utf-8\" />
-    {annotation_style}
-    </head>
-    <body>
-    <div class='annotated-container'>{annotated_html}</div>
-    </body>
-    </html>"""
+        st.subheader("Texte annoté par connecteurs")
+        annotation_style = """
+        <style>
+        .connector-annotation {
+            background-color: #eef3ff;
+            border-radius: 4px;
+            padding: 2px 6px;
+            margin: 0 2px;
+            display: inline-block;
+        }
+        .connector-label {
+            color: #1a56db;
+            font-weight: 700;
+            margin-right: 6px;
+        }
+        .connector-text {
+            color: #111827;
+            font-weight: 500;
+        }
+        .annotated-container {
+            line-height: 1.6;
+            font-size: 15px;
+        }
+        </style>
+        """
 
-    st.download_button(
-        label="Télécharger le texte annoté (HTML)",
-        data=downloadable_html,
-        file_name="texte_annote.html",
-        mime="text/html",
-    )
-
-    stats_df = count_connectors(combined_text, connectors)
-
-    st.subheader("Statistiques des connecteurs")
-    if stats_df.empty:
-        st.info("Aucun connecteur trouvé dans le texte sélectionné.")
-        return
-
-    st.dataframe(stats_df)
-
-    chart = (
-        alt.Chart(stats_df)
-        .mark_bar()
-        .encode(
-            x=alt.X("connecteur", sort="-y", title="Connecteur"),
-            y=alt.Y("occurrences", title="Occurrences"),
-            color=alt.Color("label", title="Label"),
-            tooltip=["connecteur", "label", "occurrences"],
+        st.markdown(annotation_style, unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='annotated-container'>{annotated_html}</div>",
+            unsafe_allow_html=True,
         )
-    )
-    st.altair_chart(chart, use_container_width=True)
+
+        downloadable_html = f"""<!DOCTYPE html>
+        <html lang=\"fr\">
+        <head>
+        <meta charset=\"utf-8\" />
+        {annotation_style}
+        </head>
+        <body>
+        <div class='annotated-container'>{annotated_html}</div>
+        </body>
+        </html>"""
+
+        st.download_button(
+            label="Télécharger le texte annoté (HTML)",
+            data=downloadable_html,
+            file_name="texte_annote.html",
+            mime="text/html",
+        )
+
+        stats_df = count_connectors(combined_text, connectors)
+
+        st.subheader("Statistiques des connecteurs")
+        if stats_df.empty:
+            st.info("Aucun connecteur trouvé dans le texte sélectionné.")
+            return
+
+        st.dataframe(stats_df)
+
+        chart = (
+            alt.Chart(stats_df)
+            .mark_bar()
+            .encode(
+                x=alt.X("connecteur", sort="-y", title="Connecteur"),
+                y=alt.Y("occurrences", title="Occurrences"),
+                color=alt.Color("label", title="Label"),
+                tooltip=["connecteur", "label", "occurrences"],
+            )
+        )
+        st.altair_chart(chart, use_container_width=True)
 
     st.subheader("Statistiques par variables")
 
