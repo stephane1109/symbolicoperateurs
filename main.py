@@ -10,6 +10,7 @@ import streamlit as st
 from analyses import (
     annotate_connectors_html,
     count_connectors,
+    count_connectors_by_label,
     load_connectors,
 )
 
@@ -54,6 +55,37 @@ def build_dataframe(records: List[Dict[str, str]]) -> pd.DataFrame:
         return pd.DataFrame()
 
     return pd.DataFrame(records)
+
+
+def build_variable_stats(
+    dataframe: pd.DataFrame,
+    variables: List[str],
+    connectors: Dict[str, str],
+    labels: List[str],
+) -> pd.DataFrame:
+    """Construire un tableau des occurrences par variable, modalité et label."""
+
+    rows: List[Dict[str, str | int]] = []
+
+    for variable in variables:
+        if variable not in dataframe.columns:
+            continue
+
+        for modality, subset in dataframe.dropna(subset=[variable]).groupby(variable):
+            modality_text = " ".join(subset["texte"].dropna())
+            label_counts = count_connectors_by_label(modality_text, connectors)
+
+            for label in labels:
+                rows.append(
+                    {
+                        "variable": variable,
+                        "modalite": modality,
+                        "label": label,
+                        "occurrences": label_counts.get(label, 0),
+                    }
+                )
+
+    return pd.DataFrame(rows)
 
 
 def main() -> None:
@@ -180,6 +212,42 @@ def main() -> None:
         )
     )
     st.altair_chart(chart, use_container_width=True)
+
+    st.subheader("Statistiques par variables")
+
+    label_counts_overall = count_connectors_by_label(combined_text, connectors)
+    selected_labels = sorted(
+        label_counts_overall,
+        key=label_counts_overall.get,
+        reverse=True,
+    )[:3]
+
+    if not selected_labels:
+        selected_labels = sorted(set(connectors.values()))[:3]
+
+    variable_stats_df = build_variable_stats(
+        filtered_df, selected_variables, connectors, selected_labels
+    )
+
+    if variable_stats_df.empty:
+        st.info("Aucune donnée disponible pour les statistiques par variables.")
+        return
+
+    variable_chart = (
+        alt.Chart(variable_stats_df)
+        .mark_bar()
+        .encode(
+            x=alt.X("modalite:N", title="Modalité"),
+            xOffset="label",
+            y=alt.Y("occurrences:Q", title="Occurrences"),
+            color=alt.Color("label:N", title="Connecteur"),
+            column=alt.Column("variable:N", title="Variable"),
+            tooltip=["variable", "modalite", "label", "occurrences"],
+        )
+        .properties(spacing=20)
+    )
+
+    st.altair_chart(variable_chart, use_container_width=True)
 
 
 if __name__ == "__main__":
