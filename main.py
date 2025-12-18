@@ -185,27 +185,27 @@ def main() -> None:
         st.subheader("Texte annoté par connecteurs")
         annotation_style = f"""
         <style>
-        .connector-annotation {
+        .connector-annotation {{
             background-color: #eef3ff;
             border-radius: 4px;
             padding: 2px 6px;
             margin: 0 2px;
             display: inline-block;
             border: 1px solid #c3d4ff;
-        }
-        .connector-label {
+        }}
+        .connector-label {{
             color: #1a56db;
             font-weight: 700;
             margin-right: 6px;
-        }
-        .connector-text {
+        }}
+        .connector-text {{
             color: #111827;
             font-weight: 500;
-        }
-        .annotated-container {
+        }}
+        .annotated-container {{
             line-height: 1.6;
             font-size: 15px;
-        }
+        }}
         {label_style_block}
         </style>
         """
