@@ -43,7 +43,13 @@ def parse_iramuteq(content: str) -> List[Dict[str, str]]:
                 text_lines.append(lines[index])
                 index += 1
 
-            records.append({**variables, "texte": "\n".join(text_lines).strip()})
+            records.append(
+                {
+                    **variables,
+                    "entete": line,
+                    "texte": "\n".join(text_lines).strip(),
+                }
+            )
         else:
             index += 1
 
@@ -118,7 +124,7 @@ def main() -> None:
         st.subheader("Données importées")
         st.dataframe(df)
 
-        variable_names = [column for column in df.columns if column != "texte"]
+        variable_names = [column for column in df.columns if column not in ("texte", "entete")]
         st.subheader("Filtrer par variables")
         selected_variables = st.multiselect(
             "Variables disponibles", variable_names, default=variable_names
@@ -135,7 +141,20 @@ def main() -> None:
             modality_filters[variable] = selected_modalities
             filtered_df = filtered_df[filtered_df[variable].isin(selected_modalities)]
 
-        combined_text = " ".join(filtered_df["texte"].dropna()).strip()
+        combined_text_parts: List[str] = []
+
+        for _, row in filtered_df.iterrows():
+            header = str(row.get("entete", "")).strip()
+            body = str(row.get("texte", "")).strip()
+
+            if header and body:
+                combined_text_parts.append(f"{header}\n{body}")
+            elif body:
+                combined_text_parts.append(body)
+            elif header:
+                combined_text_parts.append(header)
+
+        combined_text = "\n\n".join(part for part in combined_text_parts if part).strip()
 
         st.subheader("Texte combiné")
         if combined_text:
@@ -145,9 +164,23 @@ def main() -> None:
             return
 
         connectors = load_connectors(Path(__file__).parent / "dictionnaires" / "connecteurs.json")
-        label_colors = generate_label_colors(connectors.values())
+        connector_names = sorted(connectors.keys())
+        selected_connector_names = st.multiselect(
+            "Connecteurs à annoter",
+            connector_names,
+            default=connector_names,
+            help="Sélectionnez les connecteurs à mettre en surbrillance dans le texte.",
+        )
+
+        filtered_connectors = {
+            connector: label
+            for connector, label in connectors.items()
+            if connector in selected_connector_names
+        }
+
+        label_colors = generate_label_colors(filtered_connectors.values())
         label_style_block = build_label_style_block(label_colors)
-        annotated_html = annotate_connectors_html(combined_text, connectors)
+        annotated_html = annotate_connectors_html(combined_text, filtered_connectors)
 
         st.subheader("Texte annoté par connecteurs")
         annotation_style = f"""
@@ -201,7 +234,11 @@ def main() -> None:
             mime="text/html",
         )
 
-        stats_df = count_connectors(combined_text, connectors)
+        if not filtered_connectors:
+            st.info("Sélectionnez au moins un connecteur pour afficher les statistiques.")
+            return
+
+        stats_df = count_connectors(combined_text, filtered_connectors)
 
         st.subheader("Statistiques des connecteurs")
         if stats_df.empty:
@@ -224,7 +261,7 @@ def main() -> None:
 
     st.subheader("Statistiques par variables")
 
-    label_counts_overall = count_connectors_by_label(combined_text, connectors)
+    label_counts_overall = count_connectors_by_label(combined_text, filtered_connectors)
     selected_labels = sorted(
         label_counts_overall,
         key=label_counts_overall.get,
@@ -232,10 +269,10 @@ def main() -> None:
     )[:3]
 
     if not selected_labels:
-        selected_labels = sorted(set(connectors.values()))[:3]
+        selected_labels = sorted(set(filtered_connectors.values()))[:3]
 
     variable_stats_df = build_variable_stats(
-        filtered_df, selected_variables, connectors, selected_labels
+        filtered_df, selected_variables, filtered_connectors, selected_labels
     )
 
     if variable_stats_df.empty:
