@@ -20,8 +20,15 @@ from densite import (
     compute_density_by_label,
     compute_total_connectors,
     count_words,
+    build_text_from_dataframe,
+    compute_density_per_modality,
+    filter_dataframe_by_modalities,
 )
-from hash import average_segment_length, compute_segment_word_lengths
+from hash import (
+    average_segment_length,
+    average_segment_length_by_modality,
+    compute_segment_word_lengths,
+)
 
 
 def parse_iramuteq(content: str) -> List[Dict[str, str]]:
@@ -149,20 +156,7 @@ def main() -> None:
             modality_filters[variable] = selected_modalities
             filtered_df = filtered_df[filtered_df[variable].isin(selected_modalities)]
 
-        combined_text_parts: List[str] = []
-
-        for _, row in filtered_df.iterrows():
-            header = str(row.get("entete", "")).strip()
-            body = str(row.get("texte", "")).strip()
-
-            if header and body:
-                combined_text_parts.append(f"{header}\n{body}")
-            elif body:
-                combined_text_parts.append(body)
-            elif header:
-                combined_text_parts.append(header)
-
-        combined_text = "\n\n".join(part for part in combined_text_parts if part).strip()
+        combined_text = build_text_from_dataframe(filtered_df)
 
         st.subheader("Texte combiné")
         if combined_text:
@@ -325,111 +319,177 @@ def main() -> None:
         if not filtered_connectors:
             st.info("Sélectionnez au moins un connecteur pour calculer la densité.")
         else:
-            base = st.number_input(
-                "Base de normalisation (mots)",
-                min_value=10,
-                max_value=100_000,
-                value=1000,
-                step=10,
+            st.subheader("Sélection des variables/modalités")
+            density_variables = [column for column in filtered_df.columns if column not in ("texte", "entete")]
+            default_density_index = 0 if not density_variables else 1
+            density_variable_choice = st.selectbox(
+                "Variable à filtrer pour la densité",
+                ["(Aucune)"] + density_variables,
+                index=default_density_index,
+                help="Choisissez une variable pour restreindre le calcul à certaines modalités.",
             )
 
-            total_words = count_words(combined_text)
-            total_connectors = compute_total_connectors(combined_text, filtered_connectors)
-            density = compute_density(combined_text, filtered_connectors, base=int(base))
+            density_modalities: List[str] = []
 
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Nombre total de mots", f"{total_words:,}".replace(",", " "))
-            col2.metric("Occurrences de connecteurs", f"{total_connectors:,}".replace(",", " "))
-            col3.metric(f"Densité pour {int(base):,} mots", f"{density:.2f}".replace(",", " "))
+            if density_variable_choice != "(Aucune)":
+                modality_options = sorted(
+                    filtered_df[density_variable_choice].dropna().unique().tolist()
+                )
+                density_modalities = st.multiselect(
+                    "Modalités à inclure",
+                    modality_options,
+                    default=modality_options,
+                    help="Sélectionnez une ou plusieurs modalités pour filtrer l'analyse de densité.",
+                )
 
-            if total_connectors == 0:
-                st.info("Aucun connecteur détecté : la densité est nulle pour ce texte.")
-
-            st.caption(
-                "La densité correspond au nombre de connecteurs ramené à une base commune. "
-                "Un score élevé signale un texte plus riche en articulations logiques."
+            density_filtered_df = filter_dataframe_by_modalities(
+                filtered_df,
+                None if density_variable_choice == "(Aucune)" else density_variable_choice,
+                density_modalities or None,
             )
 
-            density_labels = sorted(set(filtered_connectors.values()))
-
-            if not density_labels:
-                st.info("Aucun label de connecteur disponible pour le graphique de classification.")
+            density_text = build_text_from_dataframe(density_filtered_df)
+            if not density_text:
+                st.info("Aucun texte disponible avec les modalités sélectionnées pour calculer la densité.")
             else:
-                default_x_index = density_labels.index("ALTERNATIVE") if "ALTERNATIVE" in density_labels else 0
-                default_y_index = density_labels.index("CONDITION") if "CONDITION" in density_labels else min(1, len(density_labels) - 1)
 
-                st.subheader("Classification visuelle (X-Y)")
-                col_x, col_y = st.columns(2)
-                selected_x_label = col_x.selectbox(
-                    "Marqueur pour l'axe horizontal",
-                    density_labels,
-                    index=default_x_index,
-                    help="Choisissez le connecteur dont la densité sera placée sur l'axe horizontal.",
-                )
-                selected_y_label = col_y.selectbox(
-                    "Marqueur pour l'axe vertical",
-                    density_labels,
-                    index=default_y_index,
-                    help="Choisissez le connecteur dont la densité sera placée sur l'axe vertical.",
+                base = st.number_input(
+                    "Base de normalisation (mots)",
+                    min_value=10,
+                    max_value=100_000,
+                    value=1000,
+                    step=10,
                 )
 
-                scatter_rows: List[Dict[str, float | str]] = []
+                total_words = count_words(density_text)
+                total_connectors = compute_total_connectors(density_text, filtered_connectors)
+                density = compute_density(density_text, filtered_connectors, base=int(base))
 
-                for idx, row in filtered_df.iterrows():
-                    text_value = str(row.get("texte", "") or "")
-                    densities = compute_density_by_label(
-                        text_value,
-                        filtered_connectors,
-                        base=int(base),
-                    )
-                    scatter_rows.append(
-                        {
-                            "entree": (str(row.get("entete", "")).strip() or f"Entrée {idx + 1}"),
-                            "densite_x": densities.get(selected_x_label, 0.0),
-                            "densite_y": densities.get(selected_y_label, 0.0),
-                            "densite_totale": compute_density(
-                                text_value, filtered_connectors, base=int(base)
-                            ),
-                            **{
-                                variable: str(row.get(variable, ""))
-                                for variable in selected_variables
-                                if variable in filtered_df.columns
-                            },
-                        }
-                    )
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Nombre total de mots", f"{total_words:,}".replace(",", " "))
+                col2.metric("Occurrences de connecteurs", f"{total_connectors:,}".replace(",", " "))
+                col3.metric(f"Densité pour {int(base):,} mots", f"{density:.2f}".replace(",", " "))
 
-                scatter_df = pd.DataFrame(scatter_rows)
+                if total_connectors == 0:
+                    st.info("Aucun connecteur détecté : la densité est nulle pour ce texte.")
 
-                if scatter_df.empty:
-                    st.info("Aucune donnée disponible pour générer le graphique de densité.")
-                else:
-                    tooltip_fields = ["entree", "densite_x", "densite_y", "densite_totale"] + [
-                        variable for variable in selected_variables if variable in scatter_df.columns
-                    ]
+                st.caption(
+                    "La densité correspond au nombre de connecteurs ramené à une base commune. "
+                    "Un score élevé signale un texte plus riche en articulations logiques."
+                )
 
-                    scatter_chart = (
-                        alt.Chart(scatter_df)
-                        .mark_circle(opacity=0.7)
-                        .encode(
-                            x=alt.X(
-                                "densite_x:Q",
-                                title=f"Densité {selected_x_label}",
-                            ),
-                            y=alt.Y(
-                                "densite_y:Q",
-                                title=f"Densité {selected_y_label}",
-                            ),
-                            size=alt.Size(
-                                "densite_totale:Q",
-                                title="Densité totale (taille du cercle)",
-                                scale=alt.Scale(range=[50, 1200]),
-                            ),
-                            tooltip=tooltip_fields,
+                per_modality_df = compute_density_per_modality(
+                    density_filtered_df,
+                    None if density_variable_choice == "(Aucune)" else density_variable_choice,
+                    filtered_connectors,
+                    base=int(base),
+                )
+
+                if not per_modality_df.empty:
+                    st.subheader("Densité par modalité sélectionnée")
+                    st.dataframe(
+                        per_modality_df.rename(
+                            columns={
+                                "modalite": "Modalité",
+                                "densite": "Densité",
+                                "mots": "Mots comptés",
+                                "connecteurs": "Connecteurs",
+                            }
                         )
-                        .properties(height=500)
                     )
 
-                    st.altair_chart(scatter_chart, use_container_width=True)
+                    density_chart = (
+                        alt.Chart(per_modality_df)
+                        .mark_bar()
+                        .encode(
+                            x=alt.X("modalite:N", title="Modalité"),
+                            y=alt.Y("densite:Q", title="Densité"),
+                            color=alt.Color("modalite:N", title="Modalité"),
+                            tooltip=["modalite", "densite", "mots", "connecteurs"],
+                        )
+                    )
+                    st.altair_chart(density_chart, use_container_width=True)
+
+                density_labels = sorted(set(filtered_connectors.values()))
+
+                if not density_labels:
+                    st.info("Aucun label de connecteur disponible pour le graphique de classification.")
+                else:
+                    default_x_index = density_labels.index("ALTERNATIVE") if "ALTERNATIVE" in density_labels else 0
+                    default_y_index = density_labels.index("CONDITION") if "CONDITION" in density_labels else min(1, len(density_labels) - 1)
+
+                    st.subheader("Classification visuelle (X-Y)")
+                    col_x, col_y = st.columns(2)
+                    selected_x_label = col_x.selectbox(
+                        "Marqueur pour l'axe horizontal",
+                        density_labels,
+                        index=default_x_index,
+                        help="Choisissez le connecteur dont la densité sera placée sur l'axe horizontal.",
+                    )
+                    selected_y_label = col_y.selectbox(
+                        "Marqueur pour l'axe vertical",
+                        density_labels,
+                        index=default_y_index,
+                        help="Choisissez le connecteur dont la densité sera placée sur l'axe vertical.",
+                    )
+
+                    scatter_rows: List[Dict[str, float | str]] = []
+
+                    for idx, row in density_filtered_df.iterrows():
+                        text_value = str(row.get("texte", "") or "")
+                        densities = compute_density_by_label(
+                            text_value,
+                            filtered_connectors,
+                            base=int(base),
+                        )
+                        scatter_rows.append(
+                            {
+                                "entree": (str(row.get("entete", "")).strip() or f"Entrée {idx + 1}"),
+                                "densite_x": densities.get(selected_x_label, 0.0),
+                                "densite_y": densities.get(selected_y_label, 0.0),
+                                "densite_totale": compute_density(
+                                    text_value, filtered_connectors, base=int(base)
+                                ),
+                                **{
+                                    variable: str(row.get(variable, ""))
+                                    for variable in selected_variables
+                                    if variable in density_filtered_df.columns
+                                },
+                            }
+                        )
+
+                    scatter_df = pd.DataFrame(scatter_rows)
+
+                    if scatter_df.empty:
+                        st.info("Aucune donnée disponible pour générer le graphique de densité.")
+                    else:
+                        tooltip_fields = ["entree", "densite_x", "densite_y", "densite_totale"] + [
+                            variable for variable in selected_variables if variable in scatter_df.columns
+                        ]
+
+                        scatter_chart = (
+                            alt.Chart(scatter_df)
+                            .mark_circle(opacity=0.7)
+                            .encode(
+                                x=alt.X(
+                                    "densite_x:Q",
+                                    title=f"Densité {selected_x_label}",
+                                ),
+                                y=alt.Y(
+                                    "densite_y:Q",
+                                    title=f"Densité {selected_y_label}",
+                                ),
+                                size=alt.Size(
+                                    "densite_totale:Q",
+                                    title="Densité totale (taille du cercle)",
+                                    scale=alt.Scale(range=[50, 1200]),
+                                ),
+                                tooltip=tooltip_fields,
+                            )
+                            .properties(height=500)
+                        )
+
+                        st.altair_chart(scatter_chart, use_container_width=True)
 
     with tabs[3]:
         st.subheader("Hash (LMS entre connecteurs)")
@@ -448,30 +508,102 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                 "Impossible de calculer la LMS : aucun segment n'a été détecté (ponctuation/retours à la ligne)."
             )
         else:
-            average_length = average_segment_length(combined_text, filtered_connectors)
+            st.subheader("Sélection des variables/modalités")
+            hash_variables = [column for column in filtered_df.columns if column not in ("texte", "entete")]
+            default_hash_index = 0 if not hash_variables else 1
+            hash_variable_choice = st.selectbox(
+                "Variable à filtrer pour la LMS",
+                ["(Aucune)"] + hash_variables,
+                index=default_hash_index,
+                help="Restreindre le calcul de la LMS à certaines modalités.",
+            )
 
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Segments comptabilisés", str(len(segment_lengths)))
-            col2.metric("LMS (mots)", f"{average_length:.2f}")
-            col3.metric("Segments min / max", f"{min(segment_lengths)} / {max(segment_lengths)}")
+            hash_modalities: List[str] = []
 
-            distribution_df = pd.DataFrame({
-                "index": range(1, len(segment_lengths) + 1),
-                "longueur": segment_lengths,
-            })
+            if hash_variable_choice != "(Aucune)":
+                modality_options = sorted(
+                    filtered_df[hash_variable_choice].dropna().unique().tolist()
+                )
+                hash_modalities = st.multiselect(
+                    "Modalités à inclure",
+                    modality_options,
+                    default=modality_options,
+                    help="Choisissez les modalités dont les textes seront pris en compte.",
+                )
 
-            chart = (
-                alt.Chart(distribution_df)
-                .mark_bar()
-                .encode(
-                    x=alt.X("longueur:Q", bin=True, title="Longueur des segments (mots)"),
-                    y=alt.Y("count()", title="Nombre de segments"),
-                    tooltip=["count()", "longueur"]
+            hash_filtered_df = filter_dataframe_by_modalities(
+                filtered_df,
+                None if hash_variable_choice == "(Aucune)" else hash_variable_choice,
+                hash_modalities or None,
+            )
+
+            hash_text = build_text_from_dataframe(hash_filtered_df)
+            segment_lengths = compute_segment_word_lengths(hash_text, filtered_connectors)
+
+            if not hash_text or not segment_lengths:
+                st.info(
+                    "Impossible de calculer la LMS : aucun segment n'a été détecté entre connecteurs."
+                )
+            else:
+                average_length = average_segment_length(hash_text, filtered_connectors)
+
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Segments comptabilisés", str(len(segment_lengths)))
+                col2.metric("LMS (mots)", f"{average_length:.2f}")
+                col3.metric("Segments min / max", f"{min(segment_lengths)} / {max(segment_lengths)}")
+
+                distribution_df = pd.DataFrame({
+                    "index": range(1, len(segment_lengths) + 1),
+                    "longueur": segment_lengths,
+                })
+
+                chart = (
+                    alt.Chart(distribution_df)
+                    .mark_bar()
+                    .encode(
+                        x=alt.X("longueur:Q", bin=True, title="Longueur des segments (mots)"),
+                        y=alt.Y("count()", title="Nombre de segments"),
+                        tooltip=["count()", "longueur"]
+                    )
                 )
             )
 
             st.altair_chart(chart, use_container_width=True)
             st.dataframe(distribution_df.rename(columns={"index": "Segment", "longueur": "Longueur"}))
+
+                per_modality_hash_df = average_segment_length_by_modality(
+                    hash_filtered_df,
+                    None if hash_variable_choice == "(Aucune)" else hash_variable_choice,
+                    filtered_connectors,
+                    hash_modalities or None,
+                )
+
+                if not per_modality_hash_df.empty:
+                    st.subheader("LMS par modalité sélectionnée")
+                    st.dataframe(
+                        per_modality_hash_df.rename(
+                            columns={
+                                "modalite": "Modalité",
+                                "segments": "Segments comptés",
+                                "lms": "LMS",
+                                "min": "Min",
+                                "max": "Max",
+                            }
+                        )
+                    )
+
+                    lms_chart = (
+                        alt.Chart(per_modality_hash_df)
+                        .mark_bar()
+                        .encode(
+                            x=alt.X("modalite:N", title="Modalité"),
+                            y=alt.Y("lms:Q", title="LMS (mots)"),
+                            color=alt.Color("modalite:N", title="Modalité"),
+                            tooltip=["modalite", "lms", "segments", "min", "max"],
+                        )
+                    )
+
+                    st.altair_chart(lms_chart, use_container_width=True)
 
 
 if __name__ == "__main__":
