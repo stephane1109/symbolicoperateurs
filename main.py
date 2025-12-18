@@ -9,7 +9,9 @@ import streamlit as st
 
 from analyses import (
     annotate_connectors_html,
+    build_label_color_map,
     count_connectors,
+    label_to_class,
     load_connectors,
 )
 
@@ -108,31 +110,50 @@ def main() -> None:
         return
 
     connectors = load_connectors(Path(__file__).parent / "dictionnaires" / "connecteurs.json")
-    annotated_html = annotate_connectors_html(combined_text, connectors)
+    label_colors = build_label_color_map(connectors.values())
+    annotated_html = annotate_connectors_html(
+        combined_text, connectors, label_colors=label_colors
+    )
 
     st.subheader("Texte annoté par connecteurs")
-    annotation_style = """
-    <style>
+    base_styles = """
     .connector-annotation {
-        background-color: #eef3ff;
         border-radius: 4px;
-        padding: 2px 6px;
-        margin: 0 2px;
-        display: inline-block;
+        padding: 4px 8px;
+        margin: 0 2px 6px 2px;
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 1px 1px rgba(15, 23, 42, 0.05);
     }
     .connector-label {
-        color: #1a56db;
+        color: #0f172a;
         font-weight: 700;
-        margin-right: 6px;
+        margin-right: 2px;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        font-size: 12px;
     }
     .connector-text {
         color: #111827;
-        font-weight: 500;
+        font-weight: 600;
     }
     .annotated-container {
         line-height: 1.6;
         font-size: 15px;
     }
+    """
+
+    dynamic_styles = "\n".join(
+        f".{label_to_class(label)} {{ background-color: {color}; }}"
+        for label, color in label_colors.items()
+    )
+
+    annotation_style = f"""
+    <style>
+    {base_styles}
+    {dynamic_styles}
     </style>
     """
 

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
-from pathlib import Path
 from html import escape
-from typing import Dict
+from pathlib import Path
+from typing import Dict, Iterable
 
 import pandas as pd
 
@@ -33,6 +34,39 @@ def _build_connector_pattern(connectors: Dict[str, str]) -> re.Pattern[str]:
     return re.compile(rf"\b({pattern})\b", re.IGNORECASE)
 
 
+def build_label_color_map(labels: Iterable[str]) -> Dict[str, str]:
+    """Attribuer une couleur pastel déterministe à chaque label."""
+
+    palette = [
+        "#fef3c7",
+        "#e0f2fe",
+        "#dcfce7",
+        "#ede9fe",
+        "#ffe4e6",
+        "#cffafe",
+        "#fce7f3",
+        "#e5e7eb",
+    ]
+
+    unique_labels = {label for label in labels if label}
+    colors: Dict[str, str] = {}
+
+    for label in unique_labels:
+        digest = hashlib.sha256(label.encode("utf-8")).hexdigest()
+        index = int(digest, 16) % len(palette)
+        colors[label] = palette[index]
+
+    return colors
+
+
+def label_to_class(label: str) -> str:
+    """Convertir un label en nom de classe CSS sûr."""
+
+    slug = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+    slug = slug or "connecteur"
+    return f"connector-label-{slug}"
+
+
 def annotate_connectors(text: str, connectors: Dict[str, str]) -> str:
     """Insérer les étiquettes des connecteurs avant chaque occurrence dans le texte."""
 
@@ -54,18 +88,24 @@ def annotate_connectors(text: str, connectors: Dict[str, str]) -> str:
     return pattern.sub(_replacer, text)
 
 
-def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
+def annotate_connectors_html(
+    text: str,
+    connectors: Dict[str, str],
+    label_colors: Dict[str, str] | None = None,
+) -> str:
     """Retourner une version HTML du texte annoté avec les labels des connecteurs.
 
     Chaque connecteur est entouré d'un conteneur HTML incluant une étiquette de
     label visible. Les caractères spéciaux du texte source sont échappés afin de
-    garantir une sortie sécurisée.
+    garantir une sortie sécurisée. Les couleurs peuvent être personnalisées via
+    ``label_colors`` pour différencier visuellement les catégories.
     """
 
     if not text:
         return ""
 
     cleaned_connectors = {key: value for key, value in connectors.items() if key}
+    resolved_colors = label_colors or build_label_color_map(cleaned_connectors.values())
     if not cleaned_connectors:
         return escape(text)
 
@@ -77,9 +117,12 @@ def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
         label = lower_map.get(matched_connector.lower(), "")
         safe_label = escape(label)
         safe_connector = escape(matched_connector)
+        color = resolved_colors.get(label, "#eef3ff")
+        class_name = label_to_class(label)
 
         return (
-            '<span class="connector-annotation">'
+            f'<span class="connector-annotation {class_name}" '
+            f'style="background-color: {color};">'
             f'<span class="connector-label">{safe_label}</span>'
             f'<span class="connector-text">{safe_connector}</span>'
             "</span>"
