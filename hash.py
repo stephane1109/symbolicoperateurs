@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 """
-Le "hachage du texte est calculé à partir de la Longueur Moyenne des Segments (LMS) de texte entre deux connecteurs.
-Hypothèse : Plus les segments sont courts, plus le texte est "haché", saccadé, algorithmique.
-Plus les segments sont longs, plus le texte est fluide, narratif, explicatif.
-Visualisation (exemple) :
-Texte "Saturant" :
-"Appelle le 15 [OU] le 112 [SI] tu es en danger [MAIS] [SI] tu es seul [ALORS] sors."
-5 connecteurs en 20 mots. Les segments sont dans cet exemple petits (3-4 mots).
+Le "hachage" du texte est calculé à partir de la Longueur Moyenne des Segments (LMS)
+de texte séparés par une ponctuation forte (point, point d'exclamation, point
+d'interrogation) ou un retour à la ligne. L'idée :
+- Des segments courts signalent un texte haché, saccadé, algorithmique.
+- Des segments longs évoquent une prose fluide, narrative ou explicative.
 """
 
 import re
@@ -15,15 +13,7 @@ from statistics import mean
 from typing import Dict, List
 
 
-def _build_connector_pattern(connectors: Dict[str, str]) -> re.Pattern[str]:
-    """Construire un motif regex pour capturer tous les connecteurs."""
-
-    cleaned = [key for key in connectors if key]
-    sorted_keys = sorted(cleaned, key=len, reverse=True)
-    escaped = [re.escape(key) for key in sorted_keys]
-    pattern = "|".join(escaped)
-
-    return re.compile(rf"\b({pattern})\b", re.IGNORECASE)
+SENTENCE_BOUNDARY_PATTERN = re.compile(r"[.!?]+|\n+", re.UNICODE)
 
 
 def _tokenize(text: str) -> List[str]:
@@ -31,21 +21,22 @@ def _tokenize(text: str) -> List[str]:
 
 
 def split_segments_by_connectors(text: str, connectors: Dict[str, str]) -> List[str]:
-    """Découper le texte en segments séparés par les connecteurs détectés."""
+    """Découper le texte en segments en se basant sur la ponctuation ou un retour à la ligne.
+
+    Le paramètre ``connectors`` est conservé pour compatibilité de signature,
+    mais les segments sont désormais définis par des bornes de phrase (., !, ?, \n).
+    """
 
     if not text:
         return []
 
-    cleaned_connectors = {key: value for key, value in connectors.items() if key}
+    # Connectors conservés pour compatibilité d'appel.
+    _ = connectors
 
-    if not cleaned_connectors:
-        return []
-
-    pattern = _build_connector_pattern(cleaned_connectors)
     segments: List[str] = []
     last_end = 0
 
-    for match in pattern.finditer(text):
+    for match in SENTENCE_BOUNDARY_PATTERN.finditer(text):
         segment = text[last_end: match.start()]
 
         if segment.strip():
