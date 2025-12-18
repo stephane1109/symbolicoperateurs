@@ -174,18 +174,15 @@ def main() -> None:
             st.warning("Aucun connecteur valide disponible dans le dictionnaire fourni.")
             return
 
-        connector_names = sorted(connectors.keys())
-        selected_connector_names = st.multiselect(
+        connector_labels = sorted(set(connectors.values()))
+        selected_label = st.radio(
             "Connecteurs à annoter",
-            connector_names,
-            default=connector_names,
-            help="Sélectionnez les connecteurs à mettre en surbrillance dans le texte.",
+            connector_labels,
+            help="Choisissez le type de connecteur à mettre en surbrillance dans le texte.",
         )
 
         filtered_connectors = {
-            connector: label
-            for connector, label in connectors.items()
-            if connector in selected_connector_names
+            connector: label for connector, label in connectors.items() if label == selected_label
         }
 
         label_colors = generate_label_colors(filtered_connectors.values())
@@ -245,7 +242,7 @@ def main() -> None:
         )
 
         if not filtered_connectors:
-            st.info("Sélectionnez au moins un connecteur pour afficher les statistiques.")
+            st.info("Aucun connecteur disponible pour ce type.")
             return
 
         stats_df = count_connectors(combined_text, filtered_connectors)
