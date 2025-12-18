@@ -566,10 +566,9 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                         tooltip=["count()", "longueur"]
                     )
                 )
-            )
 
-            st.altair_chart(chart, use_container_width=True)
-            st.dataframe(distribution_df.rename(columns={"index": "Segment", "longueur": "Longueur"}))
+                st.altair_chart(chart, use_container_width=True)
+                st.dataframe(distribution_df.rename(columns={"index": "Segment", "longueur": "Longueur"}))
 
                 per_modality_hash_df = average_segment_length_by_modality(
                     hash_filtered_df,
