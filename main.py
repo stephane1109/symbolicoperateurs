@@ -484,6 +484,11 @@ def main() -> None:
                                     title="Densité totale (taille du cercle)",
                                     scale=alt.Scale(range=[50, 1200]),
                                 ),
+                                color=alt.Color(
+                                    "densite_totale:Q",
+                                    title="Densité totale",
+                                    scale=alt.Scale(scheme="oranges"),
+                                ),
                                 tooltip=tooltip_fields,
                             )
                             .properties(height=500)
