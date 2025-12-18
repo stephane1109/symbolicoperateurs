@@ -58,3 +58,29 @@ def compute_density(text: str, connectors: Dict[str, str], base: int = 1000) -> 
         return 0.0
 
     return (total_connectors / word_count) * float(base)
+
+
+def compute_density_by_label(text: str, connectors: Dict[str, str], base: int = 1000) -> Dict[str, float]:
+    """Calculer la densité ramenée à ``base`` mots pour chaque label présent."""
+
+    word_count = count_words(text)
+
+    if word_count == 0:
+        return {}
+
+    per_label: Dict[str, float] = {}
+
+    for label in sorted(set(connectors.values())):
+        label_connectors = {
+            connector: connector_label
+            for connector, connector_label in connectors.items()
+            if connector_label == label
+        }
+        total = compute_total_connectors(text, label_connectors)
+
+        if total:
+            per_label[label] = (total / word_count) * float(base)
+        else:
+            per_label[label] = 0.0
+
+    return per_label
