@@ -116,3 +116,30 @@ def count_connectors(text: str, connectors: Dict[str, str]) -> pd.DataFrame:
         .sort_values(["label", "connecteur"])
         .reset_index(drop=True)
     )
+
+
+def count_connectors_by_label(text: str, connectors: Dict[str, str]) -> Dict[str, int]:
+    """Compter les connecteurs par label dans un texte donné.
+
+    Le comptage s'effectue en parcourant toutes les occurrences des connecteurs
+    définis dans ``connectors`` et en agrégeant leurs occurrences par label
+    associé.
+    """
+
+    cleaned_connectors = {key: value for key, value in connectors.items() if key}
+
+    if not text or not cleaned_connectors:
+        return {}
+
+    pattern = _build_connector_pattern(cleaned_connectors)
+    lower_map = {key.lower(): value for key, value in cleaned_connectors.items()}
+    label_counts: Dict[str, int] = {}
+
+    for match in pattern.finditer(text):
+        matched_connector = match.group(0)
+        label = lower_map.get(matched_connector.lower())
+
+        if label:
+            label_counts[label] = label_counts.get(label, 0) + 1
+
+    return label_counts
