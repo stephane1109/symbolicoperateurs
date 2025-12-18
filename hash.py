@@ -1,5 +1,15 @@
 from __future__ import annotations
 
+"""
+Le "hachage du texte est calculé à partir de la Longueur Moyenne des Segments (LMS) de texte entre deux connecteurs.
+Hypothèse : Plus les segments sont courts, plus le texte est "haché", saccadé, algorithmique.
+Plus les segments sont longs, plus le texte est fluide, narratif, explicatif.
+Visualisation (exemple) :
+Texte "Saturant" :
+"Appelle le 15 [OU] le 112 [SI] tu es en danger [MAIS] [SI] tu es seul [ALORS] sors."
+5 connecteurs en 20 mots. Les segments sont dans cet exemple petits (3-4 mots).
+"""
+
 import re
 from statistics import mean
 from typing import Dict, List
