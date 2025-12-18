@@ -15,6 +15,8 @@ from analyses import (
     generate_label_colors,
     load_connectors,
 )
+from densite import compute_density, compute_total_connectors, count_words
+from hash import average_segment_length, compute_segment_word_lengths
 
 
 def parse_iramuteq(content: str) -> List[Dict[str, str]]:
@@ -118,7 +120,7 @@ def main() -> None:
         return
 
     df = build_dataframe(records)
-    tabs = st.tabs(["Import", "Analyse stats"])
+    tabs = st.tabs(["Import", "Analyse stats", "Densité", "Hash"])
 
     with tabs[0]:
         st.subheader("Données importées")
@@ -246,28 +248,27 @@ def main() -> None:
 
         if not filtered_connectors:
             st.info("Sélectionnez au moins un connecteur pour afficher les statistiques.")
-            return
-
-        stats_df = count_connectors(combined_text, filtered_connectors)
+            stats_df = pd.DataFrame(columns=["connecteur", "label", "occurrences"])
+        else:
+            stats_df = count_connectors(combined_text, filtered_connectors)
 
         st.subheader("Statistiques des connecteurs")
         if stats_df.empty:
             st.info("Aucun connecteur trouvé dans le texte sélectionné.")
-            return
+        else:
+            st.dataframe(stats_df)
 
-        st.dataframe(stats_df)
-
-        chart = (
-            alt.Chart(stats_df)
-            .mark_bar()
-            .encode(
-                x=alt.X("connecteur", sort="-y", title="Connecteur"),
-                y=alt.Y("occurrences", title="Occurrences"),
-                color=alt.Color("label", title="Label"),
-                tooltip=["connecteur", "label", "occurrences"],
+            chart = (
+                alt.Chart(stats_df)
+                .mark_bar()
+                .encode(
+                    x=alt.X("connecteur", sort="-y", title="Connecteur"),
+                    y=alt.Y("occurrences", title="Occurrences"),
+                    color=alt.Color("label", title="Label"),
+                    tooltip=["connecteur", "label", "occurrences"],
+                )
             )
-        )
-        st.altair_chart(chart, use_container_width=True)
+            st.altair_chart(chart, use_container_width=True)
 
         st.subheader("Statistiques par variables")
 
@@ -287,23 +288,83 @@ def main() -> None:
 
         if variable_stats_df.empty:
             st.info("Aucune donnée disponible pour les statistiques par variables.")
-            return
-
-        variable_chart = (
-            alt.Chart(variable_stats_df)
-            .mark_bar()
-            .encode(
-                x=alt.X("modalite:N", title="Modalité"),
-                xOffset="label",
-                y=alt.Y("occurrences:Q", title="Occurrences"),
-                color=alt.Color("label:N", title="Connecteur"),
-                column=alt.Column("variable:N", title="Variable"),
-                tooltip=["variable", "modalite", "label", "occurrences"],
+        else:
+            variable_chart = (
+                alt.Chart(variable_stats_df)
+                .mark_bar()
+                .encode(
+                    x=alt.X("modalite:N", title="Modalité"),
+                    xOffset="label",
+                    y=alt.Y("occurrences:Q", title="Occurrences"),
+                    color=alt.Color("label:N", title="Connecteur"),
+                    column=alt.Column("variable:N", title="Variable"),
+                    tooltip=["variable", "modalite", "label", "occurrences"],
+                )
+                .properties(spacing=20)
             )
-            .properties(spacing=20)
+
+            st.altair_chart(variable_chart, use_container_width=True)
+
+    with tabs[2]:
+        st.subheader("Densité des connecteurs")
+        base = st.number_input(
+            "Base de normalisation (mots)",
+            min_value=10,
+            max_value=100_000,
+            value=1000,
+            step=10,
         )
 
-        st.altair_chart(variable_chart, use_container_width=True)
+        total_words = count_words(combined_text)
+        total_connectors = compute_total_connectors(combined_text, filtered_connectors)
+        density = compute_density(combined_text, filtered_connectors, base=int(base))
+
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Nombre total de mots", f"{total_words:,}".replace(",", " "))
+        col2.metric("Occurrences de connecteurs", f"{total_connectors:,}".replace(",", " "))
+        col3.metric(f"Densité pour {int(base):,} mots", f"{density:.2f}".replace(",", " "))
+
+        if total_connectors == 0:
+            st.info("Aucun connecteur détecté : la densité est nulle pour ce texte.")
+
+        st.caption(
+            "La densité correspond au nombre de connecteurs ramené à une base commune. "
+            "Un score élevé signale un texte plus riche en articulations logiques."
+        )
+
+    with tabs[3]:
+        st.subheader("Hash (LMS entre connecteurs)")
+        segment_lengths = compute_segment_word_lengths(combined_text, filtered_connectors)
+
+        if not segment_lengths:
+            st.info(
+                "Impossible de calculer la LMS : aucun segment n'a été détecté entre connecteurs."
+            )
+        else:
+            average_length = average_segment_length(combined_text, filtered_connectors)
+
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Segments comptabilisés", str(len(segment_lengths)))
+            col2.metric("LMS (mots)", f"{average_length:.2f}")
+            col3.metric("Segments min / max", f"{min(segment_lengths)} / {max(segment_lengths)}")
+
+            distribution_df = pd.DataFrame({
+                "index": range(1, len(segment_lengths) + 1),
+                "longueur": segment_lengths,
+            })
+
+            chart = (
+                alt.Chart(distribution_df)
+                .mark_bar()
+                .encode(
+                    x=alt.X("longueur:Q", bin=True, title="Longueur des segments (mots)"),
+                    y=alt.Y("count()", title="Nombre de segments"),
+                    tooltip=["count()", "longueur"]
+                )
+            )
+
+            st.altair_chart(chart, use_container_width=True)
+            st.dataframe(distribution_df.rename(columns={"index": "Segment", "longueur": "Longueur"}))
 
 
 if __name__ == "__main__":
