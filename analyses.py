@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from html import escape
 from typing import Dict
 
 import pandas as pd
@@ -51,6 +52,41 @@ def annotate_connectors(text: str, connectors: Dict[str, str]) -> str:
         return f"[{label}] {matched_connector}"
 
     return pattern.sub(_replacer, text)
+
+
+def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
+    """Retourner une version HTML du texte annoté avec les labels des connecteurs.
+
+    Chaque connecteur est entouré d'un conteneur HTML incluant une étiquette de
+    label visible. Les caractères spéciaux du texte source sont échappés afin de
+    garantir une sortie sécurisée.
+    """
+
+    if not text:
+        return ""
+
+    cleaned_connectors = {key: value for key, value in connectors.items() if key}
+    if not cleaned_connectors:
+        return escape(text)
+
+    pattern = _build_connector_pattern(cleaned_connectors)
+    lower_map = {key.lower(): value for key, value in cleaned_connectors.items()}
+
+    def _replacer(match: re.Match[str]) -> str:
+        matched_connector = match.group(0)
+        label = lower_map.get(matched_connector.lower(), "")
+        safe_label = escape(label)
+        safe_connector = escape(matched_connector)
+
+        return (
+            '<span class="connector-annotation">'
+            f'<span class="connector-label">{safe_label}</span>'
+            f'<span class="connector-text">{safe_connector}</span>'
+            "</span>"
+        )
+
+    escaped_text = escape(text)
+    return pattern.sub(_replacer, escaped_text)
 
 
 def count_connectors(text: str, connectors: Dict[str, str]) -> pd.DataFrame:
