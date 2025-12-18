@@ -87,7 +87,11 @@ def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
         )
 
     escaped_text = escape(text)
-    return pattern.sub(_replacer, escaped_text)
+    annotated = pattern.sub(_replacer, escaped_text)
+
+    # Préserver les retours à la ligne dans la sortie HTML pour que la première
+    # ligne d'en-tête soit suivie d'une nouvelle ligne dans l'affichage Streamlit.
+    return annotated.replace("\n", "<br />\n")
 
 
 def count_connectors(text: str, connectors: Dict[str, str]) -> pd.DataFrame:
