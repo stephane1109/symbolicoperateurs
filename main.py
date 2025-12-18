@@ -307,64 +307,70 @@ def main() -> None:
 
     with tabs[2]:
         st.subheader("Densité des connecteurs")
-        base = st.number_input(
-            "Base de normalisation (mots)",
-            min_value=10,
-            max_value=100_000,
-            value=1000,
-            step=10,
-        )
+        if not filtered_connectors:
+            st.info("Sélectionnez au moins un connecteur pour calculer la densité.")
+        else:
+            base = st.number_input(
+                "Base de normalisation (mots)",
+                min_value=10,
+                max_value=100_000,
+                value=1000,
+                step=10,
+            )
 
-        total_words = count_words(combined_text)
-        total_connectors = compute_total_connectors(combined_text, filtered_connectors)
-        density = compute_density(combined_text, filtered_connectors, base=int(base))
+            total_words = count_words(combined_text)
+            total_connectors = compute_total_connectors(combined_text, filtered_connectors)
+            density = compute_density(combined_text, filtered_connectors, base=int(base))
 
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Nombre total de mots", f"{total_words:,}".replace(",", " "))
-        col2.metric("Occurrences de connecteurs", f"{total_connectors:,}".replace(",", " "))
-        col3.metric(f"Densité pour {int(base):,} mots", f"{density:.2f}".replace(",", " "))
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Nombre total de mots", f"{total_words:,}".replace(",", " "))
+            col2.metric("Occurrences de connecteurs", f"{total_connectors:,}".replace(",", " "))
+            col3.metric(f"Densité pour {int(base):,} mots", f"{density:.2f}".replace(",", " "))
 
-        if total_connectors == 0:
-            st.info("Aucun connecteur détecté : la densité est nulle pour ce texte.")
+            if total_connectors == 0:
+                st.info("Aucun connecteur détecté : la densité est nulle pour ce texte.")
 
-        st.caption(
-            "La densité correspond au nombre de connecteurs ramené à une base commune. "
-            "Un score élevé signale un texte plus riche en articulations logiques."
-        )
+            st.caption(
+                "La densité correspond au nombre de connecteurs ramené à une base commune. "
+                "Un score élevé signale un texte plus riche en articulations logiques."
+            )
 
     with tabs[3]:
         st.subheader("Hash (LMS entre connecteurs)")
-        segment_lengths = compute_segment_word_lengths(combined_text, filtered_connectors)
-
-        if not segment_lengths:
-            st.info(
-                "Impossible de calculer la LMS : aucun segment n'a été détecté entre connecteurs."
-            )
+        if not filtered_connectors:
+            st.info("Sélectionnez au moins un connecteur pour calculer la LMS.")
         else:
-            average_length = average_segment_length(combined_text, filtered_connectors)
+            segment_lengths = compute_segment_word_lengths(combined_text, filtered_connectors)
 
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Segments comptabilisés", str(len(segment_lengths)))
-            col2.metric("LMS (mots)", f"{average_length:.2f}")
-            col3.metric("Segments min / max", f"{min(segment_lengths)} / {max(segment_lengths)}")
-
-            distribution_df = pd.DataFrame({
-                "index": range(1, len(segment_lengths) + 1),
-                "longueur": segment_lengths,
-            })
-
-            chart = (
-                alt.Chart(distribution_df)
-                .mark_bar()
-                .encode(
-                    x=alt.X("longueur:Q", bin=True, title="Longueur des segments (mots)"),
-                    y=alt.Y("count()", title="Nombre de segments"),
-                    tooltip=["count()", "longueur"]
+            if not segment_lengths:
+                st.info(
+                    "Impossible de calculer la LMS : aucun segment n'a été détecté entre connecteurs."
                 )
-            )
+            else:
+                average_length = average_segment_length(combined_text, filtered_connectors)
 
-            st.altair_chart(chart, use_container_width=True)
-            st.dataframe(distribution_df.rename(columns={"index": "Segment", "longueur": "Longueur"}))
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Segments comptabilisés", str(len(segment_lengths)))
+                col2.metric("LMS (mots)", f"{average_length:.2f}")
+                col3.metric("Segments min / max", f"{min(segment_lengths)} / {max(segment_lengths)}")
+
+                distribution_df = pd.DataFrame({
+                    "index": range(1, len(segment_lengths) + 1),
+                    "longueur": segment_lengths,
+                })
+
+                chart = (
+                    alt.Chart(distribution_df)
+                    .mark_bar()
+                    .encode(
+                        x=alt.X("longueur:Q", bin=True, title="Longueur des segments (mots)"),
+                        y=alt.Y("count()", title="Nombre de segments"),
+                        tooltip=["count()", "longueur"]
+                    )
+                )
+
+                st.altair_chart(chart, use_container_width=True)
+                st.dataframe(distribution_df.rename(columns={"index": "Segment", "longueur": "Longueur"}))
 
 
 if __name__ == "__main__":
