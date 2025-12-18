@@ -400,6 +400,8 @@ def main() -> None:
                         use_container_width=True,
                     )
 
+                    st.markdown("#### Graphique de densité")
+
                     density_chart = (
                         alt.Chart(per_modality_df)
                         .mark_bar()
@@ -409,6 +411,17 @@ def main() -> None:
                             color=alt.Color("modalite:N", title="Modalité"),
                             tooltip=["modalite", "densite", "mots", "connecteurs"],
                         )
+                    )
+
+                    density_norm_rule = (
+                        alt.Chart(pd.DataFrame({"norme": [1.37]}))
+                        .mark_rule(color="red", strokeDash=[6, 4])
+                        .encode(y=alt.Y("norme:Q"))
+                    )
+
+                    density_chart = (
+                        (density_chart + density_norm_rule)
+                        .properties(title="Graphique de densité")
                     )
                     st.altair_chart(density_chart, use_container_width=True)
 
