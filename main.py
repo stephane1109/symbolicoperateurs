@@ -53,7 +53,9 @@ def build_dataframe(records: List[Dict[str, str]]) -> pd.DataFrame:
 
 
 def main() -> None:
-    st.title("Analyse de connecteurs dans un corpus IRaMuTeQ")
+    st.set_page_config(page_title="Symbolic Connectors", layout="wide")
+
+    st.title("Symbolic Connectors")
     st.write(
         "Téléversez un fichier texte IRaMuTeQ. Chaque article doit démarrer par "
         "une ligne de variables, par exemple `**** *model_gpt *prompt_1`."
