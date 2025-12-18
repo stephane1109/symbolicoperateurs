@@ -175,14 +175,22 @@ def main() -> None:
             return
 
         connector_labels = sorted(set(connectors.values()))
-        selected_label = st.radio(
-            "Connecteurs à annoter",
-            connector_labels,
-            help="Choisissez le type de connecteur à mettre en surbrillance dans le texte.",
-        )
+        selected_labels = [
+            label
+            for label in connector_labels
+            if st.checkbox(
+                f"Annoter les connecteurs « {label} »",
+                value=True,
+                help="Sélectionnez un ou plusieurs types de connecteurs à mettre en surbrillance.",
+            )
+        ]
+
+        if not selected_labels:
+            st.info("Sélectionnez au moins un type de connecteur pour lancer l'annotation.")
+            return
 
         filtered_connectors = {
-            connector: label for connector, label in connectors.items() if label == selected_label
+            connector: label for connector, label in connectors.items() if label in selected_labels
         }
 
         label_colors = generate_label_colors(filtered_connectors.values())
