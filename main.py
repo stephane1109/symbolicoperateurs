@@ -11,7 +11,7 @@ from analyses import annotate_connectors, count_connectors, load_connectors
 
 
 def parse_iramuteq(content: str) -> List[Dict[str, str]]:
-    """Parse an IRaMuTeQ-like text file into a list of records."""
+    """Analyser un fichier texte de type IRaMuTeQ en une liste d'enregistrements."""
 
     lines = content.splitlines()
     records: List[Dict[str, str]] = []
@@ -44,7 +44,7 @@ def parse_iramuteq(content: str) -> List[Dict[str, str]]:
 
 
 def build_dataframe(records: List[Dict[str, str]]) -> pd.DataFrame:
-    """Create a DataFrame with variables, modalities, and text."""
+    """Créer un DataFrame avec les variables, les modalités et le texte."""
 
     if not records:
         return pd.DataFrame()

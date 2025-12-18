@@ -9,12 +9,12 @@ import pandas as pd
 
 
 def load_connectors(path: Path) -> Dict[str, str]:
-    """Load the connector dictionary from JSON.
+    """Charger le dictionnaire de connecteurs depuis un fichier JSON.
 
-    Parameters
+    Paramètres
     ----------
     path:
-        Path to the ``connecteurs.json`` file.
+        Chemin vers le fichier ``connecteurs.json``.
     """
 
     with path.open(encoding="utf-8") as handle:
@@ -24,6 +24,7 @@ def load_connectors(path: Path) -> Dict[str, str]:
 
 
 def _build_connector_pattern(connectors: Dict[str, str]) -> re.Pattern[str]:
+    """Construire un motif regex qui capture chaque connecteur."""
     sorted_keys = sorted(connectors.keys(), key=len, reverse=True)
     escaped = [re.escape(key) for key in sorted_keys]
     pattern = "|".join(escaped)
@@ -32,7 +33,7 @@ def _build_connector_pattern(connectors: Dict[str, str]) -> re.Pattern[str]:
 
 
 def annotate_connectors(text: str, connectors: Dict[str, str]) -> str:
-    """Insert connector labels directly before each match in the text."""
+    """Insérer les étiquettes des connecteurs avant chaque occurrence dans le texte."""
 
     if not text:
         return ""
@@ -53,7 +54,7 @@ def annotate_connectors(text: str, connectors: Dict[str, str]) -> str:
 
 
 def count_connectors(text: str, connectors: Dict[str, str]) -> pd.DataFrame:
-    """Count how many times each connector appears in the text."""
+    """Compter le nombre d'occurrences de chaque connecteur dans le texte."""
 
     cleaned_connectors = {key: value for key, value in connectors.items() if key}
     rows = []
@@ -79,4 +80,3 @@ def count_connectors(text: str, connectors: Dict[str, str]) -> pd.DataFrame:
         .sort_values(["label", "connecteur"])
         .reset_index(drop=True)
     )
-
