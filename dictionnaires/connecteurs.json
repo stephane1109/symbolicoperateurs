@@ -1,6 +1,7 @@
 {
   "sinon": "ALTERNATIVE",
   "ou": "ALTERNATIVE",
+  "Ou": "ALTERNATIVE",
   "ou bien": "ALTERNATIVE",
   "ou alors": "ALTERNATIVE",
   "soit": "ALTERNATIVE",
@@ -52,8 +53,6 @@
   "sous certaines conditions": "CONDITION",
   
   "tant que": "WHILE",
-
-  "ou": "OR",
 
   "et": "AND",
 
