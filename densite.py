@@ -1,3 +1,8 @@
+"""Densité des textes analysés : La densité, c'est simplement le nombre de connecteurs
+ramené à une base (pour 1 000 mots). C'est ce qui permet de dire par exemple :
+"Ce texte est 3 fois plus 'logique' que l'autre".
+"""
+
 from __future__ import annotations
 
 import re
