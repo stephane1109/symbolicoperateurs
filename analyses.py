@@ -4,7 +4,7 @@ import json
 import re
 from pathlib import Path
 from html import escape
-from typing import Dict
+from typing import Dict, Iterable
 
 import pandas as pd
 
@@ -77,9 +77,10 @@ def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
         label = lower_map.get(matched_connector.lower(), "")
         safe_label = escape(label)
         safe_connector = escape(matched_connector)
+        label_class = _slugify_label(label)
 
         return (
-            '<span class="connector-annotation">'
+            f'<span class="connector-annotation connector-{label_class}">'
             f'<span class="connector-label">{safe_label}</span>'
             f'<span class="connector-text">{safe_connector}</span>'
             "</span>"
@@ -143,3 +144,51 @@ def count_connectors_by_label(text: str, connectors: Dict[str, str]) -> Dict[str
             label_counts[label] = label_counts.get(label, 0) + 1
 
     return label_counts
+
+
+def _slugify_label(label: str) -> str:
+    """Convertir un label en identifiant CSS sécuritaire."""
+
+    slug = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+    return slug or "label"
+
+
+def generate_label_colors(labels: Iterable[str]) -> Dict[str, str]:
+    """Associer un jeu de couleurs à chaque label disponible."""
+
+    palette = [
+        "#1F77B4",
+        "#2CA02C",
+        "#D62728",
+        "#9467BD",
+        "#8C564B",
+        "#E377C2",
+        "#17BECF",
+        "#FF7F0E",
+        "#BCBD22",
+    ]
+
+    unique_labels = sorted({label for label in labels if label})
+    return {label: palette[index % len(palette)] for index, label in enumerate(unique_labels)}
+
+
+def build_label_style_block(label_colors: Dict[str, str]) -> str:
+    """Construire un bloc CSS qui colore chaque label de manière distincte."""
+
+    styles = []
+
+    for label, color in label_colors.items():
+        label_class = _slugify_label(label)
+        styles.append(
+            f".connector-annotation.connector-{label_class} {{"
+            f" background-color: {color}1a;"
+            f" border: 1px solid {color};"
+            " }"
+        )
+        styles.append(
+            f".connector-annotation.connector-{label_class} .connector-label {{"
+            f" color: {color};"
+            " }"
+        )
+
+    return "\n".join(styles)
