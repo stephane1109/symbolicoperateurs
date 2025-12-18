@@ -495,18 +495,18 @@ def main() -> None:
         st.subheader("Hash (LMS entre connecteurs)")
         st.write(
             """
-Le "hachage" du texte est calculé à partir de la Longueur Moyenne des Segments (LMS) de
-texte entre deux connecteurs.
-Hypothèse : Plus les segments sont courts, plus le texte est "haché", saccadé, algorithmique.
-Plus les segments sont longs, plus le texte est fluide, narratif, explicatif.
-Visualisation (exemple) :
-Texte "Saturant" :
-"Appelle le 15 [OU] le 112 [SI] tu es en danger [MAIS] [SI] tu es seul [ALORS] sors."
-5 connecteurs en 20 mots. Les segments sont dans cet exemple petits (3-4 mots).
+La "LMS" correspond à la Longueur Moyenne des Segments d'un texte, délimités ici par un
+point (ou !, ?), ou par un retour à la ligne. Hypothèse :
+- Des segments courts signalent un texte "haché", saccadé, algorithmique.
+- Des segments longs évoquent une prose fluide, narrative ou explicative.
             """
         )
-        if not filtered_connectors:
-            st.info("Sélectionnez au moins un connecteur pour calculer la LMS.")
+        segment_lengths = compute_segment_word_lengths(combined_text, filtered_connectors)
+
+        if not segment_lengths:
+            st.info(
+                "Impossible de calculer la LMS : aucun segment n'a été détecté (ponctuation/retours à la ligne)."
+            )
         else:
             st.subheader("Sélection des variables/modalités")
             hash_variables = [column for column in filtered_df.columns if column not in ("texte", "entete")]
@@ -566,9 +566,10 @@ Texte "Saturant" :
                         tooltip=["count()", "longueur"]
                     )
                 )
+            )
 
-                st.altair_chart(chart, use_container_width=True)
-                st.dataframe(distribution_df.rename(columns={"index": "Segment", "longueur": "Longueur"}))
+            st.altair_chart(chart, use_container_width=True)
+            st.dataframe(distribution_df.rename(columns={"index": "Segment", "longueur": "Longueur"}))
 
                 per_modality_hash_df = average_segment_length_by_modality(
                     hash_filtered_df,
