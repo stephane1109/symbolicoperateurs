@@ -164,6 +164,15 @@ def main() -> None:
             return
 
         connectors = load_connectors(Path(__file__).parent / "dictionnaires" / "connecteurs.json")
+        allowed_labels = {"ALTERNATIVE", "CONDITION", "ALORS"}
+        connectors = {
+            connector: label for connector, label in connectors.items() if label in allowed_labels
+        }
+
+        if not connectors:
+            st.warning("Aucun connecteur valide disponible dans le dictionnaire fourni.")
+            return
+
         connector_names = sorted(connectors.keys())
         selected_connector_names = st.multiselect(
             "Connecteurs à annoter",
