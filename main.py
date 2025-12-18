@@ -28,6 +28,7 @@ from hash import (
     average_segment_length,
     average_segment_length_by_modality,
     compute_segment_word_lengths,
+    segments_with_word_lengths,
 )
 
 
@@ -136,7 +137,7 @@ def main() -> None:
 
     with tabs[0]:
         st.subheader("Données importées")
-        st.dataframe(df)
+        st.dataframe(df, use_container_width=True)
 
     with tabs[1]:
         variable_names = [column for column in df.columns if column not in ("texte", "entete")]
@@ -260,7 +261,7 @@ def main() -> None:
         if stats_df.empty:
             st.info("Aucun connecteur trouvé dans le texte sélectionné.")
         else:
-            st.dataframe(stats_df)
+            st.dataframe(stats_df, use_container_width=True)
 
             chart = (
                 alt.Chart(stats_df)
@@ -395,7 +396,8 @@ def main() -> None:
                                 "mots": "Mots comptés",
                                 "connecteurs": "Connecteurs",
                             }
-                        )
+                        ),
+                        use_container_width=True,
                     )
 
                     density_chart = (
@@ -550,6 +552,8 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                     "Impossible de calculer la LMS : aucun segment n'a été détecté entre connecteurs."
                 )
             else:
+                segment_entries = segments_with_word_lengths(hash_text, filtered_connectors)
+                segment_lengths = [entry["longueur"] for entry in segment_entries]
                 average_length = average_segment_length(hash_text, filtered_connectors)
 
                 col1, col2, col3 = st.columns(3)
@@ -557,10 +561,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                 col2.metric("LMS (mots)", f"{average_length:.2f}")
                 col3.metric("Segments min / max", f"{min(segment_lengths)} / {max(segment_lengths)}")
 
-                distribution_df = pd.DataFrame({
-                    "index": range(1, len(segment_lengths) + 1),
-                    "longueur": segment_lengths,
-                })
+                distribution_df = pd.DataFrame(segment_entries)
 
                 chart = (
                     alt.Chart(distribution_df)
@@ -573,7 +574,10 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                 )
 
                 st.altair_chart(chart, use_container_width=True)
-                st.dataframe(distribution_df.rename(columns={"index": "Segment", "longueur": "Longueur"}))
+                st.dataframe(
+                    distribution_df.rename(columns={"segment": "Segment", "longueur": "Longueur"}),
+                    use_container_width=True,
+                )
 
                 per_modality_hash_df = average_segment_length_by_modality(
                     hash_filtered_df,
@@ -593,7 +597,8 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                                 "min": "Min",
                                 "max": "Max",
                             }
-                        )
+                        ),
+                        use_container_width=True,
                     )
 
                     lms_chart = (

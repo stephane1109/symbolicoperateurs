@@ -71,6 +71,23 @@ def compute_segment_word_lengths(text: str, connectors: Dict[str, str]) -> List[
     return lengths
 
 
+def segments_with_word_lengths(
+    text: str, connectors: Dict[str, str]
+) -> List[Dict[str, str | int]]:
+    """Retourner chaque segment avec sa longueur en mots."""
+
+    segments = split_segments_by_connectors(text, connectors)
+    entries: List[Dict[str, str | int]] = []
+
+    for segment in segments:
+        tokens = _tokenize(segment)
+
+        if tokens:
+            entries.append({"segment": segment.strip(), "longueur": len(tokens)})
+
+    return entries
+
+
 def average_segment_length(text: str, connectors: Dict[str, str]) -> float:
     """Calculer la Longueur Moyenne des Segments (LMS) entre connecteurs."""
 
