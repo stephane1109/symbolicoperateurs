@@ -9,8 +9,10 @@ import streamlit as st
 
 from analyses import (
     annotate_connectors_html,
+    build_label_style_block,
     count_connectors,
     count_connectors_by_label,
+    generate_label_colors,
     load_connectors,
 )
 
@@ -143,10 +145,12 @@ def main() -> None:
             return
 
         connectors = load_connectors(Path(__file__).parent / "dictionnaires" / "connecteurs.json")
+        label_colors = generate_label_colors(connectors.values())
+        label_style_block = build_label_style_block(label_colors)
         annotated_html = annotate_connectors_html(combined_text, connectors)
 
         st.subheader("Texte annoté par connecteurs")
-        annotation_style = """
+        annotation_style = f"""
         <style>
         .connector-annotation {
             background-color: #eef3ff;
@@ -154,6 +158,7 @@ def main() -> None:
             padding: 2px 6px;
             margin: 0 2px;
             display: inline-block;
+            border: 1px solid #c3d4ff;
         }
         .connector-label {
             color: #1a56db;
@@ -168,6 +173,7 @@ def main() -> None:
             line-height: 1.6;
             font-size: 15px;
         }
+        {label_style_block}
         </style>
         """
 
