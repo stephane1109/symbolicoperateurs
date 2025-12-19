@@ -1,51 +1,51 @@
 {
   "name": "motifs_progr_regex",
-  "description": "Motifs regex (bornés à la ponctuation) pour détecter des structures de type programmation (condition, branchement, séquençage) dans un corpus en minuscules.",
+  "description": "Motifs regex minimalistes pour détecter des structures de type programmation (condition, branchement, séquençage) dans un corpus en minuscules, une fois le texte déjà découpé en segments.",
   "assumptions": {
     "text_case": "lowercase",
     "punctuation_present": true,
-    "sentence_boundary_regex_class": "[^.!?;:\\n]"
+    "segment_pre_split": true
   },
   "patterns": [
     {
       "id": "if_then_same_sentence",
       "label": "si … alors",
       "category": "IF_THEN",
-      "regex": "\\bsi\\b[^.!?;:\\n]{0,120}\\balors\\b",
-      "scope": "sentence",
-      "notes": "Structure conditionnelle explicite IF–THEN. Ajuster {0,120} si phrases plus longues."
+      "regex": "\\bsi\\b.*?\\balors\\b",
+      "scope": "segment",
+      "notes": "Version minimaliste : suppose que le texte est déjà segmenté."
     },
     {
       "id": "if_and_optional_then_same_sentence",
       "label": "si … et … (alors)",
       "category": "IF_AND",
-      "regex": "\\bsi\\b[^.!?;:\\n]{0,120}\\bet\\b[^.!?;:\\n]{0,120}(?:\\balors\\b)?",
-      "scope": "sentence",
-      "notes": "Cumul de conditions (AND). 'alors' optionnel."
+      "regex": "\\bsi\\b.*?\\bet\\b.*?(?:\\balors\\b)?",
+      "scope": "segment",
+      "notes": "Version minimaliste : 'alors' optionnel."
     },
     {
       "id": "if_or_optional_then_same_sentence",
       "label": "si … ou … (alors)",
       "category": "IF_OR",
-      "regex": "\\bsi\\b[^.!?;:\\n]{0,120}\\bou\\b[^.!?;:\\n]{0,120}(?:\\balors\\b)?",
-      "scope": "sentence",
-      "notes": "Alternative dans la condition (OR). 'alors' optionnel."
+      "regex": "\\bsi\\b.*?\\bou\\b.*?(?:\\balors\\b)?",
+      "scope": "segment",
+      "notes": "Version minimaliste : 'alors' optionnel."
     },
     {
       "id": "if_then_else_same_sentence",
       "label": "si … alors … sinon",
       "category": "IF_THEN_ELSE",
-      "regex": "\\bsi\\b[^.!?;:\\n]{0,160}\\balors\\b[^.!?;:\\n]{0,160}\\bsinon\\b",
-      "scope": "sentence",
-      "notes": "Bifurcation explicite IF–THEN–ELSE."
+      "regex": "\\bsi\\b.*?\\balors\\b.*?\\bsinon\\b",
+      "scope": "segment",
+      "notes": "Version minimaliste IF–THEN–ELSE."
     },
     {
       "id": "procedure_dabord_puis_ensuite_same_sentence",
       "label": "d’abord … puis … (ensuite)",
       "category": "PROCEDURE",
-      "regex": "\\bd[’']?\\s*abord\\b[^.!?;:\\n]{0,200}\\bpuis\\b(?:[^.!?;:\\n]{0,200}\\bensuite\\b)?",
-      "scope": "sentence",
-      "notes": "Séquençage procédural (checklist). Compatible avec d'abord / d’abord."
+      "regex": "\\bd[’']?\\s*abord\\b.*?\\bpuis\\b(?:.*?\\bensuite\\b)?",
+      "scope": "segment",
+      "notes": "Compatible d'abord / d’abord, 'ensuite' optionnel."
     }
   ]
 }
