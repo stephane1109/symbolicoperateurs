@@ -222,7 +222,7 @@ def main() -> None:
             margin-right: 6px;
         }}
         .connector-text {{
-            color: #111827;
+            color: #6b7280;
             font-weight: 500;
         }}
         .annotated-container {{
