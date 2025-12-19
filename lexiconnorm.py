@@ -204,6 +204,7 @@ def render_lexicon_norm_tab(
         .mark_bar()
         .encode(
             x=alt.X("modalite:N", title="Modalité"),
+            xOffset="label",
             y=alt.Y("densite:Q", title=f"Densité pour {int(base)} mots"),
             color=alt.Color("label:N", title="Connecteur"),
             tooltip=["modalite", "label", "densite", "mots", "connecteurs"],
