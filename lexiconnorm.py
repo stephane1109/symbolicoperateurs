@@ -105,6 +105,7 @@ def render_lexicon_norm_tab(
         max_value=100_000,
         value=1000,
         step=10,
+        key="lexicon-norm-base",
     )
 
     density_filtered_df = filter_dataframe_by_modalities(
