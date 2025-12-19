@@ -18,30 +18,32 @@
     },
     {
       "id": "if_then_else_same_sentence",
-      "label": "si … alors … sinon",
+      "interpretation": "si X, alors je fais Z, sinon je fais W",
+      "label": "si … alors … sinon - si X, alors je fais Z, sinon je fais W",
       "category": "IF_THEN_ELSE",
       "regex": "\\bsi\\b.*?\\balors\\b.*?\\bsinon\\b"
     },
     {
       "id": "procedure_dabord_puis_ensuite_same_sentence",
-      "label": "d’abord … puis … (ensuite)",
+      "interpretation": "d’abord je fais X, puis je fais Y, (ensuite je fais Z)",
+      "label": "d’abord … puis … (ensuite) - d’abord je fais X, puis je fais Y, (ensuite je fais Z)",
       "category": "PROCEDURE",
       "regex": "\\bd[’']?\\s*abord\\b.*?\\bpuis\\b(?:.*?\\bensuite\\b)?"
     },
     {
       "id": "if_or_or_same_sentence",
-      "label": "si … ou … ou",
+      "interpretation": "si X ou Y ou (si) Z, (alors) je fais W",
+      "label": "si … ou … ou - si X ou Y ou (si) Z, (alors) je fais W",
       "category": "IF_OR_OR",
       "regex": "\\bsi\\b[^.!?;:\\n]*?\\bou\\b[^.!?;:\\n]*?\\bou\\b(?:\\s*\\bsi\\b)?[^.!?;:\\n]*?(?:\\balors\\b)?",
-      "scope": "sentence",
       "notes": "Deux alternatives OU successives. La seconde peut être de la forme « ou si … ». « alors » reste optionnel."
     },
     {
       "id": "if_or_if_same_sentence",
-      "label": "si … ou si",
+      "interpretation": "si X, ou si Y, je fais Z",
+      "label": "si … ou si - si X, ou si Y, je fais Z",
       "category": "IF_OR_IF",
       "regex": "\\bsi\\b[^.!?;:\\n]*?\\bou\\b\\s*\\bsi\\b[^.!?;:\\n]*?",
-      "scope": "sentence",
       "notes": "Détecte « si … ou si … » sans traverser la ponctuation."
     },
     {
