@@ -139,7 +139,7 @@ def main() -> None:
         return
 
     df = build_dataframe(records)
-    tabs = st.tabs(["Import", "Analyse stats", "Densité", "Hash"])
+    tabs = st.tabs(["Import", "Données brutes", "Densité", "Hash"])
 
     with tabs[0]:
         st.subheader("Données importées")
