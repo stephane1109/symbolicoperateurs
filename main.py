@@ -20,6 +20,7 @@ from analyses import (
     generate_label_colors,
     load_connectors,
 )
+from lexiconnorm import render_lexicon_norm_tab
 from densite import (
     compute_density,
     compute_density_by_label,
@@ -187,7 +188,9 @@ def main() -> None:
         return
 
     df = build_dataframe(records)
-    tabs = st.tabs(["Import", "Données brutes", "Densité", "Hash", "Regex motifs"])
+    tabs = st.tabs(
+        ["Import", "Données brutes", "Densité", "Lexicon norm", "Hash", "Regex motifs"]
+    )
 
     with tabs[0]:
         st.subheader("Données importées")
@@ -577,6 +580,9 @@ def main() -> None:
                         st.altair_chart(scatter_chart, use_container_width=True)
 
     with tabs[3]:
+        render_lexicon_norm_tab(filtered_df, filtered_connectors)
+
+    with tabs[4]:
         st.subheader("Hash (LMS entre connecteurs)")
         st.write(
             """
@@ -692,7 +698,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
                     st.altair_chart(lms_chart, use_container_width=True)
 
-    with tabs[4]:
+    with tabs[5]:
         st.subheader("Regex motifs")
 
         st.markdown(
