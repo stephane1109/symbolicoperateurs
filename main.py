@@ -23,6 +23,7 @@ from densite import (
     build_text_from_dataframe,
     compute_density_per_modality,
     filter_dataframe_by_modalities,
+    compute_density_per_modality_by_label,
 )
 from hash import (
     average_segment_length,
@@ -385,6 +386,12 @@ def main() -> None:
                     filtered_connectors,
                     base=int(base),
                 )
+                per_modality_label_df = compute_density_per_modality_by_label(
+                    density_filtered_df,
+                    None if density_variable_choice == "(Aucune)" else density_variable_choice,
+                    filtered_connectors,
+                    base=int(base),
+                )
 
                 if not per_modality_df.empty:
                     st.subheader("Densité par modalité sélectionnée")
@@ -424,6 +431,36 @@ def main() -> None:
                         .properties(title="Graphique de densité")
                     )
                     st.altair_chart(density_chart, use_container_width=True)
+
+                    if not per_modality_label_df.empty:
+                        st.markdown("#### Densité par connecteur et modalité")
+                        st.dataframe(
+                            per_modality_label_df.rename(
+                                columns={
+                                    "modalite": "Modalité",
+                                    "label": "Connecteur",
+                                    "densite": "Densité",
+                                    "mots": "Mots comptés",
+                                    "connecteurs": "Connecteurs",
+                                }
+                            ),
+                            use_container_width=True,
+                        )
+
+                        connector_density_chart = (
+                            alt.Chart(per_modality_label_df)
+                            .mark_bar()
+                            .encode(
+                                x=alt.X("modalite:N", title="Modalité"),
+                                xOffset="label",
+                                y=alt.Y("densite:Q", title="Densité"),
+                                color=alt.Color("label:N", title="Connecteur"),
+                                tooltip=["modalite", "label", "densite", "connecteurs", "mots"],
+                            )
+                            .properties(title="Densité par connecteur et modalité")
+                        )
+
+                        st.altair_chart(connector_density_chart, use_container_width=True)
 
                 density_labels = sorted(set(filtered_connectors.values()))
 

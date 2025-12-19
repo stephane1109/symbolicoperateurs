@@ -166,3 +166,43 @@ def compute_density_per_modality(
         )
 
     return pd.DataFrame(rows).sort_values("modalite").reset_index(drop=True)
+
+
+def compute_density_per_modality_by_label(
+    dataframe: pd.DataFrame,
+    variable: Optional[str],
+    connectors: Dict[str, str],
+    base: int = 1000,
+) -> pd.DataFrame:
+    """Calculer la densité par modalité et par label pour une variable donnée."""
+
+    if not variable or variable not in dataframe.columns or dataframe.empty:
+        return pd.DataFrame(columns=["modalite", "label", "densite", "mots", "connecteurs"])
+
+    labels = sorted(set(connectors.values()))
+    rows = []
+
+    for modality, subset in dataframe.groupby(variable):
+        text_value = build_text_from_dataframe(subset)
+        total_words = count_words(text_value)
+        label_densities = compute_density_by_label(text_value, connectors, base=base)
+
+        for label in labels:
+            label_connectors = {
+                connector: connector_label
+                for connector, connector_label in connectors.items()
+                if connector_label == label
+            }
+            total_connectors = compute_total_connectors(text_value, label_connectors)
+
+            rows.append(
+                {
+                    "modalite": modality,
+                    "label": label,
+                    "densite": label_densities.get(label, 0.0),
+                    "mots": total_words,
+                    "connecteurs": total_connectors,
+                }
+            )
+
+    return pd.DataFrame(rows).sort_values(["modalite", "label"]).reset_index(drop=True)
