@@ -9,12 +9,6 @@
       "regex": "\\bsi\\b.*?\\balors\\b"
     },
     {
-      "id": "if_and_optional_then_same_sentence",
-      "label": "si … et … (alors)",
-      "category": "IF_AND",
-      "regex": "\\bsi\\b.*?\\bet\\b.*?(?:\\balors\\b)?"
-    },
-    {
       "id": "if_or_optional_then_same_sentence",
       "label": "si … ou … (alors)",
       "category": "IF_OR",
