@@ -694,6 +694,15 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
     with tabs[4]:
         st.subheader("Regex motifs")
 
+        st.markdown(
+            """
+            Dans cet onglet, les motifs regex repèrent des structures combinées "programmation"
+            (ex : si…alors, si…sinon) dans les segments. La recherche est bornée par la ponctuation
+            du texte (. ! ? ; : ou retour ligne) garantissant que les connecteurs sont détectés dans
+            une unité lexicale (la phrase).
+            """
+        )
+
         regex_rules_path = Path(__file__).parent / "dictionnaires" / "motifs_progr_regex.json"
         regex_patterns = load_regex_rules(regex_rules_path)
 
