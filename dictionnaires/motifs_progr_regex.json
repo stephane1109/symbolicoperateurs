@@ -1,6 +1,5 @@
 {
-  "schema_version": "1.0",
-  "name": "motifs_programmation_regex",
+  "name": "motifs_progr_regex",
   "description": "Motifs regex (bornés à la ponctuation) pour détecter des structures de type programmation (condition, branchement, séquençage) dans un corpus en minuscules.",
   "assumptions": {
     "text_case": "lowercase",
