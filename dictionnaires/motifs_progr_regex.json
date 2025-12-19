@@ -34,5 +34,13 @@
       "category": "PROCEDURE",
       "regex": "\\bd[’']?\\s*abord\\b.*?\\bpuis\\b(?:.*?\\bensuite\\b)?"
     }
+    {
+      "id": "if_or_or_same_sentence",
+      "label": "si … ou … ou",
+      "category": "IF_OR_OR",
+      "regex": "\\bsi\\b[^.!?;:\\n]*?\\bou\\b[^.!?;:\\n]*?\\bou\\b(?:\\s*\\bsi\\b)?[^.!?;:\\n]*?(?:\\balors\\b)?",
+      "scope": "sentence",
+      "notes": "Deux alternatives OU successives. La seconde peut être de la forme « ou si … ». « alors » reste optionnel."
+    }
   ]
 }
