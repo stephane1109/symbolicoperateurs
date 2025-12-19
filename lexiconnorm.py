@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Dict, Iterable, List, Sequence
 
 import altair as alt
@@ -15,6 +16,53 @@ from densite import (
     count_words,
     filter_dataframe_by_modalities,
 )
+
+
+def load_norms_from_lexicon(
+    lexicon_path: Path, connectors: Dict[str, str]
+) -> pd.DataFrame:
+    """Charger les normes disponibles à partir du dictionnaire lexicographique."""
+
+    if not lexicon_path.exists():
+        return pd.DataFrame(columns=["label", "densite", "occurrences"])
+
+    try:
+        raw_df = pd.read_json(lexicon_path)
+        lexicon_entries = raw_df.get("entries", pd.Series(dtype=object)).dropna().tolist()
+        lexicon_df = pd.DataFrame(lexicon_entries)
+    except (ValueError, TypeError):
+        return pd.DataFrame(columns=["label", "densite", "occurrences"])
+
+    if lexicon_df.empty or "ortho" not in lexicon_df.columns:
+        return pd.DataFrame(columns=["label", "densite", "occurrences"])
+
+    connector_tokens = {connector.lower() for connector in connectors}
+    lexicon_df["ortho_lower"] = lexicon_df["ortho"].str.lower()
+    lexicon_df = lexicon_df[lexicon_df["ortho_lower"].isin(connector_tokens)]
+
+    norm_columns = [
+        column
+        for column in lexicon_df.columns
+        if column not in {"ortho", "Lexique3__cgram", "ortho_lower"}
+    ]
+
+    rows: List[Dict[str, float | str]] = []
+
+    for column in norm_columns:
+        numeric_values = pd.to_numeric(lexicon_df[column], errors="coerce").dropna()
+
+        if numeric_values.empty:
+            continue
+
+        rows.append(
+            {
+                "label": column,
+                "densite": float(numeric_values.mean()),
+                "occurrences": float(numeric_values.sum()),
+            }
+        )
+
+    return pd.DataFrame(rows).sort_values("label").reset_index(drop=True)
 
 
 def compute_norm_densities_by_label(
@@ -124,11 +172,8 @@ def render_lexicon_norm_tab(
 
     st.markdown("### Normes disponibles")
 
-    norm_density_df = compute_norm_densities_by_label(
-        build_text_from_dataframe(density_filtered_df),
-        normalized_connectors,
-        ["CONDITION", "ALORS", "ALTERNATIVE"],
-        base=int(base),
+    norm_density_df = load_norms_from_lexicon(
+        Path(__file__).parent / "dictionnaires" / "lexicon.json", normalized_connectors
     )
 
     if norm_density_df.empty:
@@ -136,7 +181,7 @@ def render_lexicon_norm_tab(
     else:
         selected_labels = []
         for _, row in norm_density_df.iterrows():
-            checkbox_label = row["label"].capitalize()
+            checkbox_label = row["label"]
             if st.checkbox(
                 checkbox_label,
                 value=True,
