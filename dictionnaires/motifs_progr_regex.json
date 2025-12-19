@@ -47,6 +47,22 @@
       "regex": "\\bsi\\b[^.!?;:\\n]*?\\bou\\b\\s*\\bsi\\b[^.!?;:\\n]*?",
       "scope": "sentence",
       "notes": "Détecte « si … ou si … » sans traverser la ponctuation."
+    },
+    {
+    "id": "if_and_then_same_sentence",
+    "label": "si … et … alors - si X et Y, alors je fais Z",
+    "category": "IF_AND_THEN",
+    "regex": "\\bsi\\b[^.!?;:\\n]*?\\bet\\b[^.!?;:\\n]*?\\balors\\b",
+    "scope": "sentence",
+    "notes": "Cumul de conditions (AND) avec marqueur de conséquence explicite."
+    },
+    {
+    "id": "if_and_no_then_same_sentence",
+    "label": "si … et … (sans alors) - si X et Y, je fais Z",
+    "category": "IF_AND_NO_THEN",
+    "regex": "\\bsi\\b(?![^.!?;:\\n]*?\\balors\\b)[^.!?;:\\n]*?\\bet\\b[^.!?;:\\n]*?",
+    "scope": "sentence",
+    "notes": "Cumul de conditions (AND) sans « alors » dans la même phrase/segment."
     }
   ]
 }
