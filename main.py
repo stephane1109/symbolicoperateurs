@@ -123,8 +123,8 @@ def main() -> None:
     st.title("Symbolic Connectors")
     st.caption(
         "Symbolic => fait référence au courant symbolique de l'ia (analogie à la "
-        "machine/programme) vs connexionnisme (analogie avec le cerveau)."
-        " Connectors => l'idée de recherche dans un corpus des marqueurs pouvant "
+        "machine/programme) vs connexionnisme (analogie avec le cerveau).\n"
+        "Connectors => l'idée de recherche dans un corpus des marqueurs pouvant "
         "révéler un langage machine (si, alors, sinon, et, ou...)"
     )
     st.caption("[www.codeandcortex.fr](https://www.codeandcortex.fr)")
