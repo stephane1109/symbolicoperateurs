@@ -1,11 +1,8 @@
 {
   "name": "motifs_progr_regex",
-  "description": "Motifs regex minimalistes pour détecter des structures de type programmation (condition, branchement, séquençage) dans un corpus en minuscules, une fois le texte déjà découpé en segments.",
-  "assumptions": {
-    "text_case": "lowercase",
-    "punctuation_present": true,
-    "segment_pre_split": true
+  "description": "Motifs regex minimalistes pour détecter des structures de type programmation (condition, branchement, séquençage) dans un corpus en minuscules, une fois le texte déjà découpé en segments."
   },
+  
   "patterns": [
     {
       "id": "if_then_same_sentence",
