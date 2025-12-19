@@ -1,10 +1,10 @@
-regex_rules = {
+{
   "schema_version": "1.0",
   "name": "motifs_programmation_regex",
   "description": "Motifs regex (bornés à la ponctuation) pour détecter des structures de type programmation (condition, branchement, séquençage) dans un corpus en minuscules.",
   "assumptions": {
     "text_case": "lowercase",
-    "punctuation_present": True,
+    "punctuation_present": true,
     "sentence_boundary_regex_class": "[^.!?;:\\n]"
   },
   "patterns": [
