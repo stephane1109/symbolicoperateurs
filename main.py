@@ -38,13 +38,43 @@ from hash import (
     segments_with_word_lengths,
 )
 from regexanalyse import (
-    build_regex_style_block,
     count_segments_by_pattern,
     highlight_matches_html,
     load_regex_rules,
     split_segments,
     summarize_matches_by_segment,
 )
+
+
+def build_annotation_style_block(label_style_block: str) -> str:
+    """Créer un bloc de style commun pour l'affichage des annotations HTML."""
+
+    return f"""
+    <style>
+    .connector-annotation {{
+        background-color: #eef3ff;
+        border-radius: 4px;
+        padding: 2px 6px;
+        margin: 0 2px;
+        display: inline-block;
+        border: 1px solid #c3d4ff;
+    }}
+    .connector-label {{
+        color: #1a56db;
+        font-weight: 700;
+        margin-right: 6px;
+    }}
+    .connector-text {{
+        color: #6b7280;
+        font-weight: 500;
+    }}
+    .annotated-container {{
+        line-height: 1.6;
+        font-size: 15px;
+    }}
+    {label_style_block}
+    </style>
+    """
 
 
 def parse_iramuteq(content: str) -> List[Dict[str, str]]:
@@ -223,32 +253,7 @@ def main() -> None:
         annotated_html = annotate_connectors_html(combined_text, filtered_connectors)
 
         st.subheader("Texte annoté par connecteurs")
-        annotation_style = f"""
-        <style>
-        .connector-annotation {{
-            background-color: #eef3ff;
-            border-radius: 4px;
-            padding: 2px 6px;
-            margin: 0 2px;
-            display: inline-block;
-            border: 1px solid #c3d4ff;
-        }}
-        .connector-label {{
-            color: #1a56db;
-            font-weight: 700;
-            margin-right: 6px;
-        }}
-        .connector-text {{
-            color: #6b7280;
-            font-weight: 500;
-        }}
-        .annotated-container {{
-            line-height: 1.6;
-            font-size: 15px;
-        }}
-        {label_style_block}
-        </style>
-        """
+        annotation_style = build_annotation_style_block(label_style_block)
 
         st.markdown(annotation_style, unsafe_allow_html=True)
         st.markdown(
@@ -696,21 +701,18 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
             st.info("Aucun motif regex n'a pu être chargé depuis le dictionnaire fourni.")
             return
 
-        regex_style = build_regex_style_block([pattern.label for pattern in regex_patterns])
-        regex_annotation_style = f"""
-        <style>
-        .regex-container {{ line-height: 1.6; font-size: 15px; }}
-        .regex-annotation {{ display: inline-block; border-radius: 4px; }}
-        .regex-label {{ font-weight: 700; }}
-        {regex_style}
-        </style>
-        """
+        regex_label_colors = generate_label_colors([pattern.label for pattern in regex_patterns])
+        regex_label_style = build_label_style_block(regex_label_colors)
+        regex_annotation_style = build_annotation_style_block(regex_label_style)
 
         st.markdown(regex_annotation_style, unsafe_allow_html=True)
 
         highlighted_corpus = highlight_matches_html(combined_text, regex_patterns)
         st.markdown("Corpus annoté (motifs regex)")
-        st.markdown(f"<div class='regex-container'>{highlighted_corpus}</div>", unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='annotated-container'>{highlighted_corpus}</div>",
+            unsafe_allow_html=True,
+        )
 
         downloadable_regex_html = f"""<!DOCTYPE html>
         <html lang=\"fr\">
@@ -719,7 +721,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
         {regex_annotation_style}
         </head>
         <body>
-        <div class='regex-container'>{highlighted_corpus}</div>
+        <div class='annotated-container'>{highlighted_corpus}</div>
         </body>
         </html>"""
 
