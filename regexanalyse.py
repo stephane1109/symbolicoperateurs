@@ -83,11 +83,11 @@ def highlight_matches_html(text: str, patterns: Sequence[RegexPattern]) -> str:
             continue
 
         highlighted_parts.append(escape(text[cursor : match["start"]]))
-        label_class = _slugify_identifier(match["identifier"])
+        label_class = _slugify_identifier(match["label"])
         highlighted_parts.append(
-            "<span class=\"regex-annotation regex-"
-            f"{label_class}\"><span class=\"regex-label\">{escape(match['label'])}</span>"
-            f"<span class=\"regex-text\">{escape(match['match_text'])}</span></span>"
+            "<span class=\"connector-annotation connector-"
+            f"{label_class}\"><span class=\"connector-label\">{escape(match['label'])}</span>"
+            f"<span class=\"connector-text\">{escape(match['match_text'])}</span></span>"
         )
         cursor = match["end"]
 
