@@ -159,11 +159,13 @@ def main() -> None:
     st.set_page_config(page_title="Symbolic Connectors", layout="wide")
 
     st.title("Symbolic Connectors")
-    st.caption(
+    st.markdown(
+        "<span style='color: white'>"
         "Symbolic => fait référence au courant symbolique de l'ia (analogie à la "
-        "machine/programme) vs connexionnisme (analogie avec le cerveau).\n"
+        "machine/programme) vs connexionnisme (analogie avec le cerveau).<br>"
         "Connectors => l'idée de recherche dans un corpus des marqueurs pouvant "
-        "révéler un langage machine (si, alors, sinon, et, ou...)"
+        "révéler un langage machine (si, alors, sinon, et, ou...)</span>",
+        unsafe_allow_html=True,
     )
     st.caption("[www.codeandcortex.fr](https://www.codeandcortex.fr)")
     st.markdown("---")
