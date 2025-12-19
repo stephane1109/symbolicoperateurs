@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Dict, Iterable, List, Sequence
 
 import altair as alt
@@ -12,46 +11,39 @@ import streamlit as st
 from densite import (
     build_text_from_dataframe,
     compute_density_per_modality_by_label,
+    compute_total_connectors,
     count_words,
     filter_dataframe_by_modalities,
 )
-from regexanalyse import RegexPattern, load_regex_rules
 
 
-def load_norm_patterns(path: Path) -> List[RegexPattern]:
-    """Charger les motifs regex utilisés comme normes depuis un fichier JSON."""
-
-    if not path.exists():
-        return []
-
-    return load_regex_rules(path)
-
-
-def compute_norm_densities(
-    text: str, patterns: Sequence[RegexPattern], base: int
+def compute_norm_densities_by_label(
+    text: str, connectors: Dict[str, str], labels: Sequence[str], base: int
 ) -> pd.DataFrame:
-    """Calculer la densité de chaque motif sélectionné pour un texte donné."""
+    """Calculer la densité de normes par label sur un texte donné."""
 
-    if not text or not patterns:
+    if not text or not connectors or not labels:
         return pd.DataFrame(columns=["label", "densite", "occurrences"])
 
     word_count = count_words(text)
+    if word_count == 0:
+        return pd.DataFrame(columns=["label", "densite", "occurrences"])
 
     rows: List[Dict[str, float | int | str]] = []
-    for pattern in patterns:
-        occurrences = len(list(pattern.compiled.finditer(text)))
+
+    for label in labels:
+        label_connectors = {
+            connector: connector_label
+            for connector, connector_label in connectors.items()
+            if connector_label == label
+        }
+        occurrences = compute_total_connectors(text, label_connectors)
         density = 0.0
 
-        if word_count and occurrences:
+        if occurrences:
             density = (occurrences / word_count) * float(base)
 
-        rows.append(
-            {
-                "label": pattern.label or pattern.pattern_id or "Motif",
-                "densite": density,
-                "occurrences": occurrences,
-            }
-        )
+        rows.append({"label": label.lower(), "densite": density, "occurrences": occurrences})
 
     return pd.DataFrame(rows).sort_values("label").reset_index(drop=True)
 
@@ -78,8 +70,17 @@ def render_lexicon_norm_tab(
         st.info("Aucune donnée disponible après filtrage.")
         return
 
-    if not filtered_connectors:
-        st.info("Sélectionnez au moins un connecteur pour afficher la densité.")
+    allowed_labels = {"CONDITION", "ALORS", "ALTERNATIVE"}
+    normalized_connectors = {
+        connector: label
+        for connector, label in filtered_connectors.items()
+        if label in allowed_labels
+    }
+
+    if not normalized_connectors:
+        st.info(
+            "Sélectionnez au moins un connecteur de type condition, alors ou alternative pour afficher la densité."
+        )
         return
 
     variables = [column for column in filtered_df.columns if column not in ("texte", "entete")]
@@ -117,37 +118,41 @@ def render_lexicon_norm_tab(
     per_modality_label_df = compute_density_per_modality_by_label(
         density_filtered_df,
         None if variable_choice == "(Aucune)" else variable_choice,
-        filtered_connectors,
+        normalized_connectors,
         base=int(base),
     )
 
-    regex_norm_path = Path(__file__).parent / "dictionnaires" / "motifs_progr_regex.json"
-    norm_patterns = load_norm_patterns(regex_norm_path)
-
     st.markdown("### Normes disponibles")
 
-    selected_patterns: List[RegexPattern] = []
-    if not norm_patterns:
-        st.info("Aucune norme n'a été trouvée dans le fichier motifs_progr_regex.json.")
+    norm_density_df = compute_norm_densities_by_label(
+        build_text_from_dataframe(density_filtered_df),
+        normalized_connectors,
+        ["CONDITION", "ALORS", "ALTERNATIVE"],
+        base=int(base),
+    )
+
+    if norm_density_df.empty:
+        st.info("Aucune norme disponible pour les connecteurs sélectionnés.")
     else:
-        for pattern in norm_patterns:
-            checkbox_label = pattern.label or pattern.pattern_id or "Motif"
+        selected_labels = []
+        for _, row in norm_density_df.iterrows():
+            checkbox_label = row["label"].capitalize()
             if st.checkbox(
                 checkbox_label,
                 value=True,
-                key=f"lexicon-norm-{pattern.pattern_id or checkbox_label}",
+                key=f"lexicon-norm-{row['label']}",
             ):
-                selected_patterns.append(pattern)
+                selected_labels.append(row)
 
-    norm_density_df = compute_norm_densities(
-        build_text_from_dataframe(density_filtered_df), selected_patterns, base=int(base)
-    )
+        norm_density_df = pd.DataFrame(selected_labels)
 
     st.markdown("### Densité par connecteur et modalités")
 
     if per_modality_label_df.empty:
         st.info("Aucune donnée de densité disponible pour les paramètres sélectionnés.")
         return
+
+    per_modality_label_df["label"] = per_modality_label_df["label"].str.lower()
 
     bar_chart = (
         alt.Chart(per_modality_label_df)
