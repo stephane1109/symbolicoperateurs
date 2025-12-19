@@ -4,13 +4,15 @@
   "patterns": [
     {
       "id": "if_then_same_sentence",
-      "label": "si … alors",
+      "interpretation": "si X, alors je fais Z",
+      "label": "si … alors - si X, alors je fais Z",
       "category": "IF_THEN",
       "regex": "\\bsi\\b.*?\\balors\\b"
     },
     {
       "id": "if_or_optional_then_same_sentence",
-      "label": "si … ou … (alors)",
+      "interpretation": "si X ou Y, (alors) je fais Z",
+      "label": "si … ou … (alors) - si X ou Y, (alors) je fais Z",",
       "category": "IF_OR",
       "regex": "\\bsi\\b.*?\\bou\\b.*?(?:\\balors\\b)?"
     },
