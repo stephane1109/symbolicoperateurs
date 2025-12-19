@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Dict, List
 
 import altair as alt
 import pandas as pd
 import streamlit as st
+
+APP_DIR = Path(__file__).parent
+if str(APP_DIR) not in sys.path:
+    sys.path.insert(0, str(APP_DIR))
 
 from analyses import (
     annotate_connectors_html,
