@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import altair as alt
+import plotly.express as px
 import pandas as pd
 import streamlit as st
 
@@ -35,6 +36,14 @@ from hash import (
     average_segment_length_by_modality,
     compute_segment_word_lengths,
     segments_with_word_lengths,
+)
+from regexanalyse import (
+    build_regex_style_block,
+    count_segments_by_pattern,
+    highlight_matches_html,
+    load_regex_rules,
+    split_segments,
+    summarize_matches_by_segment,
 )
 
 
@@ -147,7 +156,7 @@ def main() -> None:
         return
 
     df = build_dataframe(records)
-    tabs = st.tabs(["Import", "Données brutes", "Densité", "Hash"])
+    tabs = st.tabs(["Import", "Données brutes", "Densité", "Hash", "Regex motifs"])
 
     with tabs[0]:
         st.subheader("Données importées")
@@ -676,6 +685,76 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                     )
 
                     st.altair_chart(lms_chart, use_container_width=True)
+
+    with tabs[4]:
+        st.subheader("Regex motifs")
+
+        regex_rules_path = Path(__file__).parent / "dictionnaires" / "motifs_progr_regex.json"
+        regex_patterns = load_regex_rules(regex_rules_path)
+
+        if not regex_patterns:
+            st.info("Aucun motif regex n'a pu être chargé depuis le dictionnaire fourni.")
+            return
+
+        regex_style = build_regex_style_block([pattern.label for pattern in regex_patterns])
+        regex_annotation_style = f"""
+        <style>
+        .regex-container {{ line-height: 1.6; font-size: 15px; }}
+        .regex-annotation {{ display: inline-block; border-radius: 4px; }}
+        .regex-label {{ font-weight: 700; }}
+        {regex_style}
+        </style>
+        """
+
+        st.markdown(regex_annotation_style, unsafe_allow_html=True)
+
+        highlighted_corpus = highlight_matches_html(combined_text, regex_patterns)
+        st.markdown("Corpus annoté (motifs regex)")
+        st.markdown(f"<div class='regex-container'>{highlighted_corpus}</div>", unsafe_allow_html=True)
+
+        segments = split_segments(combined_text)
+        segment_rows = summarize_matches_by_segment(segments, regex_patterns)
+
+        st.markdown("---")
+        st.subheader("Segments contenant au moins un motif")
+
+        if not segment_rows:
+            st.info("Aucun motif regex détecté dans le corpus fourni.")
+        else:
+            table_rows = []
+
+            for row in segment_rows:
+                motif_details = "; ".join(
+                    f"{motif['label']} ({motif['occurrences']})" for motif in row["motifs"]
+                )
+                table_rows.append(
+                    {
+                        "Segment": row["segment_id"],
+                        "Texte": row["segment"],
+                        "Motifs détectés": motif_details,
+                    }
+                )
+
+            st.dataframe(pd.DataFrame(table_rows), use_container_width=True)
+
+            segment_counts = count_segments_by_pattern(segment_rows)
+
+            if segment_counts:
+                st.subheader("Nombre de segments matchés par motif")
+                counts_df = pd.DataFrame(
+                    [
+                        {"motif": motif, "segments": count}
+                        for motif, count in segment_counts.items()
+                    ]
+                ).sort_values("segments", ascending=False)
+
+                fig = px.bar(
+                    counts_df,
+                    x="motif",
+                    y="segments",
+                    labels={"motif": "Motif", "segments": "Segments matchés"},
+                )
+                st.plotly_chart(fig, use_container_width=True)
 
 
 if __name__ == "__main__":
