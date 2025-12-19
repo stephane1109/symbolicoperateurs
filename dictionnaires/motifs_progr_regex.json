@@ -11,41 +11,31 @@
       "id": "if_then_same_sentence",
       "label": "si … alors",
       "category": "IF_THEN",
-      "regex": "\\bsi\\b.*?\\balors\\b",
-      "scope": "segment",
-      "notes": "Version minimaliste : suppose que le texte est déjà segmenté."
+      "regex": "\\bsi\\b.*?\\balors\\b"
     },
     {
       "id": "if_and_optional_then_same_sentence",
       "label": "si … et … (alors)",
       "category": "IF_AND",
-      "regex": "\\bsi\\b.*?\\bet\\b.*?(?:\\balors\\b)?",
-      "scope": "segment",
-      "notes": "Version minimaliste : 'alors' optionnel."
+      "regex": "\\bsi\\b.*?\\bet\\b.*?(?:\\balors\\b)?"
     },
     {
       "id": "if_or_optional_then_same_sentence",
       "label": "si … ou … (alors)",
       "category": "IF_OR",
-      "regex": "\\bsi\\b.*?\\bou\\b.*?(?:\\balors\\b)?",
-      "scope": "segment",
-      "notes": "Version minimaliste : 'alors' optionnel."
+      "regex": "\\bsi\\b.*?\\bou\\b.*?(?:\\balors\\b)?"
     },
     {
       "id": "if_then_else_same_sentence",
       "label": "si … alors … sinon",
       "category": "IF_THEN_ELSE",
-      "regex": "\\bsi\\b.*?\\balors\\b.*?\\bsinon\\b",
-      "scope": "segment",
-      "notes": "Version minimaliste IF–THEN–ELSE."
+      "regex": "\\bsi\\b.*?\\balors\\b.*?\\bsinon\\b"
     },
     {
       "id": "procedure_dabord_puis_ensuite_same_sentence",
       "label": "d’abord … puis … (ensuite)",
       "category": "PROCEDURE",
-      "regex": "\\bd[’']?\\s*abord\\b.*?\\bpuis\\b(?:.*?\\bensuite\\b)?",
-      "scope": "segment",
-      "notes": "Compatible d'abord / d’abord, 'ensuite' optionnel."
+      "regex": "\\bd[’']?\\s*abord\\b.*?\\bpuis\\b(?:.*?\\bensuite\\b)?"
     }
   ]
 }
