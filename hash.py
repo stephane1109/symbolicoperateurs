@@ -17,7 +17,10 @@ import pandas as pd
 from densite import build_text_from_dataframe, filter_dataframe_by_modalities
 
 
-SENTENCE_BOUNDARY_PATTERN = re.compile(r"[.!?]+|\n+", re.UNICODE)
+# Un segment commence après une ponctuation forte ou un retour à la ligne.
+# On inclut les points-virgules et deux-points, fréquents dans les verbatims,
+# et on gère les retours Windows (\r\n) en plus des \n simples.
+SENTENCE_BOUNDARY_PATTERN = re.compile(r"[.!?;:]+|\r?\n+", re.UNICODE)
 
 
 def _tokenize(text: str) -> List[str]:
