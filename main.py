@@ -712,6 +712,24 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
         st.markdown("Corpus annoté (motifs regex)")
         st.markdown(f"<div class='regex-container'>{highlighted_corpus}</div>", unsafe_allow_html=True)
 
+        downloadable_regex_html = f"""<!DOCTYPE html>
+        <html lang=\"fr\">
+        <head>
+        <meta charset=\"utf-8\" />
+        {regex_annotation_style}
+        </head>
+        <body>
+        <div class='regex-container'>{highlighted_corpus}</div>
+        </body>
+        </html>"""
+
+        st.download_button(
+            label="Télécharger le corpus annoté (HTML)",
+            data=downloadable_regex_html,
+            file_name="corpus_regex_annote.html",
+            mime="text/html",
+        )
+
         segments = split_segments(combined_text)
         segment_rows = summarize_matches_by_segment(segments, regex_patterns)
 
