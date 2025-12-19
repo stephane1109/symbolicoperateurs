@@ -10,7 +10,7 @@
   "patterns": [
     {
       "id": "if_then_same_sentence",
-      "label": "si … alors (même phrase)",
+      "label": "si … alors",
       "category": "IF_THEN",
       "regex": "\\bsi\\b[^.!?;:\\n]{0,120}\\balors\\b",
       "scope": "sentence",
@@ -18,7 +18,7 @@
     },
     {
       "id": "if_and_optional_then_same_sentence",
-      "label": "si … et … (alors) (même phrase)",
+      "label": "si … et … (alors)",
       "category": "IF_AND",
       "regex": "\\bsi\\b[^.!?;:\\n]{0,120}\\bet\\b[^.!?;:\\n]{0,120}(?:\\balors\\b)?",
       "scope": "sentence",
@@ -26,7 +26,7 @@
     },
     {
       "id": "if_or_optional_then_same_sentence",
-      "label": "si … ou … (alors) (même phrase)",
+      "label": "si … ou … (alors)",
       "category": "IF_OR",
       "regex": "\\bsi\\b[^.!?;:\\n]{0,120}\\bou\\b[^.!?;:\\n]{0,120}(?:\\balors\\b)?",
       "scope": "sentence",
@@ -34,7 +34,7 @@
     },
     {
       "id": "if_then_else_same_sentence",
-      "label": "si … alors … sinon (même phrase)",
+      "label": "si … alors … sinon",
       "category": "IF_THEN_ELSE",
       "regex": "\\bsi\\b[^.!?;:\\n]{0,160}\\balors\\b[^.!?;:\\n]{0,160}\\bsinon\\b",
       "scope": "sentence",
@@ -42,7 +42,7 @@
     },
     {
       "id": "procedure_dabord_puis_ensuite_same_sentence",
-      "label": "d’abord … puis … (ensuite) (même phrase)",
+      "label": "d’abord … puis … (ensuite)",
       "category": "PROCEDURE",
       "regex": "\\bd[’']?\\s*abord\\b[^.!?;:\\n]{0,200}\\bpuis\\b(?:[^.!?;:\\n]{0,200}\\bensuite\\b)?",
       "scope": "sentence",
