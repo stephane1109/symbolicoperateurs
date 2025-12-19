@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Dict, List
 
 import altair as alt
-import plotly.express as px
 import pandas as pd
 import streamlit as st
 
@@ -777,13 +776,18 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                     ]
                 ).sort_values("segments", ascending=False)
 
-                fig = px.bar(
-                    counts_df,
-                    x="motif",
-                    y="segments",
-                    labels={"motif": "Motif", "segments": "Segments matchés"},
+                alt_counts_chart = (
+                    alt.Chart(counts_df)
+                    .mark_bar()
+                    .encode(
+                        x=alt.X("motif:N", sort="-y", title="Motif"),
+                        y=alt.Y("segments:Q", title="Segments matchés"),
+                        tooltip=["motif", "segments"],
+                    )
+                    .properties(title="Nombre de segments matchés par motif")
                 )
-                st.plotly_chart(fig, use_container_width=True)
+
+                st.altair_chart(alt_counts_chart, use_container_width=True)
 
 
 if __name__ == "__main__":
