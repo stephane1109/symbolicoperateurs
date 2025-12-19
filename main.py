@@ -163,7 +163,7 @@ def main() -> None:
         "<span style='color: white'>"
         "Symbolic => fait référence au courant symbolique de l'ia (analogie à la "
         "machine/programme) vs connexionnisme (analogie avec le cerveau).<br>"
-        "Connectors => l'idée de recherche dans un corpus des marqueurs pouvant "
+        "Connectors => l'idée de rechercher dans un corpus des marqueurs pouvant "
         "révéler un langage machine (si, alors, sinon, et, ou...)</span>",
         unsafe_allow_html=True,
     )
