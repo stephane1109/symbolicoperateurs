@@ -763,11 +763,11 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                                 borne_superieure=lambda df: df["lms"] + df["ecart_type"],
                             )
                         )
-                        .mark_errorbar()
+                        .mark_errorbar(orient="horizontal")
                         .encode(
-                            x=alt.X("modalite:N", title="Modalité"),
-                            y=alt.Y("borne_inferieure:Q", title="Longueur (mots)"),
-                            y2="borne_superieure:Q",
+                            y=alt.Y("modalite:N", title="Modalité"),
+                            x=alt.X("borne_inferieure:Q", title="Longueur (mots)"),
+                            x2="borne_superieure:Q",
                             color=alt.Color("modalite:N", title="Modalité"),
                             tooltip=[
                                 alt.Tooltip("modalite:N", title="Modalité"),
@@ -782,8 +782,8 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                         alt.Chart(std_by_modality_df)
                         .mark_point(size=70, filled=True)
                         .encode(
-                            x=alt.X("modalite:N", title="Modalité"),
-                            y=alt.Y("lms:Q", title="Longueur (mots)"),
+                            y=alt.Y("modalite:N", title="Modalité"),
+                            x=alt.X("lms:Q", title="Longueur (mots)"),
                             color=alt.Color("modalite:N", title="Modalité"),
                         )
                     )
