@@ -35,6 +35,83 @@ def _tokenize(text: str) -> List[str]:
     return re.findall(r"\b\w+\b", text, flags=re.UNICODE)
 
 
+def _split_records(text: str) -> List[tuple[str, str]]:
+    """Diviser le corpus en enregistrements à partir des lignes d'en-tête IRaMuTeQ."""
+
+    if not text:
+        return []
+
+    lines = text.splitlines()
+    records: List[tuple[str, str]] = []
+    current_header: str | None = None
+    current_body: List[str] = []
+
+    def push_record() -> None:
+        if current_header is None and not current_body:
+            return
+
+        body_text = "\n".join(current_body).strip()
+        records.append((current_header or "", body_text))
+
+    for line in lines:
+        if line.strip().startswith("****"):
+            push_record()
+            current_header = line.strip()
+            current_body = []
+        else:
+            current_body.append(line)
+
+    push_record()
+
+    if not records and text.strip():
+        return [("", text.strip())]
+
+    return records
+
+
+def _segments_with_boundaries(
+    text: str, pattern: re.Pattern[str]
+) -> List[tuple[str, Optional[str], Optional[str]]]:
+    """Retourner les segments associés à leurs connecteurs de borne."""
+
+    segments: List[tuple[str, Optional[str], Optional[str]]] = []
+    last_end = 0
+    previous_connector: Optional[str] = None
+
+    for match in pattern.finditer(text):
+        segment = text[last_end: match.start()]
+
+        if segment.strip():
+            segments.append((segment, previous_connector, match.group(0)))
+
+        previous_connector = match.group(0)
+        last_end = match.end()
+
+    trailing = text[last_end:]
+
+    if trailing.strip():
+        segments.append((trailing, previous_connector, None))
+
+    return segments
+
+
+def _segments_with_headers(
+    text: str, pattern: re.Pattern[str]
+) -> List[tuple[str, Optional[str], Optional[str]]]:
+    """Retourner les segments en conservant les en-têtes comme segments dédiés."""
+
+    segments: List[tuple[str, Optional[str], Optional[str]]] = []
+
+    for header, body in _split_records(text):
+        if header.strip():
+            segments.append((header, None, None))
+
+        if body:
+            segments.extend(_segments_with_boundaries(body, pattern))
+
+    return segments
+
+
 def split_segments_by_connectors(text: str, connectors: Dict[str, str]) -> List[str]:
     """Découper le texte en segments entre les connecteurs fournis."""
 
@@ -46,23 +123,9 @@ def split_segments_by_connectors(text: str, connectors: Dict[str, str]) -> List[
     if pattern is None:
         return []
 
-    segments: List[str] = []
-    last_end = 0
+    segments_with_boundaries = _segments_with_headers(text, pattern)
 
-    for match in pattern.finditer(text):
-        segment = text[last_end: match.start()]
-
-        if segment.strip():
-            segments.append(segment)
-
-        last_end = match.end()
-
-    trailing = text[last_end:]
-
-    if trailing.strip():
-        segments.append(trailing)
-
-    return segments
+    return [segment for segment, _, _ in segments_with_boundaries]
 
 
 def compute_segment_word_lengths(text: str, connectors: Dict[str, str]) -> List[int]:
@@ -85,14 +148,29 @@ def segments_with_word_lengths(
 ) -> List[Dict[str, str | int]]:
     """Retourner chaque segment avec sa longueur en mots."""
 
-    segments = split_segments_by_connectors(text, connectors)
+    if not text:
+        return []
+
+    pattern = _build_connector_pattern(connectors)
+
+    if pattern is None:
+        return []
+
+    segments = _segments_with_headers(text, pattern)
     entries: List[Dict[str, str | int]] = []
 
-    for segment in segments:
+    for segment, previous_connector, next_connector in segments:
         tokens = _tokenize(segment)
 
         if tokens:
-            entries.append({"segment": segment.strip(), "longueur": len(tokens)})
+            entries.append(
+                {
+                    "segment": segment.strip(),
+                    "longueur": len(tokens),
+                    "connecteur_precedent": (previous_connector or ""),
+                    "connecteur_suivant": (next_connector or ""),
+                }
+            )
 
     return entries
 
