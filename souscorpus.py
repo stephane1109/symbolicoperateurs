@@ -36,9 +36,12 @@ def build_subcorpus(records: List[Dict[str, str]]) -> List[str]:
 
         entete = record.get("entete", "").strip()
         texte = record.get("texte", "").strip()
+
+        header_tokens = [token for token in entete.split() if not token.startswith("*")]
+        match_content = "\n".join(part for part in (" ".join(header_tokens), texte) if part).strip()
         segment = f"{entete}\n{texte}".strip()
 
-        if connector_pattern.search(segment):
+        if _find_connectors(match_content, connector_pattern):
             subcorpus_segments.append(segment)
 
     return subcorpus_segments
@@ -57,3 +60,18 @@ def _build_connector_pattern(connectors: Dict[str, str]) -> re.Pattern[str] | No
     pattern = "|".join(escaped)
 
     return re.compile(rf"\b({pattern})\b", re.IGNORECASE)
+
+
+def _find_connectors(content: str, connector_pattern: re.Pattern[str]) -> List[str]:
+    """Retourne la liste des connecteurs trouvés dans le contenu fourni."""
+
+    if not content:
+        return []
+
+    seen = []
+    for match in connector_pattern.finditer(content):
+        connector = match.group(1)
+        if connector not in seen:
+            seen.append(connector)
+
+    return seen
