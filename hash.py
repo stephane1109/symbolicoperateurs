@@ -33,6 +33,24 @@ def _remove_metadata_first_line(text: str) -> str:
     return text
 
 
+def _format_segment_with_markers(
+    segment: str, previous_connector: Optional[str], next_connector: Optional[str]
+) -> str:
+    """Afficher le segment avec ses bornes encadrées par des crochets."""
+
+    parts: List[str] = []
+
+    if previous_connector:
+        parts.append(f"[{previous_connector}]")
+
+    parts.append(segment.strip())
+
+    if next_connector:
+        parts.append(f"[{next_connector}]")
+
+    return " ".join(parts)
+
+
 def _build_connector_pattern(connectors: Dict[str, str]) -> re.Pattern[str] | None:
     """Construire un motif regex sécurisé pour tous les connecteurs fournis."""
 
@@ -136,6 +154,9 @@ def segments_with_word_lengths(
             entries.append(
                 {
                     "segment": segment.strip(),
+                    "segment_avec_marqueurs": _format_segment_with_markers(
+                        segment, previous_connector, next_connector
+                    ),
                     "longueur": len(tokens),
                     "connecteur_precedent": (previous_connector or ""),
                     "connecteur_suivant": (next_connector or ""),

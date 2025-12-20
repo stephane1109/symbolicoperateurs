@@ -646,7 +646,12 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                 col3.metric("Segments min / max", f"{min(segment_lengths)} / {max(segment_lengths)}")
 
                 distribution_df = pd.DataFrame(segment_entries)[
-                    ["segment", "connecteur_precedent", "connecteur_suivant", "longueur"]
+                    [
+                        "segment_avec_marqueurs",
+                        "connecteur_precedent",
+                        "connecteur_suivant",
+                        "longueur",
+                    ]
                 ]
 
                 chart = (
@@ -663,7 +668,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                 st.dataframe(
                     distribution_df.rename(
                         columns={
-                            "segment": "Segment",
+                            "segment_avec_marqueurs": "Segment",
                             "longueur": "Longueur",
                             "connecteur_precedent": "Connecteur précédent",
                             "connecteur_suivant": "Connecteur suivant",
