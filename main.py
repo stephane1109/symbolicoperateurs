@@ -49,6 +49,10 @@ from regexanalyse import (
     split_segments,
     summarize_matches_by_segment,
 )
+from test_lesch_Kincaid import (
+    compute_flesch_kincaid_metrics,
+    interpret_reading_ease,
+)
 
 
 def build_annotation_style_block(label_style_block: str) -> str:
@@ -194,7 +198,15 @@ def main() -> None:
 
     df = build_dataframe(records)
     tabs = st.tabs(
-        ["Import", "Données brutes", "Densité", "Lexicon norm", "Hash", "Regex motifs"]
+        [
+            "Import",
+            "Données brutes",
+            "Densité",
+            "Lexicon norm",
+            "Hash",
+            "Regex motifs",
+            "Test de lisibilité",
+        ]
     )
 
     with tabs[0]:
@@ -888,6 +900,49 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                 )
 
                 st.altair_chart(alt_counts_chart, use_container_width=True)
+
+    with tabs[6]:
+        st.subheader("Test de lisibilité (Flesch-Kincaid)")
+
+        st.markdown(
+            """
+            Cet onglet calcule automatiquement le score de lisibilité Flesch-Kincaid
+            sur le texte filtré dans l'onglet « Données brutes ». Le score combine le
+            nombre de phrases, de mots et de syllabes pour fournir un indicateur de
+            difficulté de lecture.
+            """
+        )
+
+        readability_metrics = compute_flesch_kincaid_metrics(combined_text)
+
+        if readability_metrics["words"] == 0:
+            st.info("Aucun mot n'a été détecté dans le texte à analyser.")
+            return
+
+        col_a, col_b, col_c = st.columns(3)
+        col_a.metric("Phrases", f"{readability_metrics['sentences']:,}".replace(",", " "))
+        col_b.metric("Mots", f"{readability_metrics['words']:,}".replace(",", " "))
+        col_c.metric(
+            "Syllabes estimées",
+            f"{readability_metrics['syllables']:,}".replace(",", " "),
+        )
+
+        st.markdown("---")
+
+        ease_score = readability_metrics["reading_ease"]
+        grade_level = readability_metrics["grade_level"]
+
+        col1, col2 = st.columns(2)
+        col1.metric("Score Flesch-Kincaid", f"{ease_score:.1f}")
+        col2.metric("Niveau scolaire estimé", f"{grade_level:.1f}")
+
+        st.success(interpret_reading_ease(ease_score))
+
+        st.caption(
+            "La formule originale (206.835 − 1.015 × mots/phrases − 84.6 × syllabes/mot) "
+            "a été conservée pour ce calcul. Les syllabes sont estimées par comptage des "
+            "groupes de voyelles ; les résultats restent indicatifs pour le français."
+        )
 
 
 if __name__ == "__main__":
