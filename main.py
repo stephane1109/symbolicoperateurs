@@ -974,6 +974,77 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
         st.success(interpret_reading_ease(ease_score))
 
+        readability_chart_rows = []
+
+        for variable in readability_selected_variables:
+            if variable not in readability_filtered_df.columns:
+                continue
+
+            variable_subset = readability_filtered_df.dropna(subset=[variable])
+
+            for modality, subset in variable_subset.groupby(variable):
+                modality_text = build_text_from_dataframe(subset)
+
+                if not modality_text:
+                    continue
+
+                metrics = compute_flesch_kincaid_metrics(modality_text)
+
+                if metrics["words"] == 0:
+                    continue
+
+                readability_chart_rows.append(
+                    {
+                        "variable": variable,
+                        "modalite": modality,
+                        "reading_ease": metrics["reading_ease"],
+                        "sentences": metrics["sentences"],
+                        "words": metrics["words"],
+                    }
+                )
+
+        if readability_chart_rows:
+            readability_scores_df = pd.DataFrame(readability_chart_rows)
+
+            st.markdown("#### Comparaison par variable et modalité")
+            st.dataframe(
+                readability_scores_df.rename(
+                    columns={
+                        "variable": "Variable",
+                        "modalite": "Modalité",
+                        "reading_ease": "Score Flesch-Kincaid",
+                        "sentences": "Phrases",
+                        "words": "Mots",
+                    }
+                ),
+                use_container_width=True,
+            )
+
+            readability_chart = (
+                alt.Chart(readability_scores_df)
+                .mark_bar()
+                .encode(
+                    x=alt.X("modalite:N", title="Modalité"),
+                    y=alt.Y("reading_ease:Q", title="Score Flesch-Kincaid"),
+                    color=alt.Color("variable:N", title="Variable"),
+                    column=alt.Column("variable:N", title="Variable"),
+                    tooltip=[
+                        alt.Tooltip("variable:N", title="Variable"),
+                        alt.Tooltip("modalite:N", title="Modalité"),
+                        alt.Tooltip("reading_ease:Q", title="Score Flesch-Kincaid", format=".1f"),
+                        alt.Tooltip("words:Q", title="Mots"),
+                        alt.Tooltip("sentences:Q", title="Phrases"),
+                    ],
+                )
+                .properties(title="Comparaison de lisibilité par modalité", spacing=12)
+            )
+
+            st.altair_chart(readability_chart, use_container_width=True)
+        else:
+            st.info(
+                "Aucune donnée disponible pour comparer les variables/modalités sélectionnées."
+            )
+
         st.caption(
             "La formule originale (206.835 − 1.015 × mots/phrases − 84.6 × syllabes/mot) "
             "a été conservée pour ce calcul. Les syllabes sont estimées par comptage des "
