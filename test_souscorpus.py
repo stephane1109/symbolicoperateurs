@@ -28,3 +28,17 @@ def test_build_subcorpus_ignores_starred_header_tokens_for_connectors() -> None:
 
     assert len(subcorpus_segments) == 1
     assert "doc_2" in subcorpus_segments[0]
+
+
+def test_build_subcorpus_splits_and_filters_segments() -> None:
+    records = [
+        {
+            "entete": "**** *doc_1",
+            "texte": "Le texte commence. Ensuite vient une phrase sans connecteur",
+        }
+    ]
+
+    subcorpus_segments = build_subcorpus(records)
+
+    assert len(subcorpus_segments) == 1
+    assert subcorpus_segments[0].endswith("Ensuite vient une phrase sans connecteur")
