@@ -36,9 +36,12 @@ def build_subcorpus(records: List[Dict[str, str]]) -> List[str]:
 
         entete = record.get("entete", "").strip()
         texte = record.get("texte", "").strip()
+
+        header_tokens = [token for token in entete.split() if not token.startswith("*")]
+        match_content = "\n".join(part for part in (" ".join(header_tokens), texte) if part).strip()
         segment = f"{entete}\n{texte}".strip()
 
-        if connector_pattern.search(segment):
+        if match_content and connector_pattern.search(match_content):
             subcorpus_segments.append(segment)
 
     return subcorpus_segments
