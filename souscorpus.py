@@ -19,7 +19,9 @@ def build_subcorpus(records: List[Dict[str, str]]) -> List[str]:
     """Construit la liste des segments du sous-corpus à partir des enregistrements IRaMuTeQ.
 
     Seuls les segments contenant au moins un connecteur sont conservés afin de ne
-    pas exporter de textes sans pertinence pour l'analyse.
+    pas exporter de textes sans pertinence pour l'analyse. Les textes sont
+    découpés en phrases ou lignes, et seules les sous-parties contenant un
+    connecteur sont ajoutées au sous-corpus.
     """
 
     connectors = load_connectors(Path(__file__).parent / "dictionnaires" / "connecteurs.json")
@@ -37,12 +39,10 @@ def build_subcorpus(records: List[Dict[str, str]]) -> List[str]:
         entete = record.get("entete", "").strip()
         texte = record.get("texte", "").strip()
 
-        header_tokens = [token for token in entete.split() if not token.startswith("*")]
-        match_content = "\n".join(part for part in (" ".join(header_tokens), texte) if part).strip()
-        segment = f"{entete}\n{texte}".strip()
-
-        if match_content and connector_pattern.search(match_content):
-            subcorpus_segments.append(segment)
+        for segment in _split_text_segments(texte):
+            if connector_pattern.search(segment):
+                combined_segment = f"{entete}\n{segment}".strip()
+                subcorpus_segments.append(combined_segment)
 
     return subcorpus_segments
 
@@ -60,3 +60,14 @@ def _build_connector_pattern(connectors: Dict[str, str]) -> re.Pattern[str] | No
     pattern = "|".join(escaped)
 
     return re.compile(rf"\b({pattern})\b", re.IGNORECASE)
+
+
+def _split_text_segments(text: str) -> List[str]:
+    """Diviser le texte en segments utilisables pour le sous-corpus.
+
+    Les segments sont découpés sur les retours à la ligne ou après les
+    ponctuations fortes de fin de phrase. Les blancs superflus sont retirés.
+    """
+
+    raw_segments = re.split(r"(?:\r?\n+|(?<=[.!?])\s+)", text)
+    return [segment.strip() for segment in raw_segments if segment.strip()]
