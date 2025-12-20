@@ -36,6 +36,7 @@ from ecartype import (
     standard_deviation_by_modality,
 )
 from hash import (
+    ECART_TYPE_EXPLANATION,
     average_segment_length,
     average_segment_length_by_modality,
     compute_segment_word_lengths,
@@ -727,6 +728,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
                 if not std_by_modality_df.empty:
                     st.subheader("Ecart-type")
+                    st.markdown(ECART_TYPE_EXPLANATION)
                     st.dataframe(
                         std_by_modality_df.rename(
                             columns={
