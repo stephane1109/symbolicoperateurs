@@ -55,6 +55,7 @@ from test_lesch_Kincaid import (
     get_readability_band,
     interpret_reading_ease,
 )
+from souscorpus import build_subcorpus
 
 
 def build_annotation_style_block(label_style_block: str) -> str:
@@ -203,6 +204,7 @@ def main() -> None:
         [
             "Import",
             "Données brutes",
+            "Sous corpus",
             "Densité",
             "Lexicon norm",
             "Hash",
@@ -362,6 +364,33 @@ def main() -> None:
             st.altair_chart(variable_chart, use_container_width=True)
 
     with tabs[2]:
+        st.subheader("Sous corpus")
+        st.write(
+            "Extraction automatique des segments dont la première ligne contient les marqueurs "
+            "IRaMuTeQ (encodage commençant par `**** *`). Le sous-corpus peut être copié, "
+            "téléchargé au format texte ou réutilisé pour d'autres analyses."
+        )
+
+        subcorpus_segments = build_subcorpus(records)
+
+        if not subcorpus_segments:
+            st.info(
+                "Aucun segment avec encodage `**** *` n'a été trouvé dans le fichier téléversé."
+            )
+        else:
+            subcorpus_text = "\n\n".join(subcorpus_segments)
+            st.text_area(
+                "Segments du sous-corpus", subcorpus_text, height=260, key="subcorpus_text"
+            )
+
+            st.download_button(
+                label="Télécharger le sous-corpus (TXT)",
+                data=subcorpus_text,
+                file_name="sous_corpus.txt",
+                mime="text/plain",
+            )
+
+    with tabs[3]:
         st.subheader("Densité des connecteurs")
         st.write(
             "Densité des textes analysés : La densité, c'est simplement le nombre de connecteurs "
@@ -598,10 +627,10 @@ def main() -> None:
 
                         st.altair_chart(scatter_chart, use_container_width=True)
 
-    with tabs[3]:
+    with tabs[4]:
         render_lexicon_norm_tab(filtered_df, filtered_connectors)
 
-    with tabs[4]:
+    with tabs[5]:
         st.subheader("Hash (LMS entre connecteurs)")
         st.write(
             """
@@ -804,7 +833,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
                     st.altair_chart(dispersion_chart + lms_points, use_container_width=True)
 
-    with tabs[5]:
+    with tabs[6]:
         st.subheader("Regex motifs")
 
         st.markdown(
@@ -903,7 +932,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
                 st.altair_chart(alt_counts_chart, use_container_width=True)
 
-    with tabs[6]:
+    with tabs[7]:
         st.subheader("Test de lisibilité (Flesch-Kincaid)")
 
         st.markdown("### Sélection des variables/modalités")
