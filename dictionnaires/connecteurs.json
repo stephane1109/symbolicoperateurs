@@ -58,6 +58,13 @@
 
   "et": "AND",
   "puis": "AND",
+  "ensuite": "AND",
+  "aussi": "AND",
+  "également": "AND",
+  "de plus": "AND",  
+  "en plus": "AND",
+  "en outre": "AND",
+  "ainsi que": "AND",
 
   "alors": "ALORS",
   "donc": "ALORS",
