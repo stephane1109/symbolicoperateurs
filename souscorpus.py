@@ -7,21 +7,23 @@ from typing import Dict, List
 from analyses import load_connectors
 
 
-def has_header_markers(record: Dict[str, str]) -> bool:
-    """Vérifie la présence de marqueurs (tokens commençant par « * ») dans l'entête."""
+MODEL_PROMPT_PREFIX = "**** *model_gpt *prompt_"
 
-    entete = record.get("entete", "")
-    tokens = entete.split()
-    return entete.startswith("****") and any(token.startswith("*") for token in tokens)
+
+def has_header_markers(record: Dict[str, str]) -> bool:
+    """Vérifie que l'entête correspond à un encodage de prompt GPT."""
+
+    entete = record.get("entete", "").strip()
+    return entete.startswith(MODEL_PROMPT_PREFIX)
 
 
 def build_subcorpus(records: List[Dict[str, str]]) -> List[str]:
     """Construit la liste des segments du sous-corpus à partir des enregistrements IRaMuTeQ.
 
-    Seuls les segments contenant au moins un connecteur sont conservés afin de ne
-    pas exporter de textes sans pertinence pour l'analyse. Les textes sont
-    découpés en phrases ou lignes, et seules les sous-parties contenant un
-    connecteur sont ajoutées au sous-corpus.
+    Seuls les textes dont la première ligne suit le format `**** *model_gpt *prompt_X`
+    sont pris en compte. Les phrases ou lignes contenant au moins un connecteur
+    sont conservées et concaténées après l'entête d'origine pour reconstruire le
+    sous-corpus.
     """
 
     connectors = load_connectors(Path(__file__).parent / "dictionnaires" / "connecteurs.json")
@@ -39,10 +41,13 @@ def build_subcorpus(records: List[Dict[str, str]]) -> List[str]:
         entete = record.get("entete", "").strip()
         texte = record.get("texte", "").strip()
 
-        for segment in _split_text_segments(texte):
-            if connector_pattern.search(segment):
-                combined_segment = f"{entete}\n{segment}".strip()
-                subcorpus_segments.append(combined_segment)
+        filtered_segments = [
+            segment for segment in _split_text_segments(texte) if connector_pattern.search(segment)
+        ]
+
+        if filtered_segments:
+            combined_segment = "\n".join([entete] + filtered_segments)
+            subcorpus_segments.append(combined_segment)
 
     return subcorpus_segments
 
