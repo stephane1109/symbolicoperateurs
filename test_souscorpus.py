@@ -5,7 +5,7 @@ from souscorpus import build_subcorpus
 
 def test_build_subcorpus_filters_non_prompt_records() -> None:
     records = [
-        {"entete": "**** *doc_1", "texte": "Si ceci arrive, alors cela."},
+        {"entete": "*doc_1", "texte": "Si ceci arrive, alors cela."},
         {"entete": "**** *model_gpt *prompt_2", "texte": "Sinon, nous attendons."},
     ]
 
