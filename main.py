@@ -33,7 +33,6 @@ from densite import (
 )
 from ecartype import (
     compute_length_standard_deviation,
-    segment_lengths_by_modality,
     standard_deviation_by_modality,
 )
 from hash import (
@@ -755,41 +754,41 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
                     st.altair_chart(std_chart, use_container_width=True)
 
-                    lengths_by_modality = segment_lengths_by_modality(
-                        hash_filtered_df,
-                        None if hash_variable_choice == "(Aucune)" else hash_variable_choice,
-                        filtered_connectors,
-                        hash_modalities or None,
+                    st.markdown("#### Dispersion des longueurs (moyenne ± écart-type)")
+
+                    dispersion_chart = (
+                        alt.Chart(
+                            std_by_modality_df.assign(
+                                borne_inferieure=lambda df: (df["lms"] - df["ecart_type"]).clip(lower=0),
+                                borne_superieure=lambda df: df["lms"] + df["ecart_type"],
+                            )
+                        )
+                        .mark_errorbar()
+                        .encode(
+                            y=alt.Y("modalite:N", title="Modalité"),
+                            x=alt.X("borne_inferieure:Q", title="Longueur (mots)"),
+                            x2="borne_superieure:Q",
+                            color=alt.Color("modalite:N", title="Modalité"),
+                            tooltip=[
+                                alt.Tooltip("modalite:N", title="Modalité"),
+                                alt.Tooltip("lms:Q", title="LMS (moyenne)", format=".2f"),
+                                alt.Tooltip("ecart_type:Q", title="Écart-type", format=".2f"),
+                                alt.Tooltip("segments:Q", title="Segments comptés"),
+                            ],
+                        )
                     )
 
-                    if not lengths_by_modality.empty:
-                        st.markdown("Distribution des longueurs par modalité (violin plot)")
-                        max_length = lengths_by_modality["longueur"].max()
-                        violin_chart = (
-                            alt.Chart(lengths_by_modality)
-                            .transform_density(
-                                "longueur",
-                                as_=["longueur", "densite"],
-                                groupby=["modalite"],
-                                extent=[0, max_length],
-                            )
-                            .mark_area(orient="horizontal", opacity=0.65)
-                            .encode(
-                                y=alt.Y("modalite:N", title="Modalité"),
-                                x=alt.X("densite:Q", stack="center", title="Densité"),
-                                color=alt.Color("modalite:N", title="Modalité"),
-                                tooltip=[
-                                    "modalite:N",
-                                    alt.Tooltip(
-                                        "longueur:Q", title="Longueur (mots)", format=".2f"
-                                    ),
-                                    alt.Tooltip("densite:Q", title="Densité", format=".3f"),
-                                ],
-                            )
-                            .properties(height={"step": 22})
+                    lms_points = (
+                        alt.Chart(std_by_modality_df)
+                        .mark_point(size=70, filled=True)
+                        .encode(
+                            y=alt.Y("modalite:N", title="Modalité"),
+                            x=alt.X("lms:Q", title="Longueur (mots)"),
+                            color=alt.Color("modalite:N", title="Modalité"),
                         )
+                    )
 
-                        st.altair_chart(violin_chart, use_container_width=True)
+                    st.altair_chart(dispersion_chart + lms_points, use_container_width=True)
 
     with tabs[5]:
         st.subheader("Regex motifs")
