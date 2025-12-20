@@ -904,16 +904,52 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
     with tabs[6]:
         st.subheader("Test de lisibilité (Flesch-Kincaid)")
 
+        st.markdown("### Sélection des variables/modalités")
+
+        readability_variables = [
+            column for column in df.columns if column not in ("texte", "entete")
+        ]
+        readability_selected_variables = st.multiselect(
+            "Variables disponibles pour la lisibilité",
+            readability_variables,
+            default=readability_variables,
+            help="Choisissez les variables à filtrer pour le test de lisibilité.",
+            key="readability_variables",
+        )
+
+        readability_filtered_df = df.copy()
+
+        for variable in readability_selected_variables:
+            modality_options = sorted(
+                readability_filtered_df[variable].dropna().unique().tolist()
+            )
+            selected_modalities = st.multiselect(
+                f"Modalités pour {variable}",
+                modality_options,
+                default=modality_options,
+                help="Sélectionnez les modalités à inclure dans le calcul du score.",
+                key=f"readability_modalities_{variable}",
+            )
+            readability_filtered_df = readability_filtered_df[
+                readability_filtered_df[variable].isin(selected_modalities)
+            ]
+
+        readability_text = build_text_from_dataframe(readability_filtered_df)
+
+        if not readability_text:
+            st.info("Aucun texte disponible pour les variables/modalités sélectionnées.")
+            return
+
         st.markdown(
             """
             Cet onglet calcule automatiquement le score de lisibilité Flesch-Kincaid
-            sur le texte filtré dans l'onglet « Données brutes ». Le score combine le
-            nombre de phrases, de mots et de syllabes pour fournir un indicateur de
-            difficulté de lecture.
+            sur le texte filtré selon les variables et modalités sélectionnées ci-dessus.
+            Le score combine le nombre de phrases, de mots et de syllabes pour fournir
+            un indicateur de difficulté de lecture.
             """
         )
 
-        readability_metrics = compute_flesch_kincaid_metrics(combined_text)
+        readability_metrics = compute_flesch_kincaid_metrics(readability_text)
 
         if readability_metrics["words"] == 0:
             st.info("Aucun mot n'a été détecté dans le texte à analyser.")
