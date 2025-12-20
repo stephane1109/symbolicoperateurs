@@ -7,7 +7,7 @@ from typing import Dict, List
 from analyses import load_connectors
 
 
-MODEL_PROMPT_PREFIX = "**** *model_gpt *prompt_"
+MODEL_PROMPT_PREFIX = "****"
 
 
 def has_header_markers(record: Dict[str, str]) -> bool:
@@ -20,8 +20,8 @@ def has_header_markers(record: Dict[str, str]) -> bool:
 def build_subcorpus(records: List[Dict[str, str]]) -> List[str]:
     """Construit la liste des segments du sous-corpus à partir des enregistrements IRaMuTeQ.
 
-    Seuls les textes dont la première ligne suit le format `**** *model_gpt *prompt_X`
-    sont pris en compte. La première ligne est conservée telle quelle, puis les
+    Seuls les textes dont la première ligne commence par `****` sont pris en compte.
+    La première ligne est conservée telle quelle, puis les
     phrases ou lignes contenant au moins un connecteur sont concaténées pour
     reconstruire le sous-corpus.
     """
