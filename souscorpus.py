@@ -21,9 +21,9 @@ def build_subcorpus(records: List[Dict[str, str]]) -> List[str]:
     """Construit la liste des segments du sous-corpus à partir des enregistrements IRaMuTeQ.
 
     Seuls les textes dont la première ligne suit le format `**** *model_gpt *prompt_X`
-    sont pris en compte. Les phrases ou lignes contenant au moins un connecteur
-    sont conservées et concaténées après l'entête d'origine pour reconstruire le
-    sous-corpus.
+    sont pris en compte. La première ligne est conservée telle quelle, puis les
+    phrases ou lignes contenant au moins un connecteur sont concaténées pour
+    reconstruire le sous-corpus.
     """
 
     connectors = load_connectors(Path(__file__).parent / "dictionnaires" / "connecteurs.json")
@@ -38,7 +38,7 @@ def build_subcorpus(records: List[Dict[str, str]]) -> List[str]:
         if not has_header_markers(record):
             continue
 
-        entete = record.get("entete", "").strip()
+        entete = record.get("entete", "")
         texte = record.get("texte", "").strip()
 
         filtered_segments = [
@@ -47,7 +47,10 @@ def build_subcorpus(records: List[Dict[str, str]]) -> List[str]:
 
         if filtered_segments:
             combined_segment = "\n".join([entete] + filtered_segments)
-            subcorpus_segments.append(combined_segment)
+        else:
+            combined_segment = entete
+
+        subcorpus_segments.append(combined_segment)
 
     return subcorpus_segments
 
