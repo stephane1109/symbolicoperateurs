@@ -16,6 +16,23 @@ import pandas as pd
 from densite import build_text_from_dataframe, filter_dataframe_by_modalities
 
 
+METADATA_LINE_PATTERN = re.compile(r"^\*{4}\s+\*model_gpt\s+\*prompt_1\s*$", re.IGNORECASE)
+
+
+def _remove_metadata_first_line(text: str) -> str:
+    """Retirer une éventuelle ligne de métadonnées en début de texte."""
+
+    lines = text.splitlines()
+
+    if not lines:
+        return text
+
+    if METADATA_LINE_PATTERN.match(lines[0].strip()):
+        return "\n".join(lines[1:]).lstrip()
+
+    return text
+
+
 def _build_connector_pattern(connectors: Dict[str, str]) -> re.Pattern[str] | None:
     """Construire un motif regex sécurisé pour tous les connecteurs fournis."""
 
@@ -67,6 +84,8 @@ def split_segments_by_connectors(text: str, connectors: Dict[str, str]) -> List[
     if not text:
         return []
 
+    text = _remove_metadata_first_line(text)
+
     pattern = _build_connector_pattern(connectors)
 
     if pattern is None:
@@ -99,6 +118,8 @@ def segments_with_word_lengths(
 
     if not text:
         return []
+
+    text = _remove_metadata_first_line(text)
 
     pattern = _build_connector_pattern(connectors)
 
