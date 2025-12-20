@@ -18,6 +18,11 @@ from densite import build_text_from_dataframe, filter_dataframe_by_modalities
 
 METADATA_LINE_PATTERN = re.compile(r"^\*{4}\s+\*model_gpt\s+\*prompt_1\s*$", re.IGNORECASE)
 
+ECART_TYPE_EXPLANATION = (
+    "L'écart-type (souvent noté est une mesure de dispersion. Est-ce que les valeurs sont "
+    "toutes serrées autour de la moyenne, ou dispersées ?"
+)
+
 
 def _remove_metadata_first_line(text: str) -> str:
     """Retirer une éventuelle ligne de métadonnées en début de texte."""
