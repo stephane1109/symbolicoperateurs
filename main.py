@@ -31,6 +31,10 @@ from densite import (
     filter_dataframe_by_modalities,
     compute_density_per_modality_by_label,
 )
+from ecartype import (
+    compute_length_standard_deviation,
+    standard_deviation_by_modality,
+)
 from hash import (
     average_segment_length,
     average_segment_length_by_modality,
@@ -639,11 +643,13 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                 segment_entries = segments_with_word_lengths(hash_text, filtered_connectors)
                 segment_lengths = [entry["longueur"] for entry in segment_entries]
                 average_length = average_segment_length(hash_text, filtered_connectors)
+                _, std_dev = compute_length_standard_deviation(hash_text, filtered_connectors)
 
-                col1, col2, col3 = st.columns(3)
+                col1, col2, col3, col4 = st.columns(4)
                 col1.metric("Segments comptabilisés", str(len(segment_lengths)))
                 col2.metric("LMS (mots)", f"{average_length:.2f}")
-                col3.metric("Segments min / max", f"{min(segment_lengths)} / {max(segment_lengths)}")
+                col3.metric("Écart-type (mots)", f"{std_dev:.2f}")
+                col4.metric("Segments min / max", f"{min(segment_lengths)} / {max(segment_lengths)}")
 
                 distribution_df = pd.DataFrame(segment_entries)[
                     [
@@ -711,6 +717,40 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                     )
 
                     st.altair_chart(lms_chart, use_container_width=True)
+
+                std_by_modality_df = standard_deviation_by_modality(
+                    hash_filtered_df,
+                    None if hash_variable_choice == "(Aucune)" else hash_variable_choice,
+                    filtered_connectors,
+                    hash_modalities or None,
+                )
+
+                if not std_by_modality_df.empty:
+                    st.subheader("Ecart-type")
+                    st.dataframe(
+                        std_by_modality_df.rename(
+                            columns={
+                                "modalite": "Modalité",
+                                "segments": "Segments comptés",
+                                "lms": "LMS",
+                                "ecart_type": "Écart-type",
+                            }
+                        ),
+                        use_container_width=True,
+                    )
+
+                    std_chart = (
+                        alt.Chart(std_by_modality_df)
+                        .mark_bar()
+                        .encode(
+                            x=alt.X("modalite:N", title="Modalité"),
+                            y=alt.Y("ecart_type:Q", title="Écart-type (mots)"),
+                            color=alt.Color("modalite:N", title="Modalité"),
+                            tooltip=["modalite", "ecart_type", "segments", "lms"],
+                        )
+                    )
+
+                    st.altair_chart(std_chart, use_container_width=True)
 
     with tabs[5]:
         st.subheader("Regex motifs")
