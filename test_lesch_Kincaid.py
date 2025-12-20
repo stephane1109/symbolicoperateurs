@@ -5,6 +5,58 @@ from __future__ import annotations
 import re
 from typing import Dict, List
 
+READABILITY_SCALE = [
+    {
+        "range": "100.00–90.00",
+        "min": 90.0,
+        "max": 100.0,
+        "niveau": "Cours Moyen II ou 7e",
+        "description": "Très facile à lire. Facilement compréhensible par un élève moyen de 11 ans.",
+    },
+    {
+        "range": "90.0–80.0",
+        "min": 80.0,
+        "max": 90.0,
+        "niveau": "6e",
+        "description": "Facile à lire. Anglais conversationnel pour les consommateurs.",
+    },
+    {
+        "range": "80.0–70.0",
+        "min": 70.0,
+        "max": 80.0,
+        "niveau": "5e",
+        "description": "Plutôt facile à lire.",
+    },
+    {
+        "range": "70.0–60.0",
+        "min": 60.0,
+        "max": 70.0,
+        "niveau": "4e et 3e",
+        "description": "En clair. Facilement compréhensible par les élèves de 13 à 15 ans.",
+    },
+    {
+        "range": "60.0–50.0",
+        "min": 50.0,
+        "max": 60.0,
+        "niveau": "Seconde vers Terminale",
+        "description": "Plutôt difficile à lire.",
+    },
+    {
+        "range": "50.0–30.0",
+        "min": 30.0,
+        "max": 50.0,
+        "niveau": "Université ou Grande Ecole",
+        "description": "Difficile à lire.",
+    },
+    {
+        "range": "30.0–0.0",
+        "min": 0.0,
+        "max": 30.0,
+        "niveau": "Diplôme universitaire",
+        "description": "Très difficile à lire. Mieux compris par les diplômés universitaires.",
+    },
+]
+
 VOWELS = "aeiouyàâäéèêëîïôöùûüÿœ"
 
 
@@ -77,15 +129,21 @@ def compute_flesch_kincaid_metrics(text: str) -> Dict[str, float]:
     }
 
 
+def get_readability_band(score: float) -> Dict[str, str | float]:
+    """Retourner l'entrée de l'échelle correspondant au score fourni."""
+
+    for band in READABILITY_SCALE:
+        if band["min"] <= score <= band["max"]:
+            return band
+
+    if score < 0:
+        return READABILITY_SCALE[-1]
+
+    return READABILITY_SCALE[0]
+
+
 def interpret_reading_ease(score: float) -> str:
     """Fournir une interprétation qualitative du score de lisibilité."""
 
-    if score >= 90:
-        return "Très facile à lire (niveau primaire)."
-    if score >= 70:
-        return "Assez facile à lire (collège)."
-    if score >= 50:
-        return "Lisibilité moyenne (lycée)."
-    if score >= 30:
-        return "Difficile (études supérieures)."
-    return "Très difficile (niveau académique avancé)."
+    band = get_readability_band(score)
+    return f"{band['description']} ({band['niveau']}, de {band['min']:.1f} à {band['max']:.1f})."

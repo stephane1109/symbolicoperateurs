@@ -50,7 +50,9 @@ from regexanalyse import (
     summarize_matches_by_segment,
 )
 from test_lesch_Kincaid import (
+    READABILITY_SCALE,
     compute_flesch_kincaid_metrics,
+    get_readability_band,
     interpret_reading_ease,
 )
 
@@ -972,7 +974,62 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
         col1.metric("Score Flesch-Kincaid", f"{ease_score:.1f}")
         col2.metric("Niveau scolaire estimé", f"{grade_level:.1f}")
 
+        band = get_readability_band(ease_score)
         st.success(interpret_reading_ease(ease_score))
+
+        scale_df = pd.DataFrame(READABILITY_SCALE)
+        scale_order = scale_df.sort_values("min", ascending=False)["niveau"].tolist()
+        score_df = pd.DataFrame({"score": [ease_score]})
+
+        st.markdown("#### Position sur l'échelle Flesch-Kincaid")
+
+        scale_chart = (
+            alt.Chart(scale_df)
+            .mark_bar(cornerRadius=4)
+            .encode(
+                x=alt.X("min:Q", title="Score Flesch-Kincaid (0-100)"),
+                x2="max:Q",
+                y=alt.Y(
+                    "niveau:N",
+                    title="Niveau scolaire estimé",
+                    sort=scale_order,
+                ),
+                color=alt.Color("niveau:N", legend=None),
+                tooltip=["range:N", "niveau:N", "description:N"],
+            )
+            .properties(title="Échelle générale du test de lisibilité")
+        )
+
+        score_rule = (
+            alt.Chart(score_df)
+            .mark_rule(color="black", strokeDash=[6, 4], size=2)
+            .encode(x="score:Q")
+        )
+
+        score_label = (
+            alt.Chart(score_df)
+            .mark_text(dx=6, dy=-6, fontWeight="bold", color="black")
+            .encode(x="score:Q", y=alt.value(0), text=alt.Text("score:Q", format=".1f"))
+        )
+
+        st.altair_chart(scale_chart + score_rule + score_label, use_container_width=True)
+
+        st.caption(
+            f"Votre texte se situe dans la plage « {band['range']} » correspondant au niveau "
+            f"{band['niveau']}."
+        )
+
+        st.markdown("#### Tableau de référence des niveaux de lisibilité")
+        st.table(
+            scale_df.sort_values("min", ascending=False)[["range", "niveau", "description"]]
+            .rename(
+                columns={
+                    "range": "Score",
+                    "niveau": "Niveau scolaire",
+                    "description": "Interprétation",
+                }
+            )
+        )
 
         readability_chart_rows = []
 
