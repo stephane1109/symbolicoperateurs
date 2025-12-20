@@ -645,7 +645,9 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                 col2.metric("LMS (mots)", f"{average_length:.2f}")
                 col3.metric("Segments min / max", f"{min(segment_lengths)} / {max(segment_lengths)}")
 
-                distribution_df = pd.DataFrame(segment_entries)
+                distribution_df = pd.DataFrame(segment_entries)[
+                    ["segment", "connecteur_precedent", "connecteur_suivant", "longueur"]
+                ]
 
                 chart = (
                     alt.Chart(distribution_df)
@@ -659,7 +661,14 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
                 st.altair_chart(chart, use_container_width=True)
                 st.dataframe(
-                    distribution_df.rename(columns={"segment": "Segment", "longueur": "Longueur"}),
+                    distribution_df.rename(
+                        columns={
+                            "segment": "Segment",
+                            "longueur": "Longueur",
+                            "connecteur_precedent": "Connecteur précédent",
+                            "connecteur_suivant": "Connecteur suivant",
+                        }
+                    ),
                     use_container_width=True,
                 )
 

@@ -35,6 +35,32 @@ def _tokenize(text: str) -> List[str]:
     return re.findall(r"\b\w+\b", text, flags=re.UNICODE)
 
 
+def _segments_with_boundaries(
+    text: str, pattern: re.Pattern[str]
+) -> List[tuple[str, Optional[str], Optional[str]]]:
+    """Retourner les segments associés à leurs connecteurs de borne."""
+
+    segments: List[tuple[str, Optional[str], Optional[str]]] = []
+    last_end = 0
+    previous_connector: Optional[str] = None
+
+    for match in pattern.finditer(text):
+        segment = text[last_end: match.start()]
+
+        if segment.strip():
+            segments.append((segment, previous_connector, match.group(0)))
+
+        previous_connector = match.group(0)
+        last_end = match.end()
+
+    trailing = text[last_end:]
+
+    if trailing.strip():
+        segments.append((trailing, previous_connector, None))
+
+    return segments
+
+
 def split_segments_by_connectors(text: str, connectors: Dict[str, str]) -> List[str]:
     """Découper le texte en segments entre les connecteurs fournis."""
 
@@ -46,23 +72,9 @@ def split_segments_by_connectors(text: str, connectors: Dict[str, str]) -> List[
     if pattern is None:
         return []
 
-    segments: List[str] = []
-    last_end = 0
+    segments_with_boundaries = _segments_with_boundaries(text, pattern)
 
-    for match in pattern.finditer(text):
-        segment = text[last_end: match.start()]
-
-        if segment.strip():
-            segments.append(segment)
-
-        last_end = match.end()
-
-    trailing = text[last_end:]
-
-    if trailing.strip():
-        segments.append(trailing)
-
-    return segments
+    return [segment for segment, _, _ in segments_with_boundaries]
 
 
 def compute_segment_word_lengths(text: str, connectors: Dict[str, str]) -> List[int]:
@@ -85,14 +97,29 @@ def segments_with_word_lengths(
 ) -> List[Dict[str, str | int]]:
     """Retourner chaque segment avec sa longueur en mots."""
 
-    segments = split_segments_by_connectors(text, connectors)
+    if not text:
+        return []
+
+    pattern = _build_connector_pattern(connectors)
+
+    if pattern is None:
+        return []
+
+    segments = _segments_with_boundaries(text, pattern)
     entries: List[Dict[str, str | int]] = []
 
-    for segment in segments:
+    for segment, previous_connector, next_connector in segments:
         tokens = _tokenize(segment)
 
         if tokens:
-            entries.append({"segment": segment.strip(), "longueur": len(tokens)})
+            entries.append(
+                {
+                    "segment": segment.strip(),
+                    "longueur": len(tokens),
+                    "connecteur_precedent": (previous_connector or ""),
+                    "connecteur_suivant": (next_connector or ""),
+                }
+            )
 
     return entries
 
