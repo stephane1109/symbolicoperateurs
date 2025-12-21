@@ -208,8 +208,8 @@ def main() -> None:
     df = build_dataframe(records)
     tabs = st.tabs(
         [
-            "Connecteurs",
             "Import",
+            "Connecteurs",
             "Données brutes",
             "Sous corpus",
             "Densité",
@@ -220,7 +220,7 @@ def main() -> None:
         ]
     )
 
-    with tabs[0]:
+    with tabs[1]:
         st.subheader("Choisir les connecteurs à analyser")
         connectors_path = get_connectors_path()
         try:
@@ -272,7 +272,7 @@ def main() -> None:
 
     filtered_connectors = get_selected_connectors()
 
-    with tabs[1]:
+    with tabs[0]:
         st.subheader("Données importées")
         st.dataframe(df, use_container_width=True)
 
@@ -367,14 +367,7 @@ def main() -> None:
         st.subheader("Statistiques par variables")
 
         label_counts_overall = count_connectors_by_label(combined_text, filtered_connectors)
-        selected_labels = sorted(
-            label_counts_overall,
-            key=label_counts_overall.get,
-            reverse=True,
-        )[:3]
-
-        if not selected_labels:
-            selected_labels = sorted(set(filtered_connectors.values()))[:3]
+        selected_labels = sorted(set(filtered_connectors.values()))
 
         variable_stats_df = build_variable_stats(
             filtered_df, selected_variables, filtered_connectors, selected_labels
