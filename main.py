@@ -174,6 +174,28 @@ def build_variable_stats(
     return pd.DataFrame(rows)
 
 
+def render_connectors_reminder(connectors: Dict[str, str]) -> None:
+    """Afficher une phrase rappelant les connecteurs sélectionnés."""
+
+    if not connectors:
+        st.info(
+            "Aucun connecteur sélectionné pour les analyses. Rendez-vous dans l'onglet « Connecteurs » pour en choisir."
+        )
+        return
+
+    connectors_by_label: Dict[str, List[str]] = {}
+    for connector, label in connectors.items():
+        connectors_by_label.setdefault(label, []).append(connector)
+
+    label_summaries = [
+        f"{label} : {', '.join(sorted(names))}"
+        for label, names in sorted(connectors_by_label.items())
+    ]
+    st.caption(
+        f"Connecteurs sélectionnés ({len(connectors)} au total) — " + "; ".join(label_summaries)
+    )
+
+
 def main() -> None:
     st.set_page_config(page_title="Symbolic Connectors", layout="wide")
 
@@ -222,6 +244,7 @@ def main() -> None:
 
     with tabs[1]:
         st.subheader("Choisir les connecteurs à analyser")
+        render_connectors_reminder(get_selected_connectors())
         connectors_path = get_connectors_path()
         try:
             available_connectors = load_available_connectors(connectors_path)
@@ -270,15 +293,19 @@ def main() -> None:
                 f"{len(filtered_connectors)} connecteurs sélectionnés pour les analyses."
             )
 
+            render_connectors_reminder(filtered_connectors)
+
     filtered_connectors = get_selected_connectors()
 
     with tabs[0]:
         st.subheader("Données importées")
+        render_connectors_reminder(filtered_connectors)
         st.dataframe(df, use_container_width=True)
 
     with tabs[2]:
         variable_names = [column for column in df.columns if column not in ("texte", "entete")]
         st.subheader("Filtrer par variables")
+        render_connectors_reminder(filtered_connectors)
         selected_variables = st.multiselect(
             "Variables disponibles", variable_names, default=variable_names
         )
@@ -394,6 +421,7 @@ def main() -> None:
 
     with tabs[3]:
         st.subheader("Sous corpus")
+        render_connectors_reminder(filtered_connectors)
         st.write(
             "Extraction automatique des segments dont la première ligne contient les marqueurs "
             "IRaMuTeQ (encodage commençant par `**** *`). Le sous-corpus peut être copié, "
@@ -421,6 +449,7 @@ def main() -> None:
 
     with tabs[4]:
         st.subheader("Densité des connecteurs")
+        render_connectors_reminder(filtered_connectors)
         st.write(
             "Densité des textes analysés : La densité, c'est simplement le nombre de connecteurs "
             "ramené à une base (pour 1 000 mots). C'est ce qui permet de dire par exemple : "
@@ -657,10 +686,12 @@ def main() -> None:
                         st.altair_chart(scatter_chart, use_container_width=True)
 
     with tabs[5]:
+        render_connectors_reminder(filtered_connectors)
         render_lexicon_norm_tab(filtered_df, filtered_connectors)
 
     with tabs[6]:
         st.subheader("Hash (LMS entre connecteurs)")
+        render_connectors_reminder(filtered_connectors)
         st.write(
             """
 La "LMS" correspond à la Longueur Moyenne des Segments d'un texte, délimités ici par un
@@ -963,6 +994,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
     with tabs[8]:
         st.subheader("Test de lisibilité (Flesch-Kincaid)")
+        render_connectors_reminder(filtered_connectors)
 
         st.markdown("### Sélection des variables/modalités")
 
