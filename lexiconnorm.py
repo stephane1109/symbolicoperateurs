@@ -118,7 +118,7 @@ def render_lexicon_norm_tab(
         st.info("Aucune donnée disponible après filtrage.")
         return
 
-    allowed_labels = {"CONDITION", "ALORS", "ALTERNATIVE"}
+    allowed_labels = {"CONDITION", "ALORS", "ALTERNATIVE", "AND"}
     normalized_connectors = {
         connector: label
         for connector, label in filtered_connectors.items()
@@ -127,7 +127,7 @@ def render_lexicon_norm_tab(
 
     if not normalized_connectors:
         st.info(
-            "Sélectionnez au moins un connecteur de type condition, alors ou alternative pour afficher la densité."
+            "Sélectionnez au moins un connecteur de type condition, alors, alternative ou addition pour afficher la densité."
         )
         return
 
