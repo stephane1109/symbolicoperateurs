@@ -17,16 +17,23 @@ def has_header_markers(record: Dict[str, str]) -> bool:
     return entete.startswith(MODEL_PROMPT_PREFIX)
 
 
-def build_subcorpus(records: List[Dict[str, str]]) -> List[str]:
+def build_subcorpus(
+    records: List[Dict[str, str]], connectors: Dict[str, str] | None = None
+) -> List[str]:
     """Construit la liste des segments du sous-corpus à partir des enregistrements IRaMuTeQ.
 
     Seuls les textes dont la première ligne commence par `****` sont pris en compte.
     La première ligne est conservée telle quelle, puis les
     phrases ou lignes contenant au moins un connecteur sont concaténées pour
     reconstruire le sous-corpus.
+
+    Les connecteurs peuvent être fournis pour respecter la sélection de l'utilisateur.
+    S'ils sont absents, le dictionnaire complet est utilisé.
     """
 
-    connectors = load_connectors(Path(__file__).parent / "dictionnaires" / "connecteurs.json")
+    connectors = connectors or load_connectors(
+        Path(__file__).parent / "dictionnaires" / "connecteurs.json"
+    )
     connector_pattern = _build_connector_pattern(connectors)
 
     if connector_pattern is None:

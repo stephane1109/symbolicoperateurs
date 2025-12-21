@@ -9,7 +9,8 @@ def test_build_subcorpus_filters_non_prompt_records() -> None:
         {"entete": "**** *model_gpt *prompt_2", "texte": "Sinon, nous attendons."},
     ]
 
-    subcorpus_segments = build_subcorpus(records)
+    connectors = {"sinon": "ALTERNATIVE"}
+    subcorpus_segments = build_subcorpus(records, connectors)
 
     assert len(subcorpus_segments) == 1
     assert subcorpus_segments[0].startswith("**** *model_gpt *prompt_2")
@@ -23,7 +24,8 @@ def test_build_subcorpus_rebuilds_prompt_with_connector_sentences() -> None:
         }
     ]
 
-    subcorpus_segments = build_subcorpus(records)
+    connectors = {"si": "CONDITION", "alors": "ALORS"}
+    subcorpus_segments = build_subcorpus(records, connectors)
 
     assert len(subcorpus_segments) == 1
     assert "Phrase isolée" not in subcorpus_segments[0]
@@ -39,7 +41,8 @@ def test_build_subcorpus_keeps_multiple_connector_segments() -> None:
         }
     ]
 
-    subcorpus_segments = build_subcorpus(records)
+    connectors = {"si": "CONDITION", "alors": "ALORS", "donc": "ALORS"}
+    subcorpus_segments = build_subcorpus(records, connectors)
 
     assert len(subcorpus_segments) == 1
     assert "Si tu viens" in subcorpus_segments[0]
@@ -56,7 +59,8 @@ def test_build_subcorpus_preserves_entete_line_verbatim() -> None:
         }
     ]
 
-    subcorpus_segments = build_subcorpus(records)
+    connectors = {"si": "CONDITION"}
+    subcorpus_segments = build_subcorpus(records, connectors)
 
     assert len(subcorpus_segments) == 1
     assert subcorpus_segments[0].split("\n", 1)[0] == entete
@@ -71,6 +75,22 @@ def test_build_subcorpus_includes_header_even_without_connectors() -> None:
         }
     ]
 
-    subcorpus_segments = build_subcorpus(records)
+    subcorpus_segments = build_subcorpus(records, {})
 
-    assert subcorpus_segments == [entete]
+
+def test_build_subcorpus_respects_connector_selection() -> None:
+    entete = "**** *model_gpt *prompt_6"
+    records = [
+        {
+            "entete": entete,
+            "texte": "Et ensuite nous verrons. Si besoin, alors nous agirons.",
+        }
+    ]
+
+    connectors = {"si": "CONDITION", "alors": "ALORS"}
+    subcorpus_segments = build_subcorpus(records, connectors)
+
+    assert "Et ensuite" not in subcorpus_segments[0]
+    assert "Si besoin" in subcorpus_segments[0]
+
+    assert subcorpus_segments == [entete + "\nSi besoin, alors nous agirons."]
