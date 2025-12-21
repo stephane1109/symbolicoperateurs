@@ -18,12 +18,10 @@ from densite import build_text_from_dataframe, filter_dataframe_by_modalities
 
 METADATA_LINE_PATTERN = re.compile(r"^\*{4}\s+\*model_gpt\s+\*prompt_1\s*$", re.IGNORECASE)
 
-ECART_TYPE_EXPLANATION = (
-    "L'écart-type est une mesure de dispersion.\n"
-    "Le rapport entre l'écart-type et la longueur moyenne des segments (LMS) agit comme un "
-    "indicateur de stabilité cognitive : une dispersion faible signale une fluidité de "
-    "lecture, tandis qu'une dispersion forte révèle une structure hachée et imprévisible."
-)
+ECART_TYPE_EXPLANATION = """L'écart-type est une mesure de dispersion. Le rapport entre l'écart-type et la longueur moyenne des segments (LMS) agit comme un indicateur de stabilité : une dispersion faible signale une fluidité de lecture, tandis qu'une dispersion forte révèle une structure hachée et imprévisible.
+Tant que l'écart-type est inférieur à la moyenne, la série est considérée comme relativement "cohérente".
+Dès que l'écart-type dépasse la moyenne on bascule dans une instabilité. Cela signifie que la variation est plus grande que la mesure elle-même.
+"""
 
 
 def _remove_metadata_first_line(text: str) -> str:
