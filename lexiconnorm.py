@@ -148,13 +148,10 @@ def render_lexicon_norm_tab(
         help="Affiner le calcul des densités par modalité.",
     )
 
-    base = st.number_input(
-        "Base de normalisation (mots)",
-        min_value=10,
-        max_value=100_000,
-        value=1000,
-        step=10,
-        key="lexicon-norm-base",
+    base = 1000
+    st.markdown(
+        "Les densités affichées sont systématiquement normalisées sur 1 000 mots afin de "
+        "pouvoir comparer les corpus entre eux, quelle que soit leur longueur."
     )
 
     density_filtered_df = filter_dataframe_by_modalities(
@@ -179,6 +176,10 @@ def render_lexicon_norm_tab(
     if norm_density_df.empty:
         st.info("Aucune norme disponible pour les connecteurs sélectionnés.")
     else:
+        # Les fréquences Lexique sont exprimées pour un million de mots ;
+        # on les ramène à une base de 1 000 mots pour aligner le graphique.
+        norm_density_df["densite"] = norm_density_df["densite"] / 1000.0
+
         selected_labels = []
         for _, row in norm_density_df.iterrows():
             checkbox_label = row["label"]
