@@ -188,11 +188,12 @@ def render_connectors_reminder(connectors: Dict[str, str]) -> None:
         connectors_by_label.setdefault(label, []).append(connector)
 
     label_summaries = [
-        f"{label} : {', '.join(sorted(names))}"
-        for label, names in sorted(connectors_by_label.items())
+        f"{label} ({len(names)})" for label, names in sorted(connectors_by_label.items())
     ]
     st.caption(
-        f"Connecteurs sélectionnés ({len(connectors)} au total) — " + "; ".join(label_summaries)
+        "Connecteurs sélectionnés par catégorie — "
+        + ", ".join(label_summaries)
+        + f" — Total : {len(connectors)}"
     )
 
 
@@ -428,7 +429,7 @@ def main() -> None:
             "téléchargé au format texte ou réutilisé pour d'autres analyses."
         )
 
-        subcorpus_segments = build_subcorpus(records)
+        subcorpus_segments = build_subcorpus(records, filtered_connectors)
 
         if not subcorpus_segments:
             st.info(
