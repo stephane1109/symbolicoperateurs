@@ -18,7 +18,13 @@ from analyses import (
     count_connectors,
     count_connectors_by_label,
     generate_label_colors,
-    load_connectors,
+)
+from connecteurs import (
+    get_connectors_path,
+    get_selected_connectors,
+    get_selected_labels,
+    load_available_connectors,
+    set_selected_connectors,
 )
 from lexiconnorm import render_lexicon_norm_tab
 from densite import (
@@ -202,6 +208,7 @@ def main() -> None:
     df = build_dataframe(records)
     tabs = st.tabs(
         [
+            "Connecteurs",
             "Import",
             "Données brutes",
             "Sous corpus",
@@ -214,10 +221,62 @@ def main() -> None:
     )
 
     with tabs[0]:
+        st.subheader("Choisir les connecteurs à analyser")
+        connectors_path = get_connectors_path()
+        try:
+            available_connectors = load_available_connectors(connectors_path)
+        except FileNotFoundError:
+            st.error(
+                "Le fichier de connecteurs est introuvable. Vérifiez la présence de "
+                "`dictionnaires/connecteurs.json`."
+            )
+            available_connectors = {}
+
+        allowed_labels = {"ALTERNATIVE", "CONDITION", "ALORS", "AND"}
+        available_connectors = {
+            connector: label
+            for connector, label in available_connectors.items()
+            if label in allowed_labels
+        }
+
+        if not available_connectors:
+            st.warning(
+                "Aucun connecteur valide disponible dans le dictionnaire fourni. "
+                "Ajoutez des entrées ou ajustez les filtres pour continuer."
+            )
+        else:
+            all_labels = sorted(set(available_connectors.values()))
+            previously_selected = get_selected_labels(
+                get_selected_connectors().values()
+            ) or all_labels
+
+            selected_labels = st.multiselect(
+                "Labels de connecteurs à inclure",
+                all_labels,
+                default=previously_selected,
+                help="Les connecteurs des labels sélectionnés seront utilisés dans tous les onglets.",
+                key="connectors_labels_multiselect",
+            )
+
+            filtered_connectors = {
+                connector: label
+                for connector, label in available_connectors.items()
+                if label in selected_labels
+            }
+
+            set_selected_connectors(filtered_connectors)
+
+            st.success(
+                f"{len(filtered_connectors)} connecteurs sélectionnés pour les analyses."
+            )
+
+    filtered_connectors = get_selected_connectors()
+
+    with tabs[1]:
         st.subheader("Données importées")
         st.dataframe(df, use_container_width=True)
 
-    with tabs[1]:
+    with tabs[2]:
         variable_names = [column for column in df.columns if column not in ("texte", "entete")]
         st.subheader("Filtrer par variables")
         selected_variables = st.multiselect(
@@ -244,34 +303,11 @@ def main() -> None:
             st.info("Aucun texte ne correspond aux filtres sélectionnés.")
             return
 
-        connectors = load_connectors(Path(__file__).parent / "dictionnaires" / "connecteurs.json")
-        allowed_labels = {"ALTERNATIVE", "CONDITION", "ALORS", "AND"}
-        connectors = {
-            connector: label for connector, label in connectors.items() if label in allowed_labels
-        }
-
-        if not connectors:
-            st.warning("Aucun connecteur valide disponible dans le dictionnaire fourni.")
+        if not filtered_connectors:
+            st.info("Choisissez des connecteurs dans l'onglet « Connecteurs » pour poursuivre.")
             return
 
-        connector_labels = sorted(set(connectors.values()))
-        selected_labels = [
-            label
-            for label in connector_labels
-            if st.checkbox(
-                f"Annoter les connecteurs « {label} »",
-                value=True,
-                help="Sélectionnez un ou plusieurs types de connecteurs à mettre en surbrillance.",
-            )
-        ]
-
-        if not selected_labels:
-            st.info("Sélectionnez au moins un type de connecteur pour lancer l'annotation.")
-            return
-
-        filtered_connectors = {
-            connector: label for connector, label in connectors.items() if label in selected_labels
-        }
+        selected_labels = get_selected_labels(filtered_connectors.values())
 
         label_colors = generate_label_colors(filtered_connectors.values())
         label_style_block = build_label_style_block(label_colors)
@@ -363,7 +399,7 @@ def main() -> None:
 
             st.altair_chart(variable_chart, use_container_width=True)
 
-    with tabs[2]:
+    with tabs[3]:
         st.subheader("Sous corpus")
         st.write(
             "Extraction automatique des segments dont la première ligne contient les marqueurs "
@@ -390,7 +426,7 @@ def main() -> None:
                 mime="text/plain",
             )
 
-    with tabs[3]:
+    with tabs[4]:
         st.subheader("Densité des connecteurs")
         st.write(
             "Densité des textes analysés : La densité, c'est simplement le nombre de connecteurs "
@@ -627,10 +663,10 @@ def main() -> None:
 
                         st.altair_chart(scatter_chart, use_container_width=True)
 
-    with tabs[4]:
+    with tabs[5]:
         render_lexicon_norm_tab(filtered_df, filtered_connectors)
 
-    with tabs[5]:
+    with tabs[6]:
         st.subheader("Hash (LMS entre connecteurs)")
         st.write(
             """
@@ -833,7 +869,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
                     st.altair_chart(dispersion_chart + lms_points, use_container_width=True)
 
-    with tabs[6]:
+    with tabs[7]:
         st.subheader("Regex motifs")
 
         st.markdown(
@@ -932,7 +968,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
                 st.altair_chart(alt_counts_chart, use_container_width=True)
 
-    with tabs[7]:
+    with tabs[8]:
         st.subheader("Test de lisibilité (Flesch-Kincaid)")
 
         st.markdown("### Sélection des variables/modalités")
