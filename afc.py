@@ -14,7 +14,6 @@ from __future__ import annotations
 from typing import Dict, Iterable, Mapping, Optional
 
 import pandas as pd
-import prince
 
 from analyses import count_connectors
 
@@ -71,7 +70,13 @@ def build_connector_matrix(
         index_labels.append(row_index)
 
     matrix = pd.DataFrame(rows, columns=connector_names, index=index_labels)
-    return matrix.loc[:, matrix.sum() > 0]  # retirer les colonnes totalement nulles
+
+    # Retirer les colonnes et lignes entièrement nulles pour éviter des divisions par
+    # zéro lors du calcul de l'AFC.
+    matrix = matrix.loc[:, matrix.sum() > 0]
+    matrix = matrix.loc[matrix.sum(axis=1) > 0]
+
+    return matrix
 
 
 def run_afc(
@@ -94,6 +99,11 @@ def run_afc(
     n_components:
         Nombre d'axes factoriels à conserver.
     """
+
+    # Importer ici pour éviter d'imposer la dépendance à ``prince`` lors des
+    # utilisations utilitaires (par exemple dans les tests de construction de
+    # matrice) qui n'ont pas besoin du calcul d'AFC.
+    import prince
 
     matrix = build_connector_matrix(dataframe, connectors, modality_filters)
     if matrix.empty:
