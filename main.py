@@ -48,6 +48,8 @@ from hash import (
     compute_segment_word_lengths,
     segments_with_word_lengths,
 )
+from afc import build_connector_matrix, run_afc
+from kmeans import run_kmeans
 from regexanalyse import (
     count_segments_by_pattern,
     highlight_matches_html,
@@ -238,6 +240,8 @@ def main() -> None:
             "Densité",
             "Lexicon norm",
             "Hash",
+            "AFC",
+            "K-means",
             "Regex motifs",
             "Test de lisibilité",
         ]
@@ -895,6 +899,167 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                     st.altair_chart(dispersion_chart + lms_points, use_container_width=True)
 
     with tabs[7]:
+        st.subheader("AFC (analyse factorielle des correspondances)")
+        render_connectors_reminder(filtered_connectors)
+
+        marker_columns = [column for column in df.columns if column not in ("texte", "entete")]
+        st.markdown("#### Segments filtrés avec variables et texte")
+        if filtered_df.empty:
+            st.info(
+                "Aucun segment ne correspond aux filtres sélectionnés : impossible de calculer l'AFC."
+            )
+        else:
+            st.dataframe(
+                filtered_df[marker_columns + ["texte"]], use_container_width=True
+            )
+
+            if not filtered_connectors:
+                st.info(
+                    "Sélectionnez des connecteurs dans l'onglet « Connecteurs » pour lancer l'AFC."
+                )
+            else:
+                contingency = build_connector_matrix(
+                    df, filtered_connectors, modality_filters
+                )
+
+                if contingency.empty:
+                    st.info(
+                        "La matrice connecteur × segment est vide (aucune occurrence trouvée)."
+                    )
+                else:
+                    st.markdown("#### Matrice connecteur × segment filtré")
+                    st.dataframe(contingency, use_container_width=True)
+
+                    max_components = max(1, min(contingency.shape) - 1)
+                    n_components = st.slider(
+                        "Nombre d'axes factoriels",
+                        min_value=1,
+                        max_value=max_components,
+                        value=min(2, max_components),
+                    )
+
+                    row_coords, col_coords = run_afc(
+                        df, filtered_connectors, modality_filters, n_components=n_components
+                    )
+
+                    if row_coords.empty or col_coords.empty:
+                        st.info("Aucune coordonnée factorielle disponible après le calcul.")
+                    else:
+                        renamed_rows = row_coords.rename(columns=lambda idx: f"Dim {idx + 1}")
+                        renamed_cols = col_coords.rename(columns=lambda idx: f"Dim {idx + 1}")
+
+                        st.markdown("#### Coordonnées des segments")
+                        row_meta = filtered_df.loc[renamed_rows.index, marker_columns + ["texte"]]
+                        row_display = renamed_rows.join(row_meta)
+                        st.dataframe(row_display, use_container_width=True)
+
+                        if n_components >= 2:
+                            row_plot_df = row_display.reset_index(names="segment")
+                            row_chart = (
+                                alt.Chart(row_plot_df)
+                                .mark_circle(size=80, opacity=0.8)
+                                .encode(
+                                    x=alt.X("Dim 1:Q", title="Dimension 1"),
+                                    y=alt.Y("Dim 2:Q", title="Dimension 2"),
+                                    color=alt.Color("segment:N", legend=None),
+                                    tooltip=["segment"] + marker_columns + ["Dim 1", "Dim 2", "texte"],
+                                )
+                                .properties(title="Projection des segments")
+                            )
+
+                            st.altair_chart(row_chart, use_container_width=True)
+
+                        st.markdown("#### Coordonnées des connecteurs")
+                        col_display = renamed_cols.reset_index().rename(
+                            columns={"index": "connecteur"}
+                        )
+                        st.dataframe(col_display, use_container_width=True)
+
+                        if n_components >= 2:
+                            col_chart = (
+                                alt.Chart(col_display)
+                                .mark_circle(size=120, opacity=0.85, color="#1a56db")
+                                .encode(
+                                    x=alt.X("Dim 1:Q", title="Dimension 1"),
+                                    y=alt.Y("Dim 2:Q", title="Dimension 2"),
+                                    tooltip=["connecteur", "Dim 1", "Dim 2"],
+                                )
+                                .properties(title="Projection des connecteurs")
+                            )
+
+                            st.altair_chart(col_chart, use_container_width=True)
+
+    with tabs[8]:
+        st.subheader("K-means sur les segments filtrés")
+        render_connectors_reminder(filtered_connectors)
+
+        marker_columns = [column for column in df.columns if column not in ("texte", "entete")]
+        st.markdown("#### Segments filtrés avec variables et texte")
+        if filtered_df.empty:
+            st.info(
+                "Aucun segment ne correspond aux filtres sélectionnés : impossible de lancer le clustering."
+            )
+        else:
+            st.dataframe(
+                filtered_df[marker_columns + ["texte"]], use_container_width=True
+            )
+
+            if not filtered_connectors:
+                st.info(
+                    "Sélectionnez des connecteurs dans l'onglet « Connecteurs » pour calculer les clusters."
+                )
+            else:
+                matrix = build_connector_matrix(df, filtered_connectors, modality_filters)
+
+                if matrix.empty:
+                    st.info(
+                        "Impossible de construire la matrice connecteur × segment (aucune occurrence)."
+                    )
+                else:
+                    max_clusters = max(2, min(len(matrix), 12))
+                    n_clusters = st.slider(
+                        "Nombre de clusters",
+                        min_value=2,
+                        max_value=max_clusters,
+                        value=min(4, max_clusters),
+                    )
+
+                    labels = run_kmeans(
+                        df,
+                        filtered_connectors,
+                        modality_filters,
+                        n_clusters=n_clusters,
+                    )
+
+                    if labels.empty:
+                        st.info("Aucune étiquette de cluster générée sur les segments filtrés.")
+                    else:
+                        clustered_df = filtered_df.loc[labels.index].copy()
+                        clustered_df["cluster"] = labels.values
+
+                        st.markdown("#### Segments étiquetés")
+                        st.dataframe(
+                            clustered_df[marker_columns + ["cluster", "texte"]],
+                            use_container_width=True,
+                        )
+
+                        cluster_counts = clustered_df["cluster"].value_counts().reset_index()
+                        cluster_counts.columns = ["cluster", "segments"]
+
+                        cluster_chart = (
+                            alt.Chart(cluster_counts)
+                            .mark_bar()
+                            .encode(
+                                x=alt.X("cluster:N", title="Cluster"),
+                                y=alt.Y("segments:Q", title="Nombre de segments"),
+                                tooltip=["cluster", "segments"],
+                            )
+                            .properties(title="Répartition des segments par cluster")
+                        )
+
+                        st.altair_chart(cluster_chart, use_container_width=True)
+
+    with tabs[9]:
         st.subheader("Regex motifs")
 
         st.markdown(
@@ -993,7 +1158,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
                 st.altair_chart(alt_counts_chart, use_container_width=True)
 
-    with tabs[8]:
+    with tabs[10]:
         st.subheader("Test de lisibilité (Flesch-Kincaid)")
         render_connectors_reminder(filtered_connectors)
 
