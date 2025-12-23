@@ -1331,7 +1331,10 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                 y=alt.Y("Comparée à:N", sort=modalities_order),
                 color=alt.Color(
                     "Similarité:Q",
-                    scale=alt.Scale(domain=[0, 1], scheme="blues"),
+                    scale=alt.Scale(
+                        domain=[0, 0.5, 1],
+                        range=["#f7fbff", "#4292c6", "#08306b"],
+                    ),
                     title="Cosinus",
                 ),
                 tooltip=["Modalité", "Comparée à", alt.Tooltip("Similarité:Q", format=".3f")],
