@@ -86,7 +86,11 @@ def run_afc(
     modality_filters: Optional[Mapping[str, Iterable[str]]] = None,
     n_components: int = 2,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Appliquer une AFC et retourner les coordonnées lignes/colonnes.
+    """Appliquer une AFC en traitant les connecteurs comme variables supplémentaires.
+
+    L'analyse factorielle est réalisée sur les catégories (labels) associées aux
+    connecteurs. Les connecteurs individuels sont ensuite projetés comme
+    variables supplémentaires pour ne pas influencer le calcul des axes.
 
     Parameters
     ----------
@@ -101,15 +105,30 @@ def run_afc(
         Nombre d'axes factoriels à conserver.
     """
 
-    matrix = build_connector_matrix(dataframe, connectors, modality_filters)
-    if matrix.empty:
+    connector_matrix = build_connector_matrix(dataframe, connectors, modality_filters)
+    if connector_matrix.empty:
         return pd.DataFrame(), pd.DataFrame()
 
-    total = matrix.to_numpy().sum()
+    connector_to_label = {name: label for name, label in connectors.items() if label}
+
+    # Construire une matrice agrégée par label pour définir les axes factoriels.
+    label_columns = sorted(set(connector_to_label.values()))
+    label_matrix = pd.DataFrame(0, index=connector_matrix.index, columns=label_columns)
+
+    for connector, label in connector_to_label.items():
+        if connector in connector_matrix.columns:
+            label_matrix[label] += connector_matrix[connector]
+
+    label_matrix = label_matrix.loc[:, label_matrix.sum() > 0]
+
+    if label_matrix.empty:
+        return pd.DataFrame(), pd.DataFrame()
+
+    total = label_matrix.to_numpy().sum()
     if total == 0:
         return pd.DataFrame(), pd.DataFrame()
 
-    relative = matrix / total
+    relative = label_matrix / total
     row_masses = relative.sum(axis=1).to_numpy()
     col_masses = relative.sum(axis=0).to_numpy()
 
@@ -118,18 +137,40 @@ def run_afc(
         standardized = (relative.to_numpy() - expected) / np.sqrt(expected)
         standardized = np.nan_to_num(standardized, nan=0.0, posinf=0.0, neginf=0.0)
 
-    from sklearn.decomposition import PCA
+    try:
+        U, singular_values, Vt = np.linalg.svd(standardized, full_matrices=False)
+    except np.linalg.LinAlgError:
+        return pd.DataFrame(), pd.DataFrame()
 
-    pca = PCA(n_components=n_components)
-    pca.fit(standardized)
+    max_components = min(n_components, len(singular_values))
+    row_coords = (U[:, :max_components] * singular_values[:max_components]) / np.sqrt(
+        row_masses[:, None]
+    )
+    supplementary_coords = []
+    supplementary_index = []
 
-    row_coords = pca.transform(standardized)
-    loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
+    for connector in connector_matrix.columns:
+        counts = connector_matrix[connector].to_numpy(dtype=float)
+        column_total = counts.sum()
 
-    row_df = pd.DataFrame(row_coords, index=matrix.index)
-    col_df = pd.DataFrame(loadings, index=matrix.columns)
+        if column_total == 0:
+            continue
 
-    return row_df, col_df
+        connector_mass = column_total / total
+        connector_profile = counts / total
+
+        standardized_column = (connector_profile - row_masses * connector_mass) / np.sqrt(
+            row_masses * connector_mass
+        )
+        projected = (standardized_column @ U[:, :max_components]) / np.sqrt(connector_mass)
+
+        supplementary_coords.append(projected)
+        supplementary_index.append(connector)
+
+    row_df = pd.DataFrame(row_coords, index=label_matrix.index)
+    connector_df = pd.DataFrame(supplementary_coords, index=supplementary_index)
+
+    return row_df, connector_df
 
 
 __all__ = [
