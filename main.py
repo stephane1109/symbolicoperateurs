@@ -3,6 +3,8 @@ from __future__ import annotations
 import sys
 import io
 import re
+import json
+import functools
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Dict, List
@@ -75,6 +77,19 @@ def display_centered_image(image_buffer: io.BytesIO, caption: str, width: int = 
 
     center_col = st.columns([1, 2, 1])[1]
     center_col.image(image_buffer, width=width, caption=caption)
+
+
+@functools.lru_cache(maxsize=1)
+def load_stopwords(path: Path) -> set[str]:
+    """Charger un dictionnaire de mots vides depuis un fichier JSON."""
+
+    if not path.exists():
+        return set()
+
+    with path.open(encoding="utf-8") as handle:
+        words = json.load(handle)
+
+    return {word.strip().lower() for word in words if isinstance(word, str) and word.strip()}
 
 
 def build_annotation_style_block(label_style_block: str) -> str:
@@ -1112,6 +1127,13 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                                 lambda: [0.0, 0.0]
                             )
 
+                            stopwords = load_stopwords(
+                                APP_DIR / "dictionnaires" / "stopword.json"
+                            )
+                            connector_tokens = {
+                                connector.lower() for connector in filtered_connectors
+                            }
+
                             for segment_index, row in row_display.iterrows():
                                 tokens = re.findall(
                                     r"\b\w+\b",
@@ -1123,6 +1145,8 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
                                 coords = row[["Dim 1", "Dim 2"]].to_numpy()
                                 for token in tokens:
+                                    if token in stopwords and token not in connector_tokens:
+                                        continue
                                     word_counts[token] += 1
                                     word_sums[token][0] += coords[0]
                                     word_sums[token][1] += coords[1]
@@ -1142,6 +1166,17 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                                     if word_counts[word] > 0
                                 ]
                             )
+
+                            if not word_df.empty:
+                                coord_columns = [
+                                    column
+                                    for column in word_df.columns
+                                    if column.startswith("Dim ")
+                                ]
+                                word_df["khi2"] = (
+                                    word_df[coord_columns].pow(2).sum(axis=1)
+                                    * word_df["occurrences"]
+                                )
 
                             connector_df = (
                                 renamed_cols.reset_index()
@@ -1265,6 +1300,31 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                                     caption="Projection des mots, connecteurs et variables*",
                                 )
                                 plt.close(fig_words)
+
+                                if not word_df.empty:
+                                    st.markdown("#### Mots et score Khi²")
+                                    st.dataframe(
+                                        word_df[
+                                            [
+                                                "mot",
+                                                "occurrences",
+                                                "khi2",
+                                                "Dim 1",
+                                                "Dim 2",
+                                            ]
+                                        ]
+                                        .sort_values("khi2", ascending=False)
+                                        .rename(
+                                            columns={
+                                                "mot": "Mot",
+                                                "occurrences": "Occurrences",
+                                                "khi2": "Khi² (approx.)",
+                                                "Dim 1": "Dim 1",
+                                                "Dim 2": "Dim 2",
+                                            }
+                                        ),
+                                        use_container_width=True,
+                                    )
 
                                 if not word_df.empty:
                                     fig_words_only, ax_words_only = plt.subplots(
