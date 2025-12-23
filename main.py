@@ -35,6 +35,7 @@ from connecteurs import (
     set_selected_connectors,
 )
 from lexiconnorm import render_lexicon_norm_tab
+from ngram import compute_ngram_statistics
 from densite import (
     compute_density,
     compute_density_by_label,
@@ -279,6 +280,7 @@ def main() -> None:
             "Hash",
             "Regex motifs",
             "Test de lisibilité",
+            "N-gram",
         ]
     )
 
@@ -1237,6 +1239,26 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
             "a été conservée pour ce calcul. Les syllabes sont estimées par comptage des "
             "groupes de voyelles ; les résultats restent indicatifs pour le français."
         )
+
+    with tabs[9]:
+        st.subheader("N-gram (3 à 6 mots)")
+        st.write(
+            "Extraction des N-grams les plus fréquents sur l'intégralité du texte, "
+            "avec la répartition des occurrences par variables/modalités lorsqu'elles "
+            "sont présentes."
+        )
+
+        if df.empty:
+            st.info("Aucun texte disponible pour extraire des N-grams.")
+            return
+
+        ngram_results = compute_ngram_statistics(df, min_n=3, max_n=6, top_k=10)
+
+        if ngram_results.empty:
+            st.info("Aucun N-gram n'a pu être calculé à partir du texte fourni.")
+        else:
+            st.markdown("### Top 10 des séquences")
+            st.dataframe(ngram_results, use_container_width=True)
 
 
 if __name__ == "__main__":
