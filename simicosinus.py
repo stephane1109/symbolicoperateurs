@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import Dict
+from typing import Dict, Iterable, List
 
 import pandas as pd
+from nltk import download
+from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -30,7 +32,22 @@ def aggregate_texts_by_variable(dataframe: pd.DataFrame, variable: str) -> Dict[
     return aggregated_texts
 
 
-def compute_cosine_similarity_matrix(texts_by_group: Dict[str, str]) -> pd.DataFrame:
+def get_french_stopwords() -> List[str]:
+    """Retourner la liste des stopwords français fournie par NLTK.
+
+    Le téléchargement des stopwords est effectué à la volée si nécessaire.
+    """
+
+    try:
+        return stopwords.words("french")
+    except LookupError:
+        download("stopwords")
+        return stopwords.words("french")
+
+
+def compute_cosine_similarity_matrix(
+    texts_by_group: Dict[str, str], stop_words: Iterable[str] | None = None
+) -> pd.DataFrame:
     """Calculer une matrice de similarité cosinus à partir de textes regroupés."""
 
     if len(texts_by_group) < 2:
@@ -39,7 +56,7 @@ def compute_cosine_similarity_matrix(texts_by_group: Dict[str, str]) -> pd.DataF
     labels = list(texts_by_group.keys())
     corpus = list(texts_by_group.values())
 
-    vectorizer = TfidfVectorizer()
+    vectorizer = TfidfVectorizer(stop_words=stop_words)
     tfidf_matrix = vectorizer.fit_transform(corpus)
     similarity_matrix = cosine_similarity(tfidf_matrix)
 
@@ -47,7 +64,7 @@ def compute_cosine_similarity_matrix(texts_by_group: Dict[str, str]) -> pd.DataF
 
 
 def compute_cosine_similarity_by_variable(
-    dataframe: pd.DataFrame, variable: str
+    dataframe: pd.DataFrame, variable: str, use_stopwords: bool = False
 ) -> pd.DataFrame:
     """Retourner une matrice de similarité cosinus entre modalités d'une variable."""
 
@@ -56,4 +73,6 @@ def compute_cosine_similarity_by_variable(
     if len(aggregated_texts) < 2:
         return pd.DataFrame()
 
-    return compute_cosine_similarity_matrix(aggregated_texts)
+    stop_words = get_french_stopwords() if use_stopwords else None
+
+    return compute_cosine_similarity_matrix(aggregated_texts, stop_words=stop_words)

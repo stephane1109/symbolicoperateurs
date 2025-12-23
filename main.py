@@ -1288,6 +1288,15 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
         cosine_df = df[df[model_variable_choice].isin(selected_modalities)]
 
+        apply_stopwords = st.checkbox(
+            "Appliquer les stopwords français (NLTK) avant le calcul",
+            value=False,
+            help=(
+                "Supprime les mots vides français fournis par NLTK avant de construire"
+                " la matrice TF-IDF."
+            ),
+        )
+
         aggregated_texts = aggregate_texts_by_variable(cosine_df, model_variable_choice)
 
         if len(aggregated_texts) < 2:
@@ -1306,7 +1315,9 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
         st.markdown("### Textes regroupés")
         st.dataframe(texts_summary, use_container_width=True)
 
-        similarity_df = compute_cosine_similarity_by_variable(cosine_df, model_variable_choice)
+        similarity_df = compute_cosine_similarity_by_variable(
+            cosine_df, model_variable_choice, use_stopwords=apply_stopwords
+        )
 
         if similarity_df.empty:
             st.info("Impossible de calculer la matrice de similarité cosinus avec les données fournies.")
