@@ -1335,6 +1335,39 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
         modalities_order = similarity_df.index.tolist()
 
+        st.markdown("### Analyse ciblée d'un modèle")
+        focus_model = st.selectbox(
+            "Modèle de référence", modalities_order, help="Analyse des distances par rapport à ce modèle."
+        )
+
+        focus_distances = (
+            similarity_df.loc[focus_model]
+            .reset_index()
+            .rename(columns={"index": "Modèle", focus_model: "Similarité"})
+        )
+        focus_distances = focus_distances[focus_distances["Modèle"] != focus_model]
+        focus_distances["Distance (1 - Similarité)"] = 1 - focus_distances["Similarité"]
+        focus_distances = focus_distances.sort_values("Similarité", ascending=False)
+
+        st.dataframe(focus_distances.style.format({"Similarité": "{:.3f}", "Distance (1 - Similarité)": "{:.3f}"}), use_container_width=True)
+
+        distance_chart = (
+            alt.Chart(focus_distances)
+            .mark_bar(color="#4292c6")
+            .encode(
+                y=alt.Y("Modèle:N", sort="-x", title="Modèles comparés"),
+                x=alt.X("Similarité:Q", title="Similarité cosinus"),
+                tooltip=[
+                    alt.Tooltip("Modèle:N", title="Modèle"),
+                    alt.Tooltip("Similarité:Q", format=".3f", title="Similarité"),
+                    alt.Tooltip("Distance (1 - Similarité):Q", format=".3f", title="Distance"),
+                ],
+            )
+            .properties(title=f"Distances par rapport à {focus_model}")
+        )
+
+        st.altair_chart(distance_chart, use_container_width=True)
+
         heatmap = (
             alt.Chart(similarity_long)
             .mark_rect()
@@ -1429,13 +1462,20 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
         node_chart = (
             alt.Chart(nodes_df)
-            .mark_circle(size=200, color="#08306b")
+            .mark_circle(size=320, color="#08306b")
             .encode(x="x", y="y", tooltip=["noeud"])
         )
 
         label_chart = (
             alt.Chart(nodes_df)
-            .mark_text(dy=-10, fontWeight="bold")
+            .mark_text(
+                dy=-12,
+                fontWeight="bold",
+                fontSize=12,
+                color="#08306b",
+                stroke="white",
+                strokeWidth=3,
+            )
             .encode(x="x", y="y", text="noeud")
         )
 
