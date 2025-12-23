@@ -929,254 +929,255 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
         render_connectors_reminder(filtered_connectors)
 
         marker_columns = [column for column in df.columns if column not in ("texte", "entete")]
-        st.markdown("#### Segments filtrés avec variables et texte")
         if filtered_df.empty:
             st.info(
                 "Aucun segment ne correspond aux filtres sélectionnés : impossible de calculer l'AFC."
             )
+        elif not filtered_connectors:
+            st.info(
+                "Sélectionnez des connecteurs dans l'onglet « Connecteurs » pour lancer l'AFC."
+            )
         else:
-            st.dataframe(
-                filtered_df[marker_columns + ["texte"]], use_container_width=True
+            contingency = build_connector_matrix(
+                df, filtered_connectors, modality_filters
             )
 
-            if not filtered_connectors:
+            if contingency.empty:
                 st.info(
-                    "Sélectionnez des connecteurs dans l'onglet « Connecteurs » pour lancer l'AFC."
+                    "La matrice connecteur × segment est vide (aucune occurrence trouvée)."
                 )
             else:
-                contingency = build_connector_matrix(
-                    df, filtered_connectors, modality_filters
+                connector_filtered_df = filtered_df.loc[contingency.index]
+                st.markdown("#### Segments filtrés (variables + connecteurs)")
+                st.dataframe(
+                    connector_filtered_df[marker_columns + ["texte"]],
+                    use_container_width=True,
                 )
 
-                if contingency.empty:
-                    st.info(
-                        "La matrice connecteur × segment est vide (aucune occurrence trouvée)."
-                    )
+                st.markdown("#### Matrice connecteur × segment filtré")
+                st.dataframe(contingency, use_container_width=True)
+
+                max_components = max(1, min(contingency.shape) - 1)
+                n_components = st.slider(
+                    "Nombre d'axes factoriels",
+                    min_value=1,
+                    max_value=max_components,
+                    value=min(2, max_components),
+                )
+
+                row_coords, col_coords = run_afc(
+                    df, filtered_connectors, modality_filters, n_components=n_components
+                )
+
+                if row_coords.empty or col_coords.empty:
+                    st.info("Aucune coordonnée factorielle disponible après le calcul.")
                 else:
-                    st.markdown("#### Matrice connecteur × segment filtré")
-                    st.dataframe(contingency, use_container_width=True)
+                    renamed_rows = row_coords.rename(columns=lambda idx: f"Dim {idx + 1}")
+                    renamed_cols = col_coords.rename(columns=lambda idx: f"Dim {idx + 1}")
 
-                    max_components = max(1, min(contingency.shape) - 1)
-                    n_components = st.slider(
-                        "Nombre d'axes factoriels",
-                        min_value=1,
-                        max_value=max_components,
-                        value=min(2, max_components),
+                    st.markdown("#### Coordonnées des segments")
+                    row_meta = connector_filtered_df.loc[renamed_rows.index, marker_columns + ["texte"]]
+                    row_display = renamed_rows.join(row_meta)
+                    st.dataframe(row_display, use_container_width=True)
+
+                    st.markdown("#### Coordonnées des connecteurs")
+                    col_display = renamed_cols.reset_index().rename(
+                        columns={"index": "connecteur"}
                     )
+                    st.dataframe(col_display, use_container_width=True)
 
-                    row_coords, col_coords = run_afc(
-                        df, filtered_connectors, modality_filters, n_components=n_components
-                    )
+                    label_positions = []
+                    for label in sorted(set(filtered_connectors.values())):
+                        connectors_in_label = [
+                            connector
+                            for connector, connector_label in filtered_connectors.items()
+                            if connector_label == label and connector in contingency.columns
+                        ]
 
-                    if row_coords.empty or col_coords.empty:
-                        st.info("Aucune coordonnée factorielle disponible après le calcul.")
-                    else:
-                        renamed_rows = row_coords.rename(columns=lambda idx: f"Dim {idx + 1}")
-                        renamed_cols = col_coords.rename(columns=lambda idx: f"Dim {idx + 1}")
+                        if not connectors_in_label:
+                            continue
 
-                        st.markdown("#### Coordonnées des segments")
-                        row_meta = filtered_df.loc[renamed_rows.index, marker_columns + ["texte"]]
-                        row_display = renamed_rows.join(row_meta)
-                        st.dataframe(row_display, use_container_width=True)
-
-                        st.markdown("#### Coordonnées des connecteurs")
-                        col_display = renamed_cols.reset_index().rename(
-                            columns={"index": "connecteur"}
+                        weights = contingency[connectors_in_label].sum()
+                        coords = renamed_cols.loc[connectors_in_label]
+                        weighted_coords = (
+                            coords.mul(weights, axis=0).sum() / weights.sum()
                         )
-                        st.dataframe(col_display, use_container_width=True)
+                        label_positions.append(
+                            {"categorie": label, **weighted_coords.to_dict()}
+                        )
 
-                        label_positions = []
-                        for label in sorted(set(filtered_connectors.values())):
-                            connectors_in_label = [
-                                connector
-                                for connector, connector_label in filtered_connectors.items()
-                                if connector_label == label and connector in contingency.columns
-                            ]
+                    label_df = pd.DataFrame(label_positions)
 
-                            if not connectors_in_label:
-                                continue
+                    st.markdown("#### Coordonnées des catégories de connecteurs")
+                    if label_df.empty:
+                        st.info(
+                            "Aucune catégorie de connecteurs disponible après filtrage des occurrences."
+                        )
+                    else:
+                        st.dataframe(label_df, use_container_width=True)
 
-                            weights = contingency[connectors_in_label].sum()
-                            coords = renamed_cols.loc[connectors_in_label]
-                            weighted_coords = (
-                                coords.mul(weights, axis=0).sum() / weights.sum()
+                    modality_points = []
+                    for marker in marker_columns:
+                        if marker not in row_display.columns:
+                            continue
+
+                        for modality, subset in row_display.dropna(subset=[marker]).groupby(
+                            marker
+                        ):
+                            centroid = subset[["Dim 1", "Dim 2"]].mean()
+                            modality_points.append(
+                                {
+                                    "variable": marker,
+                                    "modalite": modality,
+                                    "Dim 1": centroid["Dim 1"],
+                                    "Dim 2": centroid["Dim 2"],
+                                }
                             )
-                            label_positions.append(
-                                {"categorie": label, **weighted_coords.to_dict()}
-                            )
 
-                        label_df = pd.DataFrame(label_positions)
+                    modality_df = pd.DataFrame(modality_points)
 
-                        st.markdown("#### Coordonnées des catégories de connecteurs")
-                        if label_df.empty:
-                            st.info(
-                                "Aucune catégorie de connecteurs disponible après filtrage des occurrences."
-                            )
-                        else:
-                            st.dataframe(label_df, use_container_width=True)
+                    st.markdown("#### Coordonnées des variables*")
+                    if modality_df.empty:
+                        st.info(
+                            "Aucune modalité de variable* n'a été trouvée dans les segments filtrés."
+                        )
+                    else:
+                        st.dataframe(modality_df, use_container_width=True)
 
-                        modality_points = []
-                        for marker in marker_columns:
-                            if marker not in row_display.columns:
-                                continue
+                    if n_components >= 2:
+                        row_plot_df = row_display.reset_index(names="segment")
 
-                            for modality, subset in row_display.dropna(subset=[marker]).groupby(
-                                marker
-                            ):
-                                centroid = subset[["Dim 1", "Dim 2"]].mean()
-                                modality_points.append(
-                                    {
-                                        "variable": marker,
-                                        "modalite": modality,
-                                        "Dim 1": centroid["Dim 1"],
-                                        "Dim 2": centroid["Dim 2"],
-                                    }
-                                )
+                        fig, ax = plt.subplots(figsize=(12, 12), dpi=100)
+                        ax.axhline(0, color="#d1d5db", linewidth=1)
+                        ax.axvline(0, color="#d1d5db", linewidth=1)
 
-                        modality_df = pd.DataFrame(modality_points)
-
-                        st.markdown("#### Coordonnées des variables*")
-                        if modality_df.empty:
-                            st.info(
-                                "Aucune modalité de variable* n'a été trouvée dans les segments filtrés."
-                            )
-                        else:
-                            st.dataframe(modality_df, use_container_width=True)
-
-                        if n_components >= 2:
-                            row_plot_df = row_display.reset_index(names="segment")
-
-                            fig, ax = plt.subplots(figsize=(12, 12), dpi=100)
-                            ax.axhline(0, color="#d1d5db", linewidth=1)
-                            ax.axvline(0, color="#d1d5db", linewidth=1)
-
-                            ax.scatter(
-                                row_plot_df["Dim 1"],
-                                row_plot_df["Dim 2"],
+                        ax.scatter(
+                            row_plot_df["Dim 1"],
+                            row_plot_df["Dim 2"],
+                            color="#1a56db",
+                            alpha=0.7,
+                            label="Segments",
+                        )
+                        for _, row in row_plot_df.iterrows():
+                            ax.text(
+                                row["Dim 1"],
+                                row["Dim 2"],
+                                str(row["segment"]),
                                 color="#1a56db",
-                                alpha=0.7,
-                                label="Segments",
+                                fontsize=9,
                             )
-                            for _, row in row_plot_df.iterrows():
+
+                        if not label_df.empty:
+                            ax.scatter(
+                                label_df["Dim 1"],
+                                label_df["Dim 2"],
+                                color="#f97316",
+                                marker="s",
+                                alpha=0.9,
+                                label="Catégories de connecteurs",
+                            )
+                            for _, row in label_df.iterrows():
                                 ax.text(
                                     row["Dim 1"],
                                     row["Dim 2"],
-                                    str(row["segment"]),
-                                    color="#1a56db",
+                                    row["categorie"],
+                                    color="#f97316",
+                                    fontsize=10,
+                                )
+
+                        if not modality_df.empty:
+                            ax.scatter(
+                                modality_df["Dim 1"],
+                                modality_df["Dim 2"],
+                                color="#16a34a",
+                                marker="^",
+                                alpha=0.85,
+                                label="Variables*",
+                            )
+                            for _, row in modality_df.iterrows():
+                                ax.text(
+                                    row["Dim 1"],
+                                    row["Dim 2"],
+                                    f"{row['variable']}*{row['modalite']}",
+                                    color="#16a34a",
                                     fontsize=9,
                                 )
 
-                            if not label_df.empty:
-                                ax.scatter(
-                                    label_df["Dim 1"],
-                                    label_df["Dim 2"],
-                                    color="#f97316",
-                                    marker="s",
-                                    alpha=0.9,
-                                    label="Catégories de connecteurs",
-                                )
-                                for _, row in label_df.iterrows():
-                                    ax.text(
-                                        row["Dim 1"],
-                                        row["Dim 2"],
-                                        row["categorie"],
-                                        color="#f97316",
-                                        fontsize=10,
-                                    )
+                        ax.set_xlabel("Dimension 1")
+                        ax.set_ylabel("Dimension 2")
+                        ax.set_title(
+                            "Projection segments / catégories de connecteurs / variables*"
+                        )
+                        ax.legend()
 
-                            if not modality_df.empty:
-                                ax.scatter(
-                                    modality_df["Dim 1"],
-                                    modality_df["Dim 2"],
-                                    color="#16a34a",
-                                    marker="^",
-                                    alpha=0.85,
-                                    label="Variables*",
-                                )
-                                for _, row in modality_df.iterrows():
-                                    ax.text(
-                                        row["Dim 1"],
-                                        row["Dim 2"],
-                                        f"{row['variable']}*{row['modalite']}",
-                                        color="#16a34a",
-                                        fontsize=9,
-                                    )
+                        buffer = io.BytesIO()
+                        fig.savefig(buffer, format="png", dpi=100, bbox_inches="tight")
+                        buffer.seek(0)
+                        display_centered_image(
+                            buffer,
+                            caption="Projection segments / catégories de connecteurs / variables*",
+                        )
+                        plt.close(fig)
 
-                            ax.set_xlabel("Dimension 1")
-                            ax.set_ylabel("Dimension 2")
-                            ax.set_title(
-                                "Projection segments / catégories de connecteurs / variables*"
+                        st.markdown(
+                            "#### Projection mots / modalités / connecteurs"
+                        )
+
+                        word_counts: Counter[str] = Counter()
+                        word_sums: defaultdict[str, list[float]] = defaultdict(
+                            lambda: [0.0, 0.0]
+                        )
+
+                        stopwords = load_stopwords(
+                            APP_DIR / "dictionnaires" / "stopword.json"
+                        )
+                        connector_tokens = {
+                            connector.lower() for connector in filtered_connectors
+                        }
+
+                        for segment_index, row in row_display.iterrows():
+                            tokens = re.findall(
+                                r"\b\w+\b",
+                                str(row.get("texte", "")).lower(),
+                                flags=re.UNICODE,
                             )
-                            ax.legend()
+                            if not tokens:
+                                continue
 
-                            buffer = io.BytesIO()
-                            fig.savefig(buffer, format="png", dpi=100, bbox_inches="tight")
-                            buffer.seek(0)
-                            display_centered_image(
-                                buffer,
-                                caption="Projection segments / catégories de connecteurs / variables*",
-                            )
-                            plt.close(fig)
-
-                            st.markdown(
-                                "#### Projection mots / modalités / connecteurs"
-                            )
-
-                            word_counts: Counter[str] = Counter()
-                            word_sums: defaultdict[str, list[float]] = defaultdict(
-                                lambda: [0.0, 0.0]
-                            )
-
-                            stopwords = load_stopwords(
-                                APP_DIR / "dictionnaires" / "stopword.json"
-                            )
-                            connector_tokens = {
-                                connector.lower() for connector in filtered_connectors
-                            }
-
-                            for segment_index, row in row_display.iterrows():
-                                tokens = re.findall(
-                                    r"\b\w+\b",
-                                    str(row.get("texte", "")).lower(),
-                                    flags=re.UNICODE,
-                                )
-                                if not tokens:
+                            coords = row[["Dim 1", "Dim 2"]].to_numpy()
+                            for token in tokens:
+                                if token in stopwords and token not in connector_tokens:
                                     continue
+                                word_counts[token] += 1
+                                word_sums[token][0] += coords[0]
+                                word_sums[token][1] += coords[1]
 
-                                coords = row[["Dim 1", "Dim 2"]].to_numpy()
-                                for token in tokens:
-                                    if token in stopwords and token not in connector_tokens:
-                                        continue
-                                    word_counts[token] += 1
-                                    word_sums[token][0] += coords[0]
-                                    word_sums[token][1] += coords[1]
-
-                            top_words = [
-                                word for word, _ in word_counts.most_common(40)
+                        top_words = [
+                            word for word, _ in word_counts.most_common(40)
+                        ]
+                        word_df = pd.DataFrame(
+                            [
+                                {
+                                    "mot": word,
+                                    "occurrences": word_counts[word],
+                                    "Dim 1": word_sums[word][0] / word_counts[word],
+                                    "Dim 2": word_sums[word][1] / word_counts[word],
+                                }
+                                for word in top_words
+                                if word_counts[word] > 0
                             ]
-                            word_df = pd.DataFrame(
-                                [
-                                    {
-                                        "mot": word,
-                                        "occurrences": word_counts[word],
-                                        "Dim 1": word_sums[word][0] / word_counts[word],
-                                        "Dim 2": word_sums[word][1] / word_counts[word],
-                                    }
-                                    for word in top_words
-                                    if word_counts[word] > 0
-                                ]
-                            )
+                        )
 
-                            if not word_df.empty:
-                                coord_columns = [
-                                    column
-                                    for column in word_df.columns
-                                    if column.startswith("Dim ")
-                                ]
-                                word_df["khi2"] = (
-                                    word_df[coord_columns].pow(2).sum(axis=1)
-                                    * word_df["occurrences"]
-                                )
+                        if not word_df.empty:
+                            coord_columns = [
+                                column
+                                for column in word_df.columns
+                                if column.startswith("Dim ")
+                            ]
+                            word_df["khi2"] = (
+                                word_df[coord_columns].pow(2).sum(axis=1)
+                                * word_df["occurrences"]
+                            )
 
                             connector_df = (
                                 renamed_cols.reset_index()
