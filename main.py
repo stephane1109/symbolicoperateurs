@@ -67,6 +67,10 @@ from test_lesch_Kincaid import (
     interpret_reading_ease,
 )
 from souscorpus import build_subcorpus
+from simicosinus import (
+    aggregate_texts_by_variable,
+    compute_cosine_similarity_by_variable,
+)
 
 
 def display_centered_image(image_buffer: io.BytesIO, caption: str, width: int = 1200) -> None:
@@ -242,6 +246,7 @@ def main() -> None:
             "Regex motifs",
             "Test de lisibilité",
             "N-gram",
+            "Simi cosinus",
         ]
     )
 
@@ -1244,6 +1249,97 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
         else:
             st.markdown("### Top 10 des séquences")
             st.dataframe(ngram_results, use_container_width=True)
+
+    with tabs[10]:
+        st.subheader("Simi cosinus (réponses de modèles)")
+        st.write(
+            "Comparer la similarité cosinus entre les réponses des modèles en "
+            "concaténant l'intégralité des textes par modalité."
+        )
+
+        model_variables = [column for column in df.columns if column not in ("texte", "entete")]
+
+        if not model_variables:
+            st.info("Aucune variable de modèle n'a été trouvée dans le fichier importé.")
+            return
+
+        model_variable_choice = st.selectbox(
+            "Variable contenant les modèles à comparer",
+            model_variables,
+            help="Les textes seront regroupés par modalité de cette variable avant le calcul TF-IDF.",
+        )
+
+        modality_options = sorted(df[model_variable_choice].dropna().unique().tolist())
+
+        if not modality_options:
+            st.info("Aucune modalité disponible pour la variable sélectionnée.")
+            return
+
+        selected_modalities = st.multiselect(
+            "Modalités de modèles à inclure",
+            modality_options,
+            default=modality_options,
+            help="Choisissez les modèles dont les réponses seront comparées.",
+        )
+
+        if not selected_modalities:
+            st.info("Sélectionnez au moins une modalité pour lancer le calcul.")
+            return
+
+        cosine_df = df[df[model_variable_choice].isin(selected_modalities)]
+
+        aggregated_texts = aggregate_texts_by_variable(cosine_df, model_variable_choice)
+
+        if len(aggregated_texts) < 2:
+            st.info(
+                "Au moins deux modalités doivent contenir du texte pour calculer la similarité cosinus."
+            )
+            return
+
+        texts_summary = pd.DataFrame(
+            {
+                "Modalité": list(aggregated_texts.keys()),
+                "Mots": [len(text.split()) for text in aggregated_texts.values()],
+            }
+        ).sort_values("Modalité")
+
+        st.markdown("### Textes regroupés")
+        st.dataframe(texts_summary, use_container_width=True)
+
+        similarity_df = compute_cosine_similarity_by_variable(cosine_df, model_variable_choice)
+
+        if similarity_df.empty:
+            st.info("Impossible de calculer la matrice de similarité cosinus avec les données fournies.")
+            return
+
+        st.markdown("### Matrice de similarité cosinus")
+        st.dataframe(similarity_df.style.format("{:.3f}"), use_container_width=True)
+
+        similarity_long = (
+            similarity_df.reset_index()
+            .rename(columns={"index": "Modalité"})
+            .melt(id_vars="Modalité", var_name="Comparée à", value_name="Similarité")
+        )
+
+        modalities_order = similarity_df.index.tolist()
+
+        heatmap = (
+            alt.Chart(similarity_long)
+            .mark_rect()
+            .encode(
+                x=alt.X("Modalité:N", sort=modalities_order),
+                y=alt.Y("Comparée à:N", sort=modalities_order),
+                color=alt.Color(
+                    "Similarité:Q",
+                    scale=alt.Scale(domain=[0, 1], scheme="blues"),
+                    title="Cosinus",
+                ),
+                tooltip=["Modalité", "Comparée à", alt.Tooltip("Similarité:Q", format=".3f")],
+            )
+            .properties(title="Carte de chaleur des similarités")
+        )
+
+        st.altair_chart(heatmap, use_container_width=True)
 
 
 if __name__ == "__main__":
