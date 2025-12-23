@@ -13,6 +13,8 @@ import altair as alt
 import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
+import nltk
+from nltk.corpus import stopwords as nltk_stopwords
 
 APP_DIR = Path(__file__).parent
 if str(APP_DIR) not in sys.path:
@@ -79,17 +81,28 @@ def display_centered_image(image_buffer: io.BytesIO, caption: str, width: int = 
     center_col.image(image_buffer, width=width, caption=caption)
 
 
-@functools.lru_cache(maxsize=1)
-def load_stopwords(path: Path) -> set[str]:
-    """Charger un dictionnaire de mots vides depuis un fichier JSON."""
-
-    if not path.exists():
-        return set()
-
-    with path.open(encoding="utf-8") as handle:
-        words = json.load(handle)
-
+def _normalize_words(words: list[str]) -> set[str]:
     return {word.strip().lower() for word in words if isinstance(word, str) and word.strip()}
+
+
+@functools.lru_cache(maxsize=1)
+def load_stopwords(path: Path | None = None) -> set[str]:
+    """Charger une liste de mots vides en combinant NLTK et un fichier JSON optionnel."""
+
+    stopword_set: set[str] = set()
+
+    try:
+        stopword_set.update(_normalize_words(nltk_stopwords.words("french")))
+    except LookupError:
+        nltk.download("stopwords", quiet=True)
+        stopword_set.update(_normalize_words(nltk_stopwords.words("french")))
+
+    if path and path.exists():
+        with path.open(encoding="utf-8") as handle:
+            words = json.load(handle)
+        stopword_set.update(_normalize_words(words))
+
+    return stopword_set
 
 
 def build_annotation_style_block(label_style_block: str) -> str:
