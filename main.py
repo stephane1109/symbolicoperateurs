@@ -960,10 +960,68 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                         )
                         st.dataframe(col_display, use_container_width=True)
 
+                        label_positions = []
+                        for label in sorted(set(filtered_connectors.values())):
+                            connectors_in_label = [
+                                connector
+                                for connector, connector_label in filtered_connectors.items()
+                                if connector_label == label and connector in contingency.columns
+                            ]
+
+                            if not connectors_in_label:
+                                continue
+
+                            weights = contingency[connectors_in_label].sum()
+                            coords = renamed_cols.loc[connectors_in_label]
+                            weighted_coords = (
+                                coords.mul(weights, axis=0).sum() / weights.sum()
+                            )
+                            label_positions.append(
+                                {"categorie": label, **weighted_coords.to_dict()}
+                            )
+
+                        label_df = pd.DataFrame(label_positions)
+
+                        st.markdown("#### Coordonnées des catégories de connecteurs")
+                        if label_df.empty:
+                            st.info(
+                                "Aucune catégorie de connecteurs disponible après filtrage des occurrences."
+                            )
+                        else:
+                            st.dataframe(label_df, use_container_width=True)
+
+                        modality_points = []
+                        for marker in marker_columns:
+                            if marker not in row_display.columns:
+                                continue
+
+                            for modality, subset in row_display.dropna(subset=[marker]).groupby(
+                                marker
+                            ):
+                                centroid = subset[["Dim 1", "Dim 2"]].mean()
+                                modality_points.append(
+                                    {
+                                        "variable": marker,
+                                        "modalite": modality,
+                                        "Dim 1": centroid["Dim 1"],
+                                        "Dim 2": centroid["Dim 2"],
+                                    }
+                                )
+
+                        modality_df = pd.DataFrame(modality_points)
+
+                        st.markdown("#### Coordonnées des variables*")
+                        if modality_df.empty:
+                            st.info(
+                                "Aucune modalité de variable* n'a été trouvée dans les segments filtrés."
+                            )
+                        else:
+                            st.dataframe(modality_df, use_container_width=True)
+
                         if n_components >= 2:
                             row_plot_df = row_display.reset_index(names="segment")
 
-                            fig, ax = plt.subplots()
+                            fig, ax = plt.subplots(figsize=(12, 12), dpi=100)
                             ax.axhline(0, color="#d1d5db", linewidth=1)
                             ax.axvline(0, color="#d1d5db", linewidth=1)
 
@@ -983,26 +1041,47 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                                     fontsize=9,
                                 )
 
-                            ax.scatter(
-                                col_display["Dim 1"],
-                                col_display["Dim 2"],
-                                color="#f97316",
-                                marker="s",
-                                alpha=0.9,
-                                label="Connecteurs",
-                            )
-                            for _, row in col_display.iterrows():
-                                ax.text(
-                                    row["Dim 1"],
-                                    row["Dim 2"],
-                                    row["connecteur"],
+                            if not label_df.empty:
+                                ax.scatter(
+                                    label_df["Dim 1"],
+                                    label_df["Dim 2"],
                                     color="#f97316",
-                                    fontsize=9,
+                                    marker="s",
+                                    alpha=0.9,
+                                    label="Catégories de connecteurs",
                                 )
+                                for _, row in label_df.iterrows():
+                                    ax.text(
+                                        row["Dim 1"],
+                                        row["Dim 2"],
+                                        row["categorie"],
+                                        color="#f97316",
+                                        fontsize=10,
+                                    )
+
+                            if not modality_df.empty:
+                                ax.scatter(
+                                    modality_df["Dim 1"],
+                                    modality_df["Dim 2"],
+                                    color="#16a34a",
+                                    marker="^",
+                                    alpha=0.85,
+                                    label="Variables*",
+                                )
+                                for _, row in modality_df.iterrows():
+                                    ax.text(
+                                        row["Dim 1"],
+                                        row["Dim 2"],
+                                        f"{row['variable']}*{row['modalite']}",
+                                        color="#16a34a",
+                                        fontsize=9,
+                                    )
 
                             ax.set_xlabel("Dimension 1")
                             ax.set_ylabel("Dimension 2")
-                            ax.set_title("Projection conjointe segments/connecteurs")
+                            ax.set_title(
+                                "Projection segments / catégories de connecteurs / variables*"
+                            )
                             ax.legend()
 
                             st.pyplot(fig)
