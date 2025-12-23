@@ -1088,7 +1088,8 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                             buffer = io.BytesIO()
                             fig.savefig(buffer, format="png", dpi=100, bbox_inches="tight")
                             buffer.seek(0)
-                            st.image(
+                            center_col = st.columns([1, 2, 1])[1]
+                            center_col.image(
                                 buffer,
                                 width=1200,
                                 caption="Projection segments / catégories de connecteurs / variables*",
