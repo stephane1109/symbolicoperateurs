@@ -10,6 +10,7 @@ from typing import Dict, List
 
 import altair as alt
 import pandas as pd
+import networkx as nx
 import streamlit as st
 
 APP_DIR = Path(__file__).parent
@@ -1359,6 +1360,93 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
         _, chart_col, _ = st.columns([1, 10, 1])
         chart_col.altair_chart(heatmap, use_container_width=False)
+
+        st.markdown("### Réseau des similarités")
+        similarity_threshold = st.slider(
+            "Seuil minimal de similarité cosinus pour afficher une arête",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.5,
+            step=0.05,
+        )
+
+        graph = nx.from_pandas_adjacency(similarity_df)
+        graph.remove_edges_from(nx.selfloop_edges(graph))
+
+        filtered_edges = [
+            (source, target, data["weight"])
+            for source, target, data in graph.edges(data=True)
+            if data.get("weight", 0) >= similarity_threshold
+        ]
+
+        thresholded_graph = nx.Graph()
+        thresholded_graph.add_nodes_from(graph.nodes())
+        thresholded_graph.add_weighted_edges_from(filtered_edges)
+
+        if not thresholded_graph.edges:
+            st.info(
+                "Aucune arête ne respecte le seuil actuel. Diminuez le seuil pour visualiser le réseau."
+            )
+            return
+
+        positions = nx.spring_layout(thresholded_graph, weight="weight", seed=42)
+
+        nodes_df = pd.DataFrame(
+            {
+                "noeud": list(positions.keys()),
+                "x": [coord[0] for coord in positions.values()],
+                "y": [coord[1] for coord in positions.values()],
+            }
+        )
+
+        edges_df = pd.DataFrame(
+            [
+                {
+                    "source": source,
+                    "cible": target,
+                    "poids": data.get("weight", 0.0),
+                    "x": positions[source][0],
+                    "y": positions[source][1],
+                    "x2": positions[target][0],
+                    "y2": positions[target][1],
+                }
+                for source, target, data in thresholded_graph.edges(data=True)
+            ]
+        )
+
+        edge_chart = (
+            alt.Chart(edges_df)
+            .mark_line(opacity=0.4)
+            .encode(
+                x="x",
+                y="y",
+                x2="x2",
+                y2="y2",
+                color=alt.Color("poids", scale=alt.Scale(scheme="blues"), title="Similarité"),
+                tooltip=["source", "cible", alt.Tooltip("poids:Q", format=".3f")],
+            )
+        )
+
+        node_chart = (
+            alt.Chart(nodes_df)
+            .mark_circle(size=200, color="#08306b")
+            .encode(x="x", y="y", tooltip=["noeud"])
+        )
+
+        label_chart = (
+            alt.Chart(nodes_df)
+            .mark_text(dy=-10, fontWeight="bold")
+            .encode(x="x", y="y", text="noeud")
+        )
+
+        network_chart = (
+            (edge_chart + node_chart + label_chart)
+            .properties(width=600, height=500)
+            .configure_axis(grid=False, labels=False, ticks=False, title=None)
+            .configure_view(strokeWidth=0)
+        )
+
+        st.altair_chart(network_chart, use_container_width=True)
 
 
 if __name__ == "__main__":
