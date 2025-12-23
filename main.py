@@ -1336,10 +1336,11 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                 ),
                 tooltip=["Modalité", "Comparée à", alt.Tooltip("Similarité:Q", format=".3f")],
             )
-            .properties(title="Carte de chaleur des similarités")
+            .properties(title="Carte de chaleur des similarités", width=1200)
         )
 
-        st.altair_chart(heatmap, use_container_width=True)
+        _, chart_col, _ = st.columns([1, 10, 1])
+        chart_col.altair_chart(heatmap, use_container_width=False)
 
 
 if __name__ == "__main__":
