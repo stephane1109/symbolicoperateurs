@@ -19,6 +19,21 @@ def test_build_connector_matrix_removes_empty_rows():
     assert matrix.iloc[0, 0] == 1
 
 
+def test_build_connector_matrix_filters_to_connector_subcorpus():
+    df = pd.DataFrame(
+        {
+            "texte": ["aucun connecteur ici", "mais pourtant"],
+            "marker": ["A", "A"],
+        }
+    )
+    connectors = {"mais": "opposition", "pourtant": "opposition"}
+
+    matrix = build_connector_matrix(df, connectors, {"marker": ["A"]})
+
+    assert matrix.index.tolist() == [1]
+    assert matrix.shape == (1, 2)
+
+
 def test_run_afc_projects_connectors_as_supplementary_columns():
     df = pd.DataFrame(
         {

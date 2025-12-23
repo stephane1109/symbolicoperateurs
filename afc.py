@@ -11,6 +11,7 @@ notebook ou un script sans dépendre de l'interface Streamlit.
 
 from __future__ import annotations
 
+import re
 from typing import Dict, Iterable, Mapping, Optional
 
 import numpy as np
@@ -40,6 +41,29 @@ def _apply_modality_filters(
     return filtered
 
 
+def _filter_segments_with_connectors(
+    dataframe: pd.DataFrame, connectors: Dict[str, str]
+) -> pd.DataFrame:
+    """Restreindre le DataFrame aux segments contenant au moins un connecteur.
+
+    L'AFC doit être effectuée sur le sous-corpus défini par les connecteurs
+    sélectionnés. Cette fonction applique un filtre simple qui ne conserve que
+    les lignes dont le champ ``texte`` comporte au moins un connecteur.
+    """
+
+    connector_names = [name.strip() for name in connectors if name.strip()]
+    if not connector_names:
+        return pd.DataFrame(columns=dataframe.columns)
+
+    pattern = re.compile(
+        rf"\b({'|'.join(re.escape(name) for name in sorted(connector_names, key=len, reverse=True))})\b",
+        re.IGNORECASE,
+    )
+
+    mask = dataframe["texte"].fillna("").apply(lambda text: bool(pattern.search(text)))
+    return dataframe.loc[mask]
+
+
 def build_connector_matrix(
     dataframe: pd.DataFrame,
     connectors: Dict[str, str],
@@ -53,6 +77,7 @@ def build_connector_matrix(
     """
 
     filtered_df = _apply_modality_filters(dataframe, modality_filters)
+    filtered_df = _filter_segments_with_connectors(filtered_df, connectors)
     if filtered_df.empty:
         return pd.DataFrame()
 
