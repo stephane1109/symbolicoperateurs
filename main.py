@@ -70,6 +70,13 @@ from test_lesch_Kincaid import (
 from souscorpus import build_subcorpus
 
 
+def display_centered_image(image_buffer: io.BytesIO, caption: str, width: int = 1200) -> None:
+    """Afficher une image centrée avec une largeur et une légende cohérentes."""
+
+    center_col = st.columns([1, 2, 1])[1]
+    center_col.image(image_buffer, width=width, caption=caption)
+
+
 def build_annotation_style_block(label_style_block: str) -> str:
     """Créer un bloc de style commun pour l'affichage des annotations HTML."""
 
@@ -1090,10 +1097,8 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                             buffer = io.BytesIO()
                             fig.savefig(buffer, format="png", dpi=100, bbox_inches="tight")
                             buffer.seek(0)
-                            center_col = st.columns([1, 2, 1])[1]
-                            center_col.image(
+                            display_centered_image(
                                 buffer,
-                                width=1200,
                                 caption="Projection segments / catégories de connecteurs / variables*",
                             )
                             plt.close(fig)
@@ -1255,13 +1260,56 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                                     bbox_inches="tight",
                                 )
                                 buffer_words.seek(0)
-
-                                st.image(
+                                display_centered_image(
                                     buffer_words,
-                                    width=1200,
                                     caption="Projection des mots, connecteurs et variables*",
                                 )
                                 plt.close(fig_words)
+
+                                if not word_df.empty:
+                                    fig_words_only, ax_words_only = plt.subplots(
+                                        figsize=(12, 12), dpi=100
+                                    )
+                                    ax_words_only.axhline(0, color="#d1d5db", linewidth=1)
+                                    ax_words_only.axvline(0, color="#d1d5db", linewidth=1)
+
+                                    word_scatter_only = ax_words_only.scatter(
+                                        word_df["Dim 1"],
+                                        word_df["Dim 2"],
+                                        color="#0ea5e9",
+                                        alpha=0.35,
+                                        label="Mots des segments",
+                                    )
+                                    for _, row in word_df.head(30).iterrows():
+                                        ax_words_only.text(
+                                            row["Dim 1"],
+                                            row["Dim 2"],
+                                            row["mot"],
+                                            color="#0ea5e9",
+                                            fontsize=8,
+                                        )
+
+                                    ax_words_only.set_xlabel("Dimension 1")
+                                    ax_words_only.set_ylabel("Dimension 2")
+                                    ax_words_only.set_title(
+                                        "Projection des mots des segments"
+                                    )
+                                    ax_words_only.legend(handles=[word_scatter_only])
+
+                                    buffer_words_only = io.BytesIO()
+                                    fig_words_only.savefig(
+                                        buffer_words_only,
+                                        format="png",
+                                        dpi=100,
+                                        bbox_inches="tight",
+                                    )
+                                    buffer_words_only.seek(0)
+
+                                    display_centered_image(
+                                        buffer_words_only,
+                                        caption="Projection des mots des segments",
+                                    )
+                                    plt.close(fig_words_only)
 
     with tabs[8]:
         st.subheader("K-means sur les segments filtrés")
