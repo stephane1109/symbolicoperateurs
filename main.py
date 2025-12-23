@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import altair as alt
+import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 
@@ -953,22 +954,6 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                         row_display = renamed_rows.join(row_meta)
                         st.dataframe(row_display, use_container_width=True)
 
-                        if n_components >= 2:
-                            row_plot_df = row_display.reset_index(names="segment")
-                            row_chart = (
-                                alt.Chart(row_plot_df)
-                                .mark_circle(size=80, opacity=0.8)
-                                .encode(
-                                    x=alt.X("Dim 1:Q", title="Dimension 1"),
-                                    y=alt.Y("Dim 2:Q", title="Dimension 2"),
-                                    color=alt.Color("segment:N", legend=None),
-                                    tooltip=["segment"] + marker_columns + ["Dim 1", "Dim 2", "texte"],
-                                )
-                                .properties(title="Projection des segments")
-                            )
-
-                            st.altair_chart(row_chart, use_container_width=True)
-
                         st.markdown("#### Coordonnées des connecteurs")
                         col_display = renamed_cols.reset_index().rename(
                             columns={"index": "connecteur"}
@@ -976,18 +961,51 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                         st.dataframe(col_display, use_container_width=True)
 
                         if n_components >= 2:
-                            col_chart = (
-                                alt.Chart(col_display)
-                                .mark_circle(size=120, opacity=0.85, color="#1a56db")
-                                .encode(
-                                    x=alt.X("Dim 1:Q", title="Dimension 1"),
-                                    y=alt.Y("Dim 2:Q", title="Dimension 2"),
-                                    tooltip=["connecteur", "Dim 1", "Dim 2"],
-                                )
-                                .properties(title="Projection des connecteurs")
-                            )
+                            row_plot_df = row_display.reset_index(names="segment")
 
-                            st.altair_chart(col_chart, use_container_width=True)
+                            fig, ax = plt.subplots()
+                            ax.axhline(0, color="#d1d5db", linewidth=1)
+                            ax.axvline(0, color="#d1d5db", linewidth=1)
+
+                            ax.scatter(
+                                row_plot_df["Dim 1"],
+                                row_plot_df["Dim 2"],
+                                color="#1a56db",
+                                alpha=0.7,
+                                label="Segments",
+                            )
+                            for _, row in row_plot_df.iterrows():
+                                ax.text(
+                                    row["Dim 1"],
+                                    row["Dim 2"],
+                                    str(row["segment"]),
+                                    color="#1a56db",
+                                    fontsize=9,
+                                )
+
+                            ax.scatter(
+                                col_display["Dim 1"],
+                                col_display["Dim 2"],
+                                color="#f97316",
+                                marker="s",
+                                alpha=0.9,
+                                label="Connecteurs",
+                            )
+                            for _, row in col_display.iterrows():
+                                ax.text(
+                                    row["Dim 1"],
+                                    row["Dim 2"],
+                                    row["connecteur"],
+                                    color="#f97316",
+                                    fontsize=9,
+                                )
+
+                            ax.set_xlabel("Dimension 1")
+                            ax.set_ylabel("Dimension 2")
+                            ax.set_title("Projection conjointe segments/connecteurs")
+                            ax.legend()
+
+                            st.pyplot(fig)
 
     with tabs[8]:
         st.subheader("K-means sur les segments filtrés")
