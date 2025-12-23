@@ -1241,7 +1241,11 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                                 ax_words.set_title(
                                     "Projection mots / connecteurs / variables*"
                                 )
-                                ax_words.legend(legend_handles)
+                                if legend_handles:
+                                    ax_words.legend(
+                                        handles=legend_handles,
+                                        labels=[handle.get_label() for handle in legend_handles],
+                                    )
 
                                 buffer_words = io.BytesIO()
                                 fig_words.savefig(
