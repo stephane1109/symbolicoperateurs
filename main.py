@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import io
 from pathlib import Path
 from typing import Dict, List
 
@@ -1084,7 +1085,15 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                             )
                             ax.legend()
 
-                            st.pyplot(fig)
+                            buffer = io.BytesIO()
+                            fig.savefig(buffer, format="png", dpi=100, bbox_inches="tight")
+                            buffer.seek(0)
+                            st.image(
+                                buffer,
+                                width=1200,
+                                caption="Projection segments / catégories de connecteurs / variables*",
+                            )
+                            plt.close(fig)
 
     with tabs[8]:
         st.subheader("K-means sur les segments filtrés")
