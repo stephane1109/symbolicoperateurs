@@ -258,17 +258,6 @@ def main() -> None:
 
     uploaded_file = st.file_uploader("Fichier IRaMuTeQ", type=["txt"])  # type: ignore[assignment]
 
-    if not uploaded_file:
-        return
-
-    content = uploaded_file.read().decode("utf-8")
-    records = parse_iramuteq(content)
-
-    if not records:
-        st.warning("Aucune entrée valide trouvée dans le fichier fourni.")
-        return
-
-    df = build_dataframe(records)
     tabs = st.tabs(
         [
             "Import",
@@ -283,6 +272,30 @@ def main() -> None:
             "N-gram",
         ]
     )
+
+    if not uploaded_file:
+        upload_message = (
+            "Téléversez un fichier texte IRaMuTeQ pour accéder aux analyses disponibles dans les onglets."
+        )
+
+        with tabs[0]:
+            st.subheader("Données importées")
+            st.info(upload_message)
+
+        for tab in tabs[1:]:
+            with tab:
+                st.info(upload_message)
+
+        return
+
+    content = uploaded_file.read().decode("utf-8")
+    records = parse_iramuteq(content)
+
+    if not records:
+        st.warning("Aucune entrée valide trouvée dans le fichier fourni.")
+        return
+
+    df = build_dataframe(records)
 
     with tabs[1]:
         st.subheader("Choisir les connecteurs à analyser")
