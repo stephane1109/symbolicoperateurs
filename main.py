@@ -10,10 +10,8 @@ from pathlib import Path
 from typing import Dict, List
 
 import altair as alt
-import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
-import nltk
 from nltk.corpus import stopwords as nltk_stopwords
 
 APP_DIR = Path(__file__).parent
