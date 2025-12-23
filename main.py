@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import sys
 import io
+import re
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Dict, List
 
@@ -1095,6 +1097,167 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                                 caption="Projection segments / catégories de connecteurs / variables*",
                             )
                             plt.close(fig)
+
+                            st.markdown(
+                                "#### Projection mots / modalités / connecteurs"
+                            )
+
+                            word_counts: Counter[str] = Counter()
+                            word_sums: defaultdict[str, list[float]] = defaultdict(
+                                lambda: [0.0, 0.0]
+                            )
+
+                            for segment_index, row in row_display.iterrows():
+                                tokens = re.findall(
+                                    r"\b\w+\b",
+                                    str(row.get("texte", "")).lower(),
+                                    flags=re.UNICODE,
+                                )
+                                if not tokens:
+                                    continue
+
+                                coords = row[["Dim 1", "Dim 2"]].to_numpy()
+                                for token in tokens:
+                                    word_counts[token] += 1
+                                    word_sums[token][0] += coords[0]
+                                    word_sums[token][1] += coords[1]
+
+                            top_words = [
+                                word for word, _ in word_counts.most_common(40)
+                            ]
+                            word_df = pd.DataFrame(
+                                [
+                                    {
+                                        "mot": word,
+                                        "occurrences": word_counts[word],
+                                        "Dim 1": word_sums[word][0] / word_counts[word],
+                                        "Dim 2": word_sums[word][1] / word_counts[word],
+                                    }
+                                    for word in top_words
+                                    if word_counts[word] > 0
+                                ]
+                            )
+
+                            connector_df = (
+                                renamed_cols.reset_index()
+                                .rename(columns={"index": "connecteur"})
+                                .assign(
+                                    label=lambda df: df["connecteur"].map(
+                                        filtered_connectors
+                                    )
+                                )
+                            )
+
+                            label_palette = generate_label_colors(
+                                sorted(set(filtered_connectors.values()))
+                            )
+
+                            if word_df.empty and connector_df.empty and modality_df.empty:
+                                st.info(
+                                    "Aucun mot, connecteur ou modalité à projeter après filtrage des segments."
+                                )
+                            else:
+                                fig_words, ax_words = plt.subplots(
+                                    figsize=(12, 12), dpi=100
+                                )
+                                ax_words.axhline(0, color="#d1d5db", linewidth=1)
+                                ax_words.axvline(0, color="#d1d5db", linewidth=1)
+
+                                legend_handles = []
+                                legend_labels = set()
+
+                                if not word_df.empty:
+                                    word_scatter = ax_words.scatter(
+                                        word_df["Dim 1"],
+                                        word_df["Dim 2"],
+                                        color="#0ea5e9",
+                                        alpha=0.35,
+                                        label="Mots des segments",
+                                    )
+                                    legend_handles.append(word_scatter)
+                                    legend_labels.add("Mots des segments")
+
+                                    for _, row in word_df.head(20).iterrows():
+                                        ax_words.text(
+                                            row["Dim 1"],
+                                            row["Dim 2"],
+                                            row["mot"],
+                                            color="#0ea5e9",
+                                            fontsize=8,
+                                        )
+
+                                if not connector_df.empty:
+                                    for label, subset in connector_df.groupby("label"):
+                                        scatter = ax_words.scatter(
+                                            subset["Dim 1"],
+                                            subset["Dim 2"],
+                                            color=label_palette.get(
+                                                label, "#f97316"
+                                            ),
+                                            marker="s",
+                                            alpha=0.85,
+                                            label=f"Connecteurs ({label})",
+                                        )
+                                        if scatter.get_label() not in legend_labels:
+                                            legend_handles.append(scatter)
+                                            legend_labels.add(scatter.get_label())
+
+                                        for _, row in subset.iterrows():
+                                            ax_words.text(
+                                                row["Dim 1"],
+                                                row["Dim 2"],
+                                                row["connecteur"],
+                                                color=label_palette.get(
+                                                    label, "#f97316"
+                                                ),
+                                                fontsize=9,
+                                            )
+
+                                if not modality_df.empty:
+                                    modality_scatter = ax_words.scatter(
+                                        modality_df["Dim 1"],
+                                        modality_df["Dim 2"],
+                                        color="#16a34a",
+                                        marker="^",
+                                        alpha=0.85,
+                                        label="Variables*",
+                                    )
+
+                                    if modality_scatter.get_label() not in legend_labels:
+                                        legend_handles.append(modality_scatter)
+                                        legend_labels.add(modality_scatter.get_label())
+
+                                    for _, row in modality_df.iterrows():
+                                        ax_words.text(
+                                            row["Dim 1"],
+                                            row["Dim 2"],
+                                            f"{row['variable']}*{row['modalite']}",
+                                            color="#16a34a",
+                                            fontsize=9,
+                                        )
+
+                                ax_words.set_xlabel("Dimension 1")
+                                ax_words.set_ylabel("Dimension 2")
+                                ax_words.set_title(
+                                    "Projection mots / connecteurs / variables*"
+                                )
+                                ax_words.legend(legend_handles)
+
+                                buffer_words = io.BytesIO()
+                                fig_words.savefig(
+                                    buffer_words,
+                                    format="png",
+                                    dpi=100,
+                                    bbox_inches="tight",
+                                )
+                                buffer_words.seek(0)
+
+                                st.image(
+                                    buffer_words,
+                                    width=1200,
+                                    caption="Projection des mots, connecteurs et variables*",
+                                )
+                                plt.close(fig_words)
 
     with tabs[8]:
         st.subheader("K-means sur les segments filtrés")
