@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from typing import Dict, Iterable, Mapping, Optional
 
+import numpy as np
 import pandas as pd
 
 from analyses import count_connectors
@@ -100,19 +101,35 @@ def run_afc(
         Nombre d'axes factoriels à conserver.
     """
 
-    # Importer ici pour éviter d'imposer la dépendance à ``prince`` lors des
-    # utilisations utilitaires (par exemple dans les tests de construction de
-    # matrice) qui n'ont pas besoin du calcul d'AFC.
-    import prince
-
     matrix = build_connector_matrix(dataframe, connectors, modality_filters)
     if matrix.empty:
         return pd.DataFrame(), pd.DataFrame()
 
-    ca = prince.CA(n_components=n_components, n_iter=10, copy=True, check_input=True)
-    ca = ca.fit(matrix)
+    total = matrix.to_numpy().sum()
+    if total == 0:
+        return pd.DataFrame(), pd.DataFrame()
 
-    return ca.row_coordinates(matrix), ca.column_coordinates(matrix)
+    relative = matrix / total
+    row_masses = relative.sum(axis=1).to_numpy()
+    col_masses = relative.sum(axis=0).to_numpy()
+
+    expected = np.outer(row_masses, col_masses)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        standardized = (relative.to_numpy() - expected) / np.sqrt(expected)
+        standardized = np.nan_to_num(standardized, nan=0.0, posinf=0.0, neginf=0.0)
+
+    from sklearn.decomposition import PCA
+
+    pca = PCA(n_components=n_components)
+    pca.fit(standardized)
+
+    row_coords = pca.transform(standardized)
+    loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
+
+    row_df = pd.DataFrame(row_coords, index=matrix.index)
+    col_df = pd.DataFrame(loadings, index=matrix.columns)
+
+    return row_df, col_df
 
 
 __all__ = [
