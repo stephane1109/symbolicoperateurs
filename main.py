@@ -84,6 +84,13 @@ def display_centered_image(image_buffer: io.BytesIO, caption: str, width: int = 
     center_col.image(image_buffer, width=width, caption=caption)
 
 
+def display_centered_chart(chart: alt.Chart) -> None:
+    """Afficher un graphique Altair centré dans la page."""
+
+    center_col = st.columns([1, 2, 1])[1]
+    center_col.altair_chart(chart, use_container_width=True)
+
+
 def build_annotation_style_block(label_style_block: str) -> str:
     """Créer un bloc de style commun pour l'affichage des annotations HTML."""
 
@@ -1394,8 +1401,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
             )
         )
 
-        _, chart_col, _ = st.columns([1, 10, 1])
-        chart_col.altair_chart(heatmap, use_container_width=False)
+        display_centered_chart(heatmap)
 
         st.markdown("### Réseau des similarités")
         similarity_threshold = st.slider(
