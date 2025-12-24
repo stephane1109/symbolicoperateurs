@@ -1,306 +1,156 @@
-"""Visualisation 3D des distances cosinus sous forme de réseau de sphères.
+"""Visualisation simple des similarités cosinus sous forme de réseau.
 
-Ce module fournit un pipeline complet pour :
-- calculer une matrice de similarité cosinus à partir d'embeddings ;
-- construire un graphe pondéré filtré par seuil ;
-- générer un layout 3D (force-directed) ;
-- créer une figure Plotly interactive avec sphères et liaisons codant la similarité.
-
-Fonctionnement minimal :
->>> import numpy as np
->>> from graphiques.graphique3d import create_cosine_network_figure
->>> embeddings = np.random.rand(6, 8)
->>> labels = [f"modèle_{i}" for i in range(len(embeddings))]
->>> fig = create_cosine_network_figure(embeddings, labels)
->>> fig.show()
-
-Le résultat est une scène 3D navigable :
-- sphères (taille optionnellement proportionnelle à une métrique)
-- couleur des sphères par cluster
-- liens colorés et épaissis selon la similarité
-- slider pour filtrer dynamiquement les liens par seuil de similarité.
+Ce module fournit un pipeline sans JavaScript basé sur ``python-igraph`` et
+Matplotlib pour représenter les modèles comme des nœuds reliés par des arêtes
+pondérées par leur similarité cosinus. Le rendu est statique, ce qui le rend
+compatible avec les environnements où les graphiques Plotly interactifs ne sont
+pas pris en charge (par exemple Streamlit Cloud).
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, Sequence
+from typing import Sequence
 
-import networkx as nx
+import igraph as ig
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
 import numpy as np
-import plotly.graph_objects as go
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.preprocessing import MinMaxScaler
 
 
 @dataclass
-class CosineNetworkConfig:
-    """Paramètres de création du graphe 3D.
+class CosineGraphConfig:
+    """Paramètres du graphe de similarité cosinus.
 
     Attributes:
-        threshold_values: Liste des seuils de similarité utilisés pour filtrer les arêtes.
-        default_threshold: Seuil appliqué pour l'affichage initial.
-        node_scale: Multiplicateur appliqué aux tailles de nœuds après normalisation.
-        layout_seed: Graine pour la reproductibilité du layout 3D.
+        min_similarity: Seuil minimal pour conserver une arête.
+        layout: Nom du layout igraph (ex: ``"fruchterman_reingold"``).
+        vertex_size: Taille des nœuds (en points matplotlib).
+        edge_label_round: Nombre de décimales affichées sur les arêtes.
     """
 
-    threshold_values: Sequence[float] = (0.5, 0.6, 0.7, 0.8, 0.9)
-    default_threshold: float = 0.6
-    node_scale: float = 24.0
-    layout_seed: int | None = 42
+    min_similarity: float = 0.0
+    layout: str = "fruchterman_reingold"
+    vertex_size: int = 30
+    edge_label_round: int = 2
 
     def __post_init__(self) -> None:
-        if self.default_threshold not in self.threshold_values:
-            raise ValueError("default_threshold doit appartenir à threshold_values")
+        if not 0 <= self.min_similarity <= 1:
+            raise ValueError("min_similarity doit être compris entre 0 et 1")
 
 
 def compute_cosine_similarities(embeddings: np.ndarray) -> np.ndarray:
-    """Renvoie la matrice de similarité cosinus.
-
-    Args:
-        embeddings: Matrice (n_samples, n_features) des embeddings.
-    """
+    """Calcule et renvoie la matrice de similarité cosinus."""
 
     if embeddings.ndim != 2:
         raise ValueError("embeddings doit être une matrice 2D")
     return cosine_similarity(embeddings)
 
 
-def build_similarity_graph(
-    similarities: np.ndarray, labels: Sequence[str], threshold: float
-) -> nx.Graph:
-    """Construit un graphe pondéré à partir de la matrice de similarité."""
+def build_igraph_cosine_graph(
+    similarities: np.ndarray,
+    labels: Sequence[str],
+    min_similarity: float,
+    edge_label_round: int,
+) -> ig.Graph:
+    """Construit un graphe igraph pondéré à partir des similarités cosinus."""
 
     if similarities.shape[0] != similarities.shape[1]:
         raise ValueError("similarities doit être carrée")
     if len(labels) != similarities.shape[0]:
         raise ValueError("labels doit avoir la même longueur que similarities")
 
-    graph = nx.Graph()
-    for idx, label in enumerate(labels):
-        graph.add_node(idx, label=label)
+    graph = ig.Graph()
+    graph.add_vertices(len(labels))
+    graph.vs["label"] = labels
 
+    edges: list[tuple[int, int]] = []
+    weights: list[float] = []
     n = len(labels)
     for i in range(n):
         for j in range(i + 1, n):
             weight = float(similarities[i, j])
-            if weight >= threshold:
-                graph.add_edge(i, j, weight=weight)
+            if weight >= min_similarity:
+                edges.append((i, j))
+                weights.append(weight)
+
+    graph.add_edges(edges)
+    graph.es["weight"] = weights
+    decimals = max(0, int(edge_label_round))
+    graph.es["label"] = [f"{w:.{decimals}f}" for w in weights]
     return graph
 
 
-def compute_layout_3d(graph: nx.Graph, seed: int | None = 42) -> dict[int, np.ndarray]:
-    """Calcule un layout 3D spring-layout pondéré."""
-
-    return nx.spring_layout(graph, dim=3, weight="weight", seed=seed)
-
-
-def _scale_values(values: Iterable[float], factor: float) -> list[float]:
-    scaler = MinMaxScaler(feature_range=(0.4 * factor, factor))
-    arr = np.asarray(list(values)).reshape(-1, 1)
-    if arr.size == 0:
+def _normalize_weights(weights: Sequence[float]) -> list[float]:
+    if not weights:
         return []
-    scaled = scaler.fit_transform(arr).flatten()
-    return scaled.tolist()
-
-
-def _make_edge_trace(
-    graph: nx.Graph, positions: dict[int, np.ndarray], color_scale: str = "Viridis"
-) -> go.Scatter3d:
-    x_edges, y_edges, z_edges, weights = [], [], [], []
-    for u, v, data in graph.edges(data=True):
-        x_edges += [positions[u][0], positions[v][0], None]
-        y_edges += [positions[u][1], positions[v][1], None]
-        z_edges += [positions[u][2], positions[v][2], None]
-        weights.append(data.get("weight", 0.0))
-
-    line_widths = _scale_values(weights, factor=10.0) if weights else []
-    return go.Scatter3d(
-        x=x_edges,
-        y=y_edges,
-        z=z_edges,
-        mode="lines",
-        line=dict(
-            color=weights if weights else "lightgray",
-            colorscale=color_scale,
-            width=line_widths,
-        ),
-        opacity=0.45,
-        hoverinfo="none",
-    )
-
-
-def _make_node_trace(
-    graph: nx.Graph,
-    positions: dict[int, np.ndarray],
-    labels: Sequence[str],
-    performances: Sequence[float] | None,
-    cluster_labels: Sequence[str] | None,
-    node_scale: float,
-    color_scale: str = "Turbo",
-) -> go.Scatter3d:
-    x_nodes, y_nodes, z_nodes = [], [], []
-    for idx in graph.nodes:
-        pos = positions[idx]
-        x_nodes.append(pos[0])
-        y_nodes.append(pos[1])
-        z_nodes.append(pos[2])
-
-    sizes = _scale_values(performances if performances is not None else [1.0] * len(graph), factor=node_scale)
-
-    if cluster_labels is not None and len(cluster_labels) == len(graph):
-        node_colors = cluster_labels
-        showscale = False
-    else:
-        node_colors = performances if performances is not None else [1.0] * len(graph)
-        showscale = True
-
-    hover_text = []
-    for idx, label in enumerate(labels):
-        perf_info = "" if performances is None else f"<br>métrique: {performances[idx]:.3f}"
-        cluster_info = "" if cluster_labels is None else f"<br>cluster: {cluster_labels[idx]}"
-        hover_text.append(f"{label}{perf_info}{cluster_info}")
-
-    return go.Scatter3d(
-        x=x_nodes,
-        y=y_nodes,
-        z=z_nodes,
-        mode="markers+text",
-        marker=dict(
-            size=sizes,
-            color=node_colors,
-            colorscale=color_scale,
-            showscale=showscale,
-            colorbar=dict(title="Similarité/score"),
-            opacity=0.9,
-            line=dict(width=1.5, color="black"),
-        ),
-        text=labels,
-        textposition="top center",
-        hoverinfo="text",
-        textfont=dict(color="#08306b", size=11),
-    )
+    min_w, max_w = min(weights), max(weights)
+    if np.isclose(min_w, max_w):
+        return [0.5 for _ in weights]
+    norm = [(w - min_w) / (max_w - min_w) for w in weights]
+    return [float(v) for v in norm]
 
 
 def create_cosine_network_figure(
     embeddings: np.ndarray,
     labels: Sequence[str],
-    performances: Sequence[float] | None = None,
-    cluster_labels: Sequence[str] | None = None,
-    config: CosineNetworkConfig | None = None,
-) -> go.Figure:
-    """Construit la figure Plotly interactive pour explorer les similarités cosinus.
+    config: CosineGraphConfig | None = None,
+) -> plt.Figure:
+    """Construit une figure Matplotlib représentant le réseau des similarités.
 
     Args:
         embeddings: Matrice d'embeddings (n, d).
-        labels: Liste des noms de modèles.
-        performances: Valeurs numériques optionnelles pour dimensionner les sphères.
-        cluster_labels: Étiquettes de cluster pour colorer les sphères.
-        config: Paramètres (seuils, taille des nœuds, etc.).
+        labels: Noms des modèles.
+        config: Paramètres optionnels du graphe.
     """
 
-    cfg = config or CosineNetworkConfig()
+    cfg = config or CosineGraphConfig()
     similarities = compute_cosine_similarities(np.asarray(embeddings))
-
-    # Graphe et layout basés sur le seuil minimal pour conserver la structure.
-    base_threshold = min(cfg.threshold_values)
-    base_graph = build_similarity_graph(similarities, labels, threshold=base_threshold)
-    positions = compute_layout_3d(base_graph, seed=cfg.layout_seed)
-
-    node_trace = _make_node_trace(
-        base_graph,
-        positions,
-        labels,
-        performances,
-        cluster_labels,
-        node_scale=cfg.node_scale,
+    graph = build_igraph_cosine_graph(
+        similarities, labels, cfg.min_similarity, cfg.edge_label_round
     )
 
-    frames = []
-    for threshold in cfg.threshold_values:
-        graph = build_similarity_graph(similarities, labels, threshold=threshold)
-        edge_trace = _make_edge_trace(graph, positions)
-        nodes_in_edges = {n for edge in graph.edges() for n in edge}
-        active_nodes = len(nodes_in_edges)
-        title_suffix = (
-            f"≥ {threshold:.2f} — {graph.number_of_edges()} arêtes / "
-            f"{active_nodes or len(graph)} nœuds connectés"
-        )
-        frames.append(
-            go.Frame(
-                name=f"≥ {threshold:.2f}",
-                data=[edge_trace, node_trace],
-                layout=go.Layout(
-                    title=f"Réseau 3D des similarités cosinus ({title_suffix})"
-                ),
-            )
-        )
+    layout = graph.layout(cfg.layout)
+    normalized_weights = _normalize_weights(graph.es["weight"])
+    cmap = cm.get_cmap("viridis")
+    edge_colors = [cmap(w) for w in normalized_weights] if normalized_weights else "gray"
+    edge_widths = [2 + 6 * w for w in normalized_weights] if normalized_weights else 1.0
 
-    default_index = cfg.threshold_values.index(cfg.default_threshold)
-    fig = go.Figure(data=frames[default_index].data, frames=frames)
-
-    steps = []
-    for i, threshold in enumerate(cfg.threshold_values):
-        step = dict(
-            method="animate",
-            args=[[frames[i].name], {"mode": "immediate", "frame": {"duration": 0, "redraw": True}}],
-            label=f"≥ {threshold:.2f}",
-        )
-        steps.append(step)
-
-    fig.update_layout(
-        title=frames[default_index].layout.title,
-        scene=dict(
-            xaxis=dict(showticklabels=False, visible=False),
-            yaxis=dict(showticklabels=False, visible=False),
-            zaxis=dict(showticklabels=False, visible=False),
-            bgcolor="#f8f9fb",
-        ),
-        showlegend=False,
-        margin=dict(l=0, r=0, b=0, t=70),
-        sliders=[
-            {
-                "active": default_index,
-                "currentvalue": {"prefix": "Seuil ≥ "},
-                "pad": {"t": 30},
-                "steps": steps,
-                "len": 0.9,
-                "x": 0.05,
-            }
-        ],
-        annotations=[
-            dict(
-                text=(
-                    "Épaisseur/couleur des arêtes proportionnelles à la similarité. "
-                    "Augmentez le seuil pour clarifier le graphe."
-                ),
-                showarrow=False,
-                x=0,
-                y=-0.1,
-                xref="paper",
-                yref="paper",
-                align="left",
-            )
-        ],
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ig.plot(
+        graph,
+        target=ax,
+        layout=layout,
+        vertex_size=cfg.vertex_size,
+        vertex_color="#5dade2",
+        vertex_frame_color="#1b4f72",
+        vertex_label=labels,
+        vertex_label_size=12,
+        vertex_label_color="black",
+        edge_width=edge_widths,
+        edge_color=edge_colors,
+        edge_label=graph.es["label"],
+        edge_label_size=10,
+        edge_curved=0,
     )
 
+    ax.set_title("Réseau des similarités cosinus", fontsize=14)
+    ax.axis("off")
+    fig.tight_layout()
     return fig
 
 
 if __name__ == "__main__":
-    # Exemple reproductible pour tester rapidement dans un notebook ou en local.
     rng = np.random.default_rng(1234)
-    n_models = 8
-    embedding_dim = 12
+    n_models = 6
+    embedding_dim = 10
     demo_embeddings = rng.normal(size=(n_models, embedding_dim))
     demo_labels = [f"modèle_{i}" for i in range(n_models)]
-    demo_performance = rng.uniform(0.6, 0.95, size=n_models)
-    demo_clusters = [f"C{c}" for c in rng.integers(0, 3, size=n_models)]
 
     figure = create_cosine_network_figure(
         demo_embeddings,
         demo_labels,
-        performances=demo_performance,
-        cluster_labels=demo_clusters,
+        config=CosineGraphConfig(min_similarity=0.2, layout="kamada_kawai"),
     )
-    figure.show()
+    figure.savefig("demo_cosine_network.png", dpi=150)
