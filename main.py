@@ -75,6 +75,11 @@ from graphiques.igraph import (
     CosineGraphConfig,
     create_cosine_network_image,
 )
+from graphiques.densitegraph import (
+    build_connector_density_chart,
+    build_density_chart,
+    build_density_scatter_chart,
+)
 
 
 def display_centered_image(image_buffer: io.BytesIO, caption: str, width: int = 1200) -> None:
@@ -588,29 +593,10 @@ def main() -> None:
                     )
 
                     st.markdown("#### Graphique de densité")
-
-                    density_chart = (
-                        alt.Chart(per_modality_df)
-                        .mark_bar()
-                        .encode(
-                            x=alt.X("modalite:N", title="Modalité"),
-                            y=alt.Y("densite:Q", title="Densité"),
-                            color=alt.Color("modalite:N", title="Modalité"),
-                            tooltip=["modalite", "densite", "mots", "connecteurs"],
-                        )
+                    st.altair_chart(
+                        build_density_chart(per_modality_df),
+                        use_container_width=True,
                     )
-
-                    density_norm_rule = (
-                        alt.Chart(pd.DataFrame({"norme": [1.37]}))
-                        .mark_rule(color="red", strokeDash=[6, 4])
-                        .encode(y=alt.Y("norme:Q"))
-                    )
-
-                    density_chart = (
-                        (density_chart + density_norm_rule)
-                        .properties(title="Graphique de densité")
-                    )
-                    st.altair_chart(density_chart, use_container_width=True)
 
                     if not per_modality_label_df.empty:
                         st.markdown("#### Densité par connecteur et modalité")
@@ -627,20 +613,10 @@ def main() -> None:
                             use_container_width=True,
                         )
 
-                        connector_density_chart = (
-                            alt.Chart(per_modality_label_df)
-                            .mark_bar()
-                            .encode(
-                                x=alt.X("modalite:N", title="Modalité"),
-                                xOffset="label",
-                                y=alt.Y("densite:Q", title="Densité"),
-                                color=alt.Color("label:N", title="Connecteur"),
-                                tooltip=["modalite", "label", "densite", "connecteurs", "mots"],
-                            )
-                            .properties(title="Densité par connecteur et modalité")
+                        st.altair_chart(
+                            build_connector_density_chart(per_modality_label_df),
+                            use_container_width=True,
                         )
-
-                        st.altair_chart(connector_density_chart, use_container_width=True)
 
                 density_labels = sorted(set(filtered_connectors.values()))
 
@@ -699,31 +675,11 @@ def main() -> None:
                             variable for variable in selected_variables if variable in scatter_df.columns
                         ]
 
-                        scatter_chart = (
-                            alt.Chart(scatter_df)
-                            .mark_circle(opacity=0.7)
-                            .encode(
-                                x=alt.X(
-                                    "densite_x:Q",
-                                    title=f"Densité {selected_x_label}",
-                                ),
-                                y=alt.Y(
-                                    "densite_y:Q",
-                                    title=f"Densité {selected_y_label}",
-                                ),
-                                size=alt.Size(
-                                    "densite_totale:Q",
-                                    title="Densité totale (taille du cercle)",
-                                    scale=alt.Scale(range=[50, 1200]),
-                                ),
-                                color=alt.Color(
-                                    "densite_totale:Q",
-                                    title="Densité totale",
-                                    scale=alt.Scale(scheme="oranges"),
-                                ),
-                                tooltip=tooltip_fields,
-                            )
-                            .properties(height=500)
+                        scatter_chart = build_density_scatter_chart(
+                            scatter_df,
+                            selected_x_label,
+                            selected_y_label,
+                            tooltip_fields=tooltip_fields,
                         )
 
                         st.altair_chart(scatter_chart, use_container_width=True)
