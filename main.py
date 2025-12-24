@@ -71,7 +71,7 @@ from simicosinus import (
     aggregate_texts_by_variable,
     compute_cosine_similarity_by_variable,
 )
-from graphiques.graphique3d import (
+from graphiques.igraph import (
     CosineGraphConfig,
     create_cosine_network_from_similarity,
 )
