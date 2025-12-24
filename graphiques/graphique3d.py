@@ -117,7 +117,7 @@ def create_cosine_network_figure(
     edge_colors = [cmap(w) for w in normalized_weights] if normalized_weights else "gray"
     edge_widths = [2 + 6 * w for w in normalized_weights] if normalized_weights else 1.0
 
-    fig, ax = plt.subplots(figsize=(8, 8))
+    fig, ax = plt.subplots(figsize=(12, 12), dpi=100)
     ig.plot(
         graph,
         target=ax,
@@ -137,6 +137,7 @@ def create_cosine_network_figure(
 
     ax.set_title("Réseau des similarités cosinus", fontsize=14)
     ax.axis("off")
+    ax.set_anchor("C")
     fig.tight_layout()
     return fig
 
@@ -166,7 +167,7 @@ def create_cosine_network_from_similarity(
     edge_colors = [cmap(w) for w in normalized_weights] if normalized_weights else "gray"
     edge_widths = [2 + 6 * w for w in normalized_weights] if normalized_weights else 1.0
 
-    fig, ax = plt.subplots(figsize=(8, 8))
+    fig, ax = plt.subplots(figsize=(12, 12), dpi=100)
     ig.plot(
         graph,
         target=ax,
@@ -186,6 +187,7 @@ def create_cosine_network_from_similarity(
 
     ax.set_title("Réseau des similarités cosinus", fontsize=14)
     ax.axis("off")
+    ax.set_anchor("C")
     fig.tight_layout()
     return fig
 
