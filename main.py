@@ -71,7 +71,6 @@ from simicosinus import (
     aggregate_texts_by_variable,
     compute_cosine_similarity_by_variable,
 )
-from tokenratio import compute_ttr, tokenize_words
 from graphiques.igraph import (
     CosineGraphConfig,
     create_cosine_network_image,
@@ -262,7 +261,6 @@ def main() -> None:
             "Hash",
             "Regex motifs",
             "Test de lisibilité",
-            "Token ratio",
             "N-gram",
             "Simi cosinus",
         ]
@@ -1200,134 +1198,6 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
         )
 
     with tabs[9]:
-        st.subheader("Token ratio (diversité lexicale)")
-
-        st.markdown(
-            """
-            Le *Type-Token Ratio* (TTR) mesure la diversité lexicale d'un texte.
-            Il compare le nombre de mots distincts (types) au nombre total de mots
-            (tokens). Plus le ratio est élevé, plus le vocabulaire est varié ; un
-            ratio proche de 0 signale un texte court ou très répétitif. Le TTR peut
-            cependant diminuer mécaniquement lorsque la longueur du texte augmente,
-            il est donc conseillé de comparer des volumes similaires.
-            
-            Formule : **TTR = Types / Tokens**.
-            """
-        )
-
-        st.markdown("### Sélection des variables/modalités")
-
-        ttr_variables = [column for column in df.columns if column not in ("texte", "entete")]
-        ttr_selected_variables = st.multiselect(
-            "Variables disponibles pour le TTR",
-            ttr_variables,
-            default=ttr_variables,
-            help="Choisissez les variables à filtrer avant de calculer le ratio.",
-            key="ttr_variables",
-        )
-
-        ttr_filtered_df = df.copy()
-
-        for variable in ttr_selected_variables:
-            modality_options = sorted(ttr_filtered_df[variable].dropna().unique().tolist())
-            selected_modalities = st.multiselect(
-                f"Modalités pour {variable}",
-                modality_options,
-                default=modality_options,
-                help="Les textes des modalités sélectionnées seront inclus dans le calcul.",
-                key=f"ttr_modalities_{variable}",
-            )
-            ttr_filtered_df = ttr_filtered_df[ttr_filtered_df[variable].isin(selected_modalities)]
-
-        ttr_corpus_text = build_text_from_dataframe(ttr_filtered_df)
-
-        if not ttr_corpus_text:
-            st.info("Aucun texte disponible pour les variables/modalités sélectionnées.")
-        else:
-            ttr_tokens = tokenize_words(ttr_corpus_text)
-            ttr_unique = len(set(ttr_tokens))
-            ttr_value = compute_ttr(ttr_corpus_text)
-
-            col_a, col_b, col_c = st.columns(3)
-            col_a.metric("Mots (tokens)", f"{len(ttr_tokens):,}".replace(",", " "))
-            col_b.metric("Mots distincts (types)", f"{ttr_unique:,}".replace(",", " "))
-            col_c.metric("Type-Token Ratio", f"{ttr_value:.3f}")
-
-            st.markdown(
-                """
-                Un TTR supérieur à **0,5** traduit généralement une grande variété de mots,
-                tandis qu'un ratio inférieur à **0,2** indique un vocabulaire restreint ou
-                fortement répétitif. Interprétez toujours le résultat en tenant compte de la
-                longueur totale du texte.
-                """
-            )
-
-            ttr_rows = []
-
-            for variable in ttr_selected_variables:
-                if variable not in ttr_filtered_df.columns:
-                    continue
-
-                variable_subset = ttr_filtered_df.dropna(subset=[variable])
-
-                for modality, subset in variable_subset.groupby(variable):
-                    modality_text = build_text_from_dataframe(subset)
-
-                    if not modality_text:
-                        continue
-
-                    modality_tokens = tokenize_words(modality_text)
-                    ttr_rows.append(
-                        {
-                            "variable": variable,
-                            "modalite": modality,
-                            "tokens": len(modality_tokens),
-                            "types": len(set(modality_tokens)),
-                            "ttr": compute_ttr(modality_text),
-                        }
-                    )
-
-            if ttr_rows:
-                ttr_df = pd.DataFrame(ttr_rows)
-
-                st.markdown("### Comparaison par variable et modalité")
-                st.dataframe(
-                    ttr_df.rename(
-                        columns={
-                            "variable": "Variable",
-                            "modalite": "Modalité",
-                            "tokens": "Tokens",
-                            "types": "Types",
-                            "ttr": "TTR",
-                        }
-                    ).sort_values(["Variable", "Modalité"]),
-                    use_container_width=True,
-                )
-
-                ttr_chart = (
-                    alt.Chart(ttr_df)
-                    .mark_bar(cornerRadius=4)
-                    .encode(
-                        x=alt.X("modalite:N", title="Modalité"),
-                        y=alt.Y("ttr:Q", title="Type-Token Ratio"),
-                        color=alt.Color("variable:N", title="Variable"),
-                        column=alt.Column("variable:N", title="Variable"),
-                        tooltip=[
-                            alt.Tooltip("variable:N", title="Variable"),
-                            alt.Tooltip("modalite:N", title="Modalité"),
-                            alt.Tooltip("ttr:Q", title="TTR", format=".3f"),
-                            alt.Tooltip("types:Q", title="Types"),
-                            alt.Tooltip("tokens:Q", title="Tokens"),
-                        ],
-                    )
-                    .properties(spacing=16)
-                )
-
-                st.altair_chart(ttr_chart, use_container_width=True)
-            else:
-                st.info("Aucune modalité n'a pu être analysée avec les filtres sélectionnés.")
-
-    with tabs[10]:
         st.subheader("N-gram (3 à 6 mots)")
         st.write(
             "Extraction des N-grams les plus fréquents sur l'intégralité du texte, "
@@ -1347,7 +1217,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
             st.markdown("### Top 10 des séquences")
             st.dataframe(ngram_results, use_container_width=True)
 
-    with tabs[11]:
+    with tabs[10]:
         st.subheader("Simi cosinus (réponses de modèles)")
         st.write(
             "Comparer la similarité cosinus entre les réponses des modèles en "
