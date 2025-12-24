@@ -92,6 +92,15 @@ def _normalize_weights(weights: Sequence[float]) -> list[float]:
     return [float(v) for v in norm]
 
 
+def _create_centered_square_figure() -> tuple[plt.Figure, plt.Axes]:
+    """Crée une figure carrée 1200x1200 px avec l'axe centré."""
+
+    fig, ax = plt.subplots(figsize=(12, 12), dpi=100)
+    ax.set_anchor("C")
+    fig.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
+    return fig, ax
+
+
 def create_cosine_network_figure(
     embeddings: np.ndarray,
     labels: Sequence[str],
@@ -117,7 +126,7 @@ def create_cosine_network_figure(
     edge_colors = [cmap(w) for w in normalized_weights] if normalized_weights else "gray"
     edge_widths = [2 + 6 * w for w in normalized_weights] if normalized_weights else 1.0
 
-    fig, ax = plt.subplots(figsize=(12, 12), dpi=100)
+    fig, ax = _create_centered_square_figure()
     ig.plot(
         graph,
         target=ax,
@@ -137,7 +146,6 @@ def create_cosine_network_figure(
 
     ax.set_title("Réseau des similarités cosinus", fontsize=14)
     ax.axis("off")
-    ax.set_anchor("C")
     fig.tight_layout()
     return fig
 
@@ -167,7 +175,7 @@ def create_cosine_network_from_similarity(
     edge_colors = [cmap(w) for w in normalized_weights] if normalized_weights else "gray"
     edge_widths = [2 + 6 * w for w in normalized_weights] if normalized_weights else 1.0
 
-    fig, ax = plt.subplots(figsize=(12, 12), dpi=100)
+    fig, ax = _create_centered_square_figure()
     ig.plot(
         graph,
         target=ax,
@@ -187,7 +195,6 @@ def create_cosine_network_from_similarity(
 
     ax.set_title("Réseau des similarités cosinus", fontsize=14)
     ax.axis("off")
-    ax.set_anchor("C")
     fig.tight_layout()
     return fig
 
