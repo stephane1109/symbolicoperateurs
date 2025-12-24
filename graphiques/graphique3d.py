@@ -141,6 +141,55 @@ def create_cosine_network_figure(
     return fig
 
 
+def create_cosine_network_from_similarity(
+    similarity_matrix: np.ndarray,
+    labels: Sequence[str],
+    config: CosineGraphConfig | None = None,
+) -> plt.Figure:
+    """Crée une figure Matplotlib à partir d'une matrice de similarités cosinus.
+
+    Args:
+        similarity_matrix: Matrice carrée des similarités cosinus.
+        labels: Noms des modèles associés à chaque ligne/colonne.
+        config: Paramètres optionnels du graphe.
+    """
+
+    cfg = config or CosineGraphConfig()
+    similarities = np.asarray(similarity_matrix)
+    graph = build_igraph_cosine_graph(
+        similarities, labels, cfg.min_similarity, cfg.edge_label_round
+    )
+
+    layout = graph.layout(cfg.layout)
+    normalized_weights = _normalize_weights(graph.es["weight"])
+    cmap = cm.get_cmap("viridis")
+    edge_colors = [cmap(w) for w in normalized_weights] if normalized_weights else "gray"
+    edge_widths = [2 + 6 * w for w in normalized_weights] if normalized_weights else 1.0
+
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ig.plot(
+        graph,
+        target=ax,
+        layout=layout,
+        vertex_size=cfg.vertex_size,
+        vertex_color="#5dade2",
+        vertex_frame_color="#1b4f72",
+        vertex_label=labels,
+        vertex_label_size=12,
+        vertex_label_color="black",
+        edge_width=edge_widths,
+        edge_color=edge_colors,
+        edge_label=graph.es["label"],
+        edge_label_size=10,
+        edge_curved=0,
+    )
+
+    ax.set_title("Réseau des similarités cosinus", fontsize=14)
+    ax.axis("off")
+    fig.tight_layout()
+    return fig
+
+
 if __name__ == "__main__":
     rng = np.random.default_rng(1234)
     n_models = 6

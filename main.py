@@ -10,7 +10,6 @@ from typing import Dict, List
 
 import altair as alt
 import pandas as pd
-import networkx as nx
 import streamlit as st
 
 APP_DIR = Path(__file__).parent
@@ -71,6 +70,10 @@ from souscorpus import build_subcorpus
 from simicosinus import (
     aggregate_texts_by_variable,
     compute_cosine_similarity_by_variable,
+)
+from graphiques.graphique3d import (
+    CosineGraphConfig,
+    create_cosine_network_from_similarity,
 )
 
 
@@ -1402,91 +1405,18 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
             value=0.5,
             step=0.05,
         )
-
-        graph = nx.from_pandas_adjacency(similarity_df)
-        graph.remove_edges_from(nx.selfloop_edges(graph))
-
-        filtered_edges = [
-            (source, target, data["weight"])
-            for source, target, data in graph.edges(data=True)
-            if data.get("weight", 0) >= similarity_threshold
-        ]
-
-        thresholded_graph = nx.Graph()
-        thresholded_graph.add_nodes_from(graph.nodes())
-        thresholded_graph.add_weighted_edges_from(filtered_edges)
-
-        if not thresholded_graph.edges:
-            st.info(
-                "Aucune arête ne respecte le seuil actuel. Diminuez le seuil pour visualiser le réseau."
-            )
-            return
-
-        positions = nx.spring_layout(thresholded_graph, weight="weight", seed=42)
-
-        nodes_df = pd.DataFrame(
-            {
-                "noeud": list(positions.keys()),
-                "x": [coord[0] for coord in positions.values()],
-                "y": [coord[1] for coord in positions.values()],
-            }
+        layout_choice = st.selectbox(
+            "Disposition du graphe",
+            ["fruchterman_reingold", "kamada_kawai", "circle"],
+            help="Choisissez l'algorithme de placement des nœuds.",
         )
 
-        edges_df = pd.DataFrame(
-            [
-                {
-                    "source": source,
-                    "cible": target,
-                    "poids": data.get("weight", 0.0),
-                    "x": positions[source][0],
-                    "y": positions[source][1],
-                    "x2": positions[target][0],
-                    "y2": positions[target][1],
-                }
-                for source, target, data in thresholded_graph.edges(data=True)
-            ]
+        config = CosineGraphConfig(min_similarity=similarity_threshold, layout=layout_choice)
+        figure = create_cosine_network_from_similarity(
+            similarity_df.to_numpy(), similarity_df.index.tolist(), config
         )
 
-        edge_chart = (
-            alt.Chart(edges_df)
-            .mark_line(opacity=0.4)
-            .encode(
-                x="x",
-                y="y",
-                x2="x2",
-                y2="y2",
-                color=alt.Color("poids", scale=alt.Scale(scheme="blues"), title="Similarité"),
-                tooltip=["source", "cible", alt.Tooltip("poids:Q", format=".3f")],
-            )
-        )
-
-        node_chart = (
-            alt.Chart(nodes_df)
-            .mark_circle(size=320, color="#08306b")
-            .encode(x="x", y="y", tooltip=["noeud"])
-        )
-
-        label_chart = (
-            alt.Chart(nodes_df)
-            .mark_text(
-                dy=-12,
-                fontWeight="bold",
-                fontSize=12,
-                color="#08306b",
-                stroke="white",
-                strokeWidth=3,
-            )
-            .encode(x="x", y="y", text="noeud")
-        )
-
-        network_chart = (
-            (edge_chart + node_chart + label_chart)
-            .properties(width=600, height=500)
-            .configure_axis(grid=False, labels=False, ticks=False, title=None)
-            .configure_view(strokeWidth=0)
-        )
-
-        st.altair_chart(network_chart, use_container_width=True)
+        st.pyplot(figure, use_container_width=True)
 
 
 if __name__ == "__main__":
