@@ -10,7 +10,8 @@ from typing import Dict, List
 
 import altair as alt
 import pandas as pd
-import networkx as nx
+import igraph as ig
+import matplotlib.pyplot as plt
 import streamlit as st
 
 APP_DIR = Path(__file__).parent
@@ -110,6 +111,88 @@ def build_annotation_style_block(label_style_block: str) -> str:
     {label_style_block}
     </style>
     """
+
+
+def build_similarity_edges(similarity_df: pd.DataFrame, threshold: float) -> list[tuple[str, str, float]]:
+    """Construire la liste des arêtes pondérées au-dessus d'un seuil de similarité."""
+
+    labels = similarity_df.index.tolist()
+    edges: list[tuple[str, str, float]] = []
+
+    for i, source in enumerate(labels):
+        for j in range(i + 1, len(labels)):
+            weight = float(similarity_df.iat[i, j])
+            if weight >= threshold:
+                target = labels[j]
+                edges.append((source, target, weight))
+
+    return edges
+
+
+def render_igraph_similarity_graph(
+    similarity_df: pd.DataFrame, threshold: float
+) -> io.BytesIO | None:
+    """Tracer un réseau statique avec igraph et retourner un buffer image PNG."""
+
+    edges = build_similarity_edges(similarity_df, threshold)
+    if not edges:
+        return None
+
+    labels = similarity_df.index.tolist()
+    graph = ig.Graph()
+    graph.add_vertices(labels)
+    graph.add_edges([(source, target) for source, target, _ in edges])
+    graph.es["weight"] = [weight for _, _, weight in edges]
+
+    layout = graph.layout_fruchterman_reingold(weights=graph.es["weight"], seed=42, dim=2)
+    coordinates = layout.coords
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.set_axis_off()
+
+    for source, target, weight in edges:
+        s_idx = graph.vs.find(name=source).index
+        t_idx = graph.vs.find(name=target).index
+        x1, y1 = coordinates[s_idx]
+        x2, y2 = coordinates[t_idx]
+
+        linewidth = 1 + 5 * weight
+        ax.plot([x1, x2], [y1, y2], color="#4c78a8", alpha=0.65, linewidth=linewidth)
+
+        mid_x, mid_y = (x1 + x2) / 2, (y1 + y2) / 2
+        ax.text(
+            mid_x,
+            mid_y,
+            f"{weight:.2f}",
+            fontsize=9,
+            color="#1f1f1f",
+            ha="center",
+            va="center",
+            bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.85),
+        )
+
+    xs, ys = zip(*coordinates)
+    ax.scatter(xs, ys, s=320, color="#08306b", alpha=0.9, zorder=5)
+
+    for label, (x, y) in zip(labels, coordinates):
+        ax.text(
+            x,
+            y + 0.03,
+            label,
+            fontsize=11,
+            fontweight="bold",
+            ha="center",
+            va="bottom",
+            color="#08306b",
+            bbox=dict(boxstyle="round,pad=0.25", fc="#f0f4ff", ec="#c7d7ff", alpha=0.85),
+        )
+
+    plt.tight_layout()
+    buffer = io.BytesIO()
+    fig.savefig(buffer, format="png", dpi=180, bbox_inches="tight")
+    plt.close(fig)
+    buffer.seek(0)
+    return buffer
 
 
 def parse_iramuteq(content: str) -> List[Dict[str, str]]:
@@ -1403,90 +1486,42 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
             step=0.05,
         )
 
-        graph = nx.from_pandas_adjacency(similarity_df)
-        graph.remove_edges_from(nx.selfloop_edges(graph))
+        filtered_edges = build_similarity_edges(similarity_df, similarity_threshold)
 
-        filtered_edges = [
-            (source, target, data["weight"])
-            for source, target, data in graph.edges(data=True)
-            if data.get("weight", 0) >= similarity_threshold
-        ]
-
-        thresholded_graph = nx.Graph()
-        thresholded_graph.add_nodes_from(graph.nodes())
-        thresholded_graph.add_weighted_edges_from(filtered_edges)
-
-        if not thresholded_graph.edges:
+        if not filtered_edges:
             st.info(
                 "Aucune arête ne respecte le seuil actuel. Diminuez le seuil pour visualiser le réseau."
             )
             return
 
-        positions = nx.spring_layout(thresholded_graph, weight="weight", seed=42)
-
-        nodes_df = pd.DataFrame(
-            {
-                "noeud": list(positions.keys()),
-                "x": [coord[0] for coord in positions.values()],
-                "y": [coord[1] for coord in positions.values()],
-            }
-        )
-
-        edges_df = pd.DataFrame(
+        edge_table = pd.DataFrame(
             [
                 {
-                    "source": source,
-                    "cible": target,
-                    "poids": data.get("weight", 0.0),
-                    "x": positions[source][0],
-                    "y": positions[source][1],
-                    "x2": positions[target][0],
-                    "y2": positions[target][1],
+                    "Source": source,
+                    "Cible": target,
+                    "Similarité cosinus": weight,
+                    "Distance (1 - similarité)": 1 - weight,
                 }
-                for source, target, data in thresholded_graph.edges(data=True)
+                for source, target, weight in filtered_edges
             ]
-        )
+        ).sort_values("Similarité cosinus", ascending=False)
 
-        edge_chart = (
-            alt.Chart(edges_df)
-            .mark_line(opacity=0.4)
-            .encode(
-                x="x",
-                y="y",
-                x2="x2",
-                y2="y2",
-                color=alt.Color("poids", scale=alt.Scale(scheme="blues"), title="Similarité"),
-                tooltip=["source", "cible", alt.Tooltip("poids:Q", format=".3f")],
+        st.dataframe(edge_table.style.format({
+            "Similarité cosinus": "{:.3f}",
+            "Distance (1 - similarité)": "{:.3f}",
+        }), use_container_width=True)
+
+        network_image = render_igraph_similarity_graph(similarity_df, similarity_threshold)
+
+        if network_image:
+            st.image(
+                network_image,
+                caption=(
+                    "Graphique igraph statique : nœuds = modèles, arêtes annotées par la "
+                    "similarité cosinus ; plus la valeur est haute, plus la distance est faible."
+                ),
+                use_column_width=True,
             )
-        )
-
-        node_chart = (
-            alt.Chart(nodes_df)
-            .mark_circle(size=320, color="#08306b")
-            .encode(x="x", y="y", tooltip=["noeud"])
-        )
-
-        label_chart = (
-            alt.Chart(nodes_df)
-            .mark_text(
-                dy=-12,
-                fontWeight="bold",
-                fontSize=12,
-                color="#08306b",
-                stroke="white",
-                strokeWidth=3,
-            )
-            .encode(x="x", y="y", text="noeud")
-        )
-
-        network_chart = (
-            (edge_chart + node_chart + label_chart)
-            .properties(width=600, height=500)
-            .configure_axis(grid=False, labels=False, ticks=False, title=None)
-            .configure_view(strokeWidth=0)
-        )
-
-        st.altair_chart(network_chart, use_container_width=True)
 
 
 if __name__ == "__main__":
