@@ -73,7 +73,7 @@ from simicosinus import (
 )
 from graphiques.igraph import (
     CosineGraphConfig,
-    create_cosine_network_from_similarity,
+    create_cosine_network_image,
 )
 
 
@@ -1412,11 +1412,14 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
         )
 
         config = CosineGraphConfig(min_similarity=similarity_threshold, layout=layout_choice)
-        figure = create_cosine_network_from_similarity(
+        network_image = create_cosine_network_image(
             similarity_df.to_numpy(), similarity_df.index.tolist(), config
         )
 
-        st.pyplot(figure, use_container_width=True)
+        display_centered_image(
+            network_image,
+            "Réseau des similarités cosinus",
+        )
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ pas pris en charge (par exemple Streamlit Cloud).
 from __future__ import annotations
 
 from dataclasses import dataclass
+from io import BytesIO
 from typing import Sequence
 
 import igraph as ig
@@ -197,6 +198,35 @@ def create_cosine_network_from_similarity(
     ax.axis("off")
     fig.tight_layout()
     return fig
+
+
+def create_cosine_network_image(
+    similarity_matrix: np.ndarray,
+    labels: Sequence[str],
+    config: CosineGraphConfig | None = None,
+    dpi: int = 150,
+) -> BytesIO:
+    """Génère une image PNG centrée du réseau des similarités cosinus.
+
+    La figure générée est carrée (1200x1200 px) pour éviter l'affichage en mode
+    *wide* et faciliter son centrage dans l'interface Streamlit.
+
+    Args:
+        similarity_matrix: Matrice carrée des similarités cosinus.
+        labels: Noms des modèles associés à chaque ligne/colonne.
+        config: Paramètres optionnels du graphe.
+        dpi: Résolution de l'image exportée.
+
+    Returns:
+        Un tampon mémoire contenant l'image PNG du graphe.
+    """
+
+    figure = create_cosine_network_from_similarity(similarity_matrix, labels, config)
+    buffer = BytesIO()
+    figure.savefig(buffer, format="png", dpi=dpi, bbox_inches="tight")
+    buffer.seek(0)
+    plt.close(figure)
+    return buffer
 
 
 if __name__ == "__main__":
