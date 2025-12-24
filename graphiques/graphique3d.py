@@ -44,8 +44,8 @@ class CosineNetworkConfig:
         layout_seed: Graine pour la reproductibilité du layout 3D.
     """
 
-    threshold_values: Sequence[float] = (0.4, 0.5, 0.6, 0.7, 0.8)
-    default_threshold: float = 0.5
+    threshold_values: Sequence[float] = (0.5, 0.6, 0.7, 0.8, 0.9)
+    default_threshold: float = 0.6
     node_scale: float = 24.0
     layout_seed: int | None = 42
 
@@ -104,7 +104,9 @@ def _scale_values(values: Iterable[float], factor: float) -> list[float]:
     return scaled.tolist()
 
 
-def _make_edge_trace(graph: nx.Graph, positions: dict[int, np.ndarray], color_scale: str = "Viridis") -> go.Scatter3d:
+def _make_edge_trace(
+    graph: nx.Graph, positions: dict[int, np.ndarray], color_scale: str = "Viridis"
+) -> go.Scatter3d:
     x_edges, y_edges, z_edges, weights = [], [], [], []
     for u, v, data in graph.edges(data=True):
         x_edges += [positions[u][0], positions[v][0], None]
@@ -112,13 +114,18 @@ def _make_edge_trace(graph: nx.Graph, positions: dict[int, np.ndarray], color_sc
         z_edges += [positions[u][2], positions[v][2], None]
         weights.append(data.get("weight", 0.0))
 
-    line_widths = _scale_values(weights, factor=8.0) if weights else []
+    line_widths = _scale_values(weights, factor=10.0) if weights else []
     return go.Scatter3d(
         x=x_edges,
         y=y_edges,
         z=z_edges,
         mode="lines",
-        line=dict(color=weights if weights else "lightgray", colorscale=color_scale, width=line_widths),
+        line=dict(
+            color=weights if weights else "lightgray",
+            colorscale=color_scale,
+            width=line_widths,
+        ),
+        opacity=0.45,
         hoverinfo="none",
     )
 
@@ -171,6 +178,7 @@ def _make_node_trace(
         text=labels,
         textposition="top center",
         hoverinfo="text",
+        textfont=dict(color="#08306b", size=11),
     )
 
 
@@ -212,8 +220,20 @@ def create_cosine_network_figure(
     for threshold in cfg.threshold_values:
         graph = build_similarity_graph(similarities, labels, threshold=threshold)
         edge_trace = _make_edge_trace(graph, positions)
+        nodes_in_edges = {n for edge in graph.edges() for n in edge}
+        active_nodes = len(nodes_in_edges)
+        title_suffix = (
+            f"≥ {threshold:.2f} — {graph.number_of_edges()} arêtes / "
+            f"{active_nodes or len(graph)} nœuds connectés"
+        )
         frames.append(
-            go.Frame(name=f"≥ {threshold:.2f}", data=[edge_trace, node_trace])
+            go.Frame(
+                name=f"≥ {threshold:.2f}",
+                data=[edge_trace, node_trace],
+                layout=go.Layout(
+                    title=f"Réseau 3D des similarités cosinus ({title_suffix})"
+                ),
+            )
         )
 
     default_index = cfg.threshold_values.index(cfg.default_threshold)
@@ -229,7 +249,7 @@ def create_cosine_network_figure(
         steps.append(step)
 
     fig.update_layout(
-        title="Réseau 3D des similarités cosinus",
+        title=frames[default_index].layout.title,
         scene=dict(
             xaxis=dict(showticklabels=False, visible=False),
             yaxis=dict(showticklabels=False, visible=False),
@@ -237,13 +257,30 @@ def create_cosine_network_figure(
             bgcolor="#f8f9fb",
         ),
         showlegend=False,
+        margin=dict(l=0, r=0, b=0, t=70),
         sliders=[
             {
                 "active": default_index,
-                "currentvalue": {"prefix": "Seuil : "},
+                "currentvalue": {"prefix": "Seuil ≥ "},
                 "pad": {"t": 30},
                 "steps": steps,
+                "len": 0.9,
+                "x": 0.05,
             }
+        ],
+        annotations=[
+            dict(
+                text=(
+                    "Épaisseur/couleur des arêtes proportionnelles à la similarité. "
+                    "Augmentez le seuil pour clarifier le graphe."
+                ),
+                showarrow=False,
+                x=0,
+                y=-0.1,
+                xref="paper",
+                yref="paper",
+                align="left",
+            )
         ],
     )
 
