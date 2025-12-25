@@ -1200,6 +1200,17 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
     with tabs[9]:
         st.subheader("N-gram (3 à 6 mots)")
+        st.markdown(
+            """
+            ### N-grammes vs cooccurrences
+
+            Ce document résume les différences entre l'extraction d'**n-grammes** et l'analyse de **cooccurrences**, deux approches courantes pour modéliser la proximité entre mots.
+
+            #### N-grammes
+            - Un n-gramme est une séquence contiguë de *n* unités (mots) dans un texte.
+            - Ils capturent l'ordre et la continuité : un trigramme (n=3) reflète par exemple trois mots successifs.
+            """
+        )
         st.write(
             "Extraction des N-grams les plus fréquents sur l'intégralité du texte, "
             "avec la répartition des occurrences par variables/modalités lorsqu'elles "
