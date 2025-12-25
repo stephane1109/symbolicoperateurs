@@ -505,28 +505,50 @@ def main() -> None:
 
                     scatter_rows: List[Dict[str, float | str]] = []
 
-                    for idx, row in density_filtered_df.iterrows():
-                        text_value = str(row.get("texte", "") or "")
-                        densities = compute_density_by_label(
-                            text_value,
-                            filtered_connectors,
-                            base=int(base),
-                        )
-                        scatter_rows.append(
-                            {
-                                "entree": (str(row.get("entete", "")).strip() or f"Entrée {idx + 1}"),
-                                "densite_x": densities.get(selected_x_label, 0.0),
-                                "densite_y": densities.get(selected_y_label, 0.0),
-                                "densite_totale": compute_density(
-                                    text_value, filtered_connectors, base=int(base)
-                                ),
-                                **{
-                                    variable: str(row.get(variable, ""))
-                                    for variable in selected_variables
-                                    if variable in density_filtered_df.columns
-                                },
-                            }
-                        )
+                    if density_variable_choice != "(Aucune)":
+                        for modality, subset in density_filtered_df.groupby(
+                            density_variable_choice
+                        ):
+                            text_value = build_text_from_dataframe(subset)
+                            densities = compute_density_by_label(
+                                text_value,
+                                filtered_connectors,
+                                base=int(base),
+                            )
+                            scatter_rows.append(
+                                {
+                                    "entree": f"{density_variable_choice} = {modality}",
+                                    "densite_x": densities.get(selected_x_label, 0.0),
+                                    "densite_y": densities.get(selected_y_label, 0.0),
+                                    "densite_totale": compute_density(
+                                        text_value, filtered_connectors, base=int(base)
+                                    ),
+                                    density_variable_choice: modality,
+                                }
+                            )
+                    else:
+                        for idx, row in density_filtered_df.iterrows():
+                            text_value = str(row.get("texte", "") or "")
+                            densities = compute_density_by_label(
+                                text_value,
+                                filtered_connectors,
+                                base=int(base),
+                            )
+                            scatter_rows.append(
+                                {
+                                    "entree": (str(row.get("entete", "")).strip() or f"Entrée {idx + 1}"),
+                                    "densite_x": densities.get(selected_x_label, 0.0),
+                                    "densite_y": densities.get(selected_y_label, 0.0),
+                                    "densite_totale": compute_density(
+                                        text_value, filtered_connectors, base=int(base)
+                                    ),
+                                    **{
+                                        variable: str(row.get(variable, ""))
+                                        for variable in selected_variables
+                                        if variable in density_filtered_df.columns
+                                    },
+                                }
+                            )
 
                     scatter_df = pd.DataFrame(scatter_rows)
 
