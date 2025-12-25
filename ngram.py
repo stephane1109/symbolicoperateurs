@@ -24,6 +24,33 @@ def iter_ngrams(words: List[str], n: int) -> Iterable[tuple[str, ...]]:
     return zip(*(words[i:] for i in range(n)))
 
 
+def extract_ngram_context(
+    text: str, ngram_tokens: tuple[str, ...], header: str | None = None, max_length: int = 240
+) -> str:
+    """Retourner la phrase (ou un extrait) contenant le n-gram recherché."""
+
+    pattern = re.compile(r"\b" + re.escape(" ".join(ngram_tokens)) + r"\b", re.IGNORECASE)
+    sentences = re.split(r"(?<=[.!?;:])\s+", text)
+
+    for sentence in sentences:
+        if pattern.search(sentence):
+            context = sentence.strip()
+            break
+    else:
+        fallback = text.strip()
+        context = fallback[:max_length].strip() if fallback else ""
+
+    if header and context:
+        context = f"{header.strip()} – {context}"
+    elif header and not context:
+        context = header.strip()
+
+    if len(context) > max_length:
+        return context[:max_length].rstrip() + "…"
+
+    return context
+
+
 def compute_ngram_statistics(
     dataframe: pd.DataFrame,
     min_n: int = 3,
@@ -31,6 +58,10 @@ def compute_ngram_statistics(
     top_k: int = 10,
     specific_n: int | None = None,
     top_modalities: int = 3,
+    min_frequency: int = 1,
+    exclude_stopwords: bool = False,
+    stop_words: Iterable[str] | None = None,
+    sort_by: str = "frequency",
 ) -> pd.DataFrame:
     """Calculer les N-grams les plus fréquents et leur distribution par modalités.
 
@@ -48,6 +79,12 @@ def compute_ngram_statistics(
         de l'intervalle ``min_n`` / ``max_n``.
     top_modalities:
         Nombre de modalités à afficher pour chaque n-gram.
+    min_frequency:
+        Fréquence minimale pour conserver un n-gram dans le résultat.
+    exclude_stopwords / stop_words:
+        Permettent d'ignorer les stopwords (par exemple ceux de NLTK) avant le calcul.
+    sort_by:
+        Ordre de tri des résultats : "frequency" (par défaut) ou "alphabetical".
     """
 
     variable_columns = [column for column in dataframe.columns if column not in ("texte", "entete")]
@@ -61,14 +98,21 @@ def compute_ngram_statistics(
         else list(range(min_n, max_n + 1))
     )
 
+    min_frequency = max(1, int(min_frequency))
+    stopword_set = set(stop_words) if stop_words else set()
+
     counts_by_size: dict[int, Counter[str]] = {size: Counter() for size in requested_sizes}
     modality_counts_by_size: dict[int, dict[str, Counter[str]]] = {
         size: defaultdict(Counter) for size in requested_sizes
     }
+    contexts_by_size: dict[int, dict[str, str]] = {size: {} for size in requested_sizes}
 
     for _, row in dataframe.iterrows():
         text_value = str(row.get("texte", "") or "")
         words = tokenize_text(text_value)
+
+        if exclude_stopwords and stopword_set:
+            words = [word for word in words if word not in stopword_set]
 
         if not words:
             continue
@@ -86,12 +130,27 @@ def compute_ngram_statistics(
                 for modality in modalities:
                     modality_counts_by_size[n][ngram][modality] += 1
 
+                if ngram not in contexts_by_size[n]:
+                    header = str(row.get("entete", "") or "")
+                    contexts_by_size[n][ngram] = extract_ngram_context(
+                        text_value, ngram_tokens, header=header
+                    )
+
     rows = []
 
     for n in requested_sizes:
-        top_entries = counts_by_size[n].most_common(top_k)
+        filtered_entries = [
+            (ngram, frequency)
+            for ngram, frequency in counts_by_size[n].items()
+            if frequency >= min_frequency
+        ]
 
-        for ngram, frequency in top_entries:
+        if sort_by == "alphabetical":
+            selected_entries = sorted(filtered_entries, key=lambda item: item[0])[:top_k]
+        else:
+            selected_entries = sorted(filtered_entries, key=lambda item: item[1], reverse=True)[:top_k]
+
+        for ngram, frequency in selected_entries:
             modalities_summary = modality_counts_by_size[n].get(ngram)
             modalities_display = (
                 ", ".join(
@@ -108,6 +167,7 @@ def compute_ngram_statistics(
                     "Taille": len(ngram.split()),
                     "Fréquence": frequency,
                     "Modalités associées": modalities_display,
+                    "Contexte": contexts_by_size[n].get(ngram, ""),
                 }
             )
 
