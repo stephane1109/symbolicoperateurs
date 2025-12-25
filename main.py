@@ -70,6 +70,7 @@ from souscorpus import build_subcorpus
 from simicosinus import (
     aggregate_texts_by_variable,
     compute_cosine_similarity_by_variable,
+    get_french_stopwords,
 )
 from graphiques.igraph import (
     CosineGraphConfig,
@@ -1209,13 +1210,103 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
             st.info("Aucun texte disponible pour extraire des N-grams.")
             return
 
-        ngram_results = compute_ngram_statistics(df, min_n=3, max_n=6, top_k=10)
+        with st.expander("Options d'affichage et filtres"):
+            col_a, col_b, col_c = st.columns(3)
+            min_frequency = col_a.number_input(
+                "Fréquence minimale",
+                min_value=1,
+                value=1,
+                step=1,
+                help="Exclut les N-grams dont la fréquence est inférieure au seuil.",
+            )
+
+            sort_choice = col_b.selectbox(
+                "Tri",
+                ["Fréquence décroissante", "Ordre alphabétique"],
+                help="Choisissez l'ordre d'affichage des N-grams.",
+            )
+
+            exclude_stopwords = col_c.checkbox(
+                "Exclure les stopwords français (NLTK)",
+                help="Supprimer les stopwords avant le calcul des N-grams.",
+            )
+
+            search_pattern = st.text_input(
+                "Rechercher un motif dans les N-grams",
+                help="Surligner ou filtrer les N-grams qui contiennent le motif (expression régulière acceptée).",
+            )
+
+            hide_non_matches = st.checkbox(
+                "Masquer les N-grams qui ne correspondent pas au motif",
+                help="Lorsque le motif est renseigné, seuls les N-grams correspondants sont affichés.",
+            )
+
+        stop_words = get_french_stopwords() if exclude_stopwords else None
+
+        ngram_results = compute_ngram_statistics(
+            df,
+            min_n=3,
+            max_n=6,
+            top_k=10,
+            min_frequency=min_frequency,
+            exclude_stopwords=exclude_stopwords,
+            stop_words=stop_words,
+            sort_by="alphabetical" if sort_choice == "Ordre alphabétique" else "frequency",
+        )
 
         if ngram_results.empty:
             st.info("Aucun N-gram n'a pu être calculé à partir du texte fourni.")
         else:
             st.markdown("### Top 10 des séquences")
-            st.dataframe(ngram_results, use_container_width=True)
+            display_df = ngram_results.copy()
+
+            full_context = display_df.get("Contexte", pd.Series(dtype=str))
+            display_df["Contexte (aperçu)"] = full_context.fillna("").apply(
+                lambda value: value if len(value) <= 140 else value[:140].rstrip() + "…"
+            )
+            if "Contexte" in display_df.columns:
+                display_df = display_df.drop(columns=["Contexte"])
+
+            if search_pattern.strip():
+                try:
+                    match_mask = display_df["N-gram"].str.contains(
+                        search_pattern, case=False, regex=True
+                    )
+                except re.error:
+                    match_mask = display_df["N-gram"].str.contains(
+                        re.escape(search_pattern), case=False, regex=True
+                    )
+
+                if hide_non_matches:
+                    display_df = display_df[match_mask].copy()
+                    match_mask = match_mask[display_df.index]
+            else:
+                match_mask = pd.Series(False, index=display_df.index)
+
+            tooltip_data = pd.DataFrame("", index=display_df.index, columns=display_df.columns)
+            tooltip_data["N-gram"] = full_context.reindex(display_df.index)
+
+            highlight_color = "#fff4cc"
+            styled_df = display_df.style.highlight_max(subset=["Fréquence"], color="#ffe8a3")
+
+            if search_pattern.strip():
+                styled_df = styled_df.apply(
+                    lambda row: [
+                        f"background-color: {highlight_color}"
+                        if match_mask.loc[row.name]
+                        else ""
+                        for _ in row
+                    ],
+                    axis=1,
+                )
+
+            styled_df = styled_df.set_tooltips(tooltip_data)
+
+            st.dataframe(
+                styled_df,
+                use_container_width=True,
+                hide_index=True,
+            )
 
     with tabs[10]:
         st.subheader("Simi cosinus (réponses de modèles)")
