@@ -1284,7 +1284,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                 match_mask = pd.Series(False, index=display_df.index)
 
             tooltip_data = pd.DataFrame("", index=display_df.index, columns=display_df.columns)
-            tooltip_data["N-gram"] = full_context.reindex(display_df.index)
+            tooltip_data["N-gram"] = full_context.reindex(display_df.index).fillna("")
 
             highlight_color = "#fff4cc"
             styled_df = display_df.style.highlight_max(subset=["Fréquence"], color="#ffe8a3")
