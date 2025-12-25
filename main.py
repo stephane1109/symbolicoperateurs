@@ -1243,72 +1243,76 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
         stop_words = get_french_stopwords() if exclude_stopwords else None
 
-        ngram_results = compute_ngram_statistics(
-            df,
-            min_n=3,
-            max_n=6,
-            top_k=10,
-            min_frequency=min_frequency,
-            exclude_stopwords=exclude_stopwords,
-            stop_words=stop_words,
-            sort_by="alphabetical" if sort_choice == "Ordre alphabétique" else "frequency",
-        )
+        results_by_size = {
+            size: compute_ngram_statistics(
+                df,
+                min_n=size,
+                max_n=size,
+                top_k=10,
+                min_frequency=min_frequency,
+                exclude_stopwords=exclude_stopwords,
+                stop_words=stop_words,
+                sort_by="alphabetical"
+                if sort_choice == "Ordre alphabétique"
+                else "frequency",
+            )
+            for size in range(3, 7)
+        }
 
-        if ngram_results.empty:
+        if all(result.empty for result in results_by_size.values()):
             st.info("Aucun N-gram n'a pu être calculé à partir du texte fourni.")
         else:
-            st.markdown("### Top 10 des séquences")
-            display_df = ngram_results.copy()
+            for size in range(3, 7):
+                st.markdown(f"### N-grams de {size} mots")
+                ngram_results = results_by_size[size]
 
-            full_context = display_df.get("Contexte", pd.Series(dtype=str))
-            display_df["Contexte (aperçu)"] = full_context.fillna("").apply(
-                lambda value: value if len(value) <= 140 else value[:140].rstrip() + "…"
-            )
-            if "Contexte" in display_df.columns:
-                display_df = display_df.drop(columns=["Contexte"])
-
-            display_df = display_df.fillna("")
-
-            if search_pattern.strip():
-                try:
-                    match_mask = display_df["N-gram"].str.contains(
-                        search_pattern, case=False, regex=True
+                if ngram_results.empty:
+                    st.info(
+                        "Aucun N-gram n'a été trouvé pour cette taille avec les filtres actuels."
                     )
-                except re.error:
-                    match_mask = display_df["N-gram"].str.contains(
-                        re.escape(search_pattern), case=False, regex=True
-                    )
+                    continue
 
-                if hide_non_matches:
-                    display_df = display_df[match_mask].copy()
-                    match_mask = match_mask[display_df.index]
-            else:
-                match_mask = pd.Series(False, index=display_df.index)
+                display_df = ngram_results.copy()
 
-            tooltip_data = pd.DataFrame("", index=display_df.index, columns=display_df.columns)
-            tooltip_data["N-gram"] = full_context.reindex(display_df.index).fillna("")
-
-            highlight_color = "#fff4cc"
-            styled_df = display_df.style.highlight_max(subset=["Fréquence"], color="#ffe8a3")
-
-            if search_pattern.strip():
-                styled_df = styled_df.apply(
-                    lambda row: [
-                        f"background-color: {highlight_color}"
-                        if match_mask.loc[row.name]
-                        else ""
-                        for _ in row
-                    ],
-                    axis=1,
+                full_context = display_df.get("Contexte", pd.Series(dtype=str))
+                display_df["Contexte (aperçu)"] = full_context.fillna("").apply(
+                    lambda value: value if len(value) <= 140 else value[:140].rstrip() + "…"
                 )
+                display_df = display_df.fillna("")
 
-            styled_df = styled_df.set_tooltips(tooltip_data)
+                if search_pattern.strip():
+                    try:
+                        match_mask = display_df["N-gram"].str.contains(
+                            search_pattern, case=False, regex=True
+                        )
+                    except re.error:
+                        match_mask = display_df["N-gram"].str.contains(
+                            re.escape(search_pattern), case=False, regex=True
+                        )
 
-            st.dataframe(
-                styled_df,
-                use_container_width=True,
-                hide_index=True,
-            )
+                    if hide_non_matches:
+                        display_df = display_df[match_mask].copy()
+                        match_mask = match_mask.reindex(display_df.index).fillna(False)
+                else:
+                    match_mask = pd.Series(False, index=display_df.index)
+
+                if display_df.empty:
+                    st.info(
+                        "Aucun N-gram ne correspond au motif recherché pour cette taille."
+                    )
+                    continue
+
+                if "Contexte" in display_df.columns:
+                    display_df = display_df.drop(columns=["Contexte"])
+
+                if search_pattern.strip():
+                    display_df.insert(0, "Correspond au motif", match_mask.values)
+
+                st.dataframe(
+                    display_df,
+                    use_container_width=True,
+                    hide_index=True,
+                )
 
     with tabs[10]:
         st.subheader("Simi cosinus (réponses de modèles)")
