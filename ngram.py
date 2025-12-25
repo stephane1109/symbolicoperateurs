@@ -56,6 +56,35 @@ def extract_ngram_context(
     return context
 
 
+def _deduplicate_contexts(contexts: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Supprimer les doublons d'occurrences tout en préservant l'ordre.
+
+    Les occurrences peuvent être enregistrées plusieurs fois lorsqu'un même n-gram
+    apparaît plusieurs fois dans un même texte ou au sein de la même phrase. Pour
+    l'affichage, on ne conserve qu'une occurrence unique par combinaison de
+    contexte, d'en-tête, de modalités et de texte complet.
+    """
+
+    seen = set()
+    unique_contexts: list[dict[str, object]] = []
+
+    for entry in contexts:
+        key = (
+            entry.get("contexte", ""),
+            tuple(entry.get("modalites", []) or []),
+            entry.get("entete", ""),
+            entry.get("texte_complet", ""),
+        )
+
+        if key in seen:
+            continue
+
+        seen.add(key)
+        unique_contexts.append(entry)
+
+    return unique_contexts
+
+
 def compute_ngram_statistics(
     dataframe: pd.DataFrame,
     min_n: int = 3,
@@ -174,7 +203,7 @@ def compute_ngram_statistics(
                 else "N/A"
             )
 
-            context_entries = contexts_by_size[n].get(ngram, [])
+            context_entries = _deduplicate_contexts(contexts_by_size[n].get(ngram, []))
             first_context = context_entries[0].get("contexte", "") if context_entries else ""
 
             rows.append(
