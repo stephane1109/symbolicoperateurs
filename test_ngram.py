@@ -1,6 +1,6 @@
 import pandas as pd
 
-from ngram import compute_ngram_statistics
+from ngram import build_ngram_pattern, compute_ngram_statistics, extract_ngram_context
 
 
 def test_compute_specific_trigrams_topk_and_modalities():
@@ -30,3 +30,19 @@ def test_compute_specific_trigrams_topk_and_modalities():
     assert first_row["N-gram"] == "alpha beta gamma"
     assert first_row["Fréquence"] == 2
     assert "groupe=A" in first_row["Modalités associées"]
+
+
+def test_extract_ngram_context_handles_apostrophes():
+    text = "Tu n’es pas obligé de répondre. Une autre phrase suit."
+    tokens = ("tu", "n", "es", "pas")
+
+    context = extract_ngram_context(text, tokens)
+
+    assert "Tu n’es pas" in context
+
+
+def test_build_ngram_pattern_matches_with_punctuation():
+    pattern = build_ngram_pattern(["tu", "n", "es", "pas"])
+
+    assert pattern.search("Tu n’es pas obligé de répondre")
+    assert pattern.search("tu n'es pas obligé de répondre")

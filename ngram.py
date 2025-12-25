@@ -15,6 +15,23 @@ def tokenize_text(text: str) -> List[str]:
     return TOKEN_PATTERN.findall(text.lower())
 
 
+def build_ngram_pattern(ngram_tokens: Sequence[str]) -> re.Pattern[str]:
+    """Construire un motif regex tolérant à la ponctuation pour un n-gram donné."""
+
+    cleaned_tokens = [
+        str(token).strip()
+        for token in ngram_tokens
+        if str(token).strip()
+    ]
+
+    if not cleaned_tokens:
+        return re.compile(r"$^")
+
+    separator = r"[\W_]+"
+    pattern = r"\b" + separator.join(re.escape(token) for token in cleaned_tokens) + r"\b"
+    return re.compile(pattern, re.IGNORECASE)
+
+
 def iter_ngrams(words: List[str], n: int) -> Iterable[tuple[str, ...]]:
     """Générer les n-grams pour une liste de mots donnée."""
 
@@ -34,7 +51,7 @@ def extract_ngram_context(
     annoté » de l'interface Streamlit).
     """
 
-    pattern = re.compile(r"\b" + re.escape(" ".join(ngram_tokens)) + r"\b", re.IGNORECASE)
+    pattern = build_ngram_pattern(ngram_tokens)
     sentences = re.split(r"(?<=[.!?;:])\s+", text)
 
     for sentence in sentences:
