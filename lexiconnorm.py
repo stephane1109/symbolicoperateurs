@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from io import BytesIO
 from pathlib import Path
 from typing import Dict, Iterable, List, Sequence
 
@@ -234,3 +235,17 @@ def render_lexicon_norm_tab(
 
     density_chart = alt.layer(*layers)
     st.altair_chart(density_chart, use_container_width=True)
+
+    try:
+        buffer = BytesIO()
+        density_chart.save(buffer, format="png")
+        buffer.seek(0)
+
+        st.download_button(
+            label="Télécharger le graphique",
+            data=buffer,
+            file_name="graph_lexicon.png",
+            mime="image/png",
+        )
+    except Exception:  # noqa: BLE001 - fallback handled via Streamlit message
+        st.info("Le graphique ne peut pas être exporté pour le moment.")
