@@ -11,7 +11,7 @@ import pandas as pd
 def build_density_chart(per_modality_df: pd.DataFrame) -> alt.Chart:
     """Créer le graphique de densité par modalité."""
 
-    density_chart = (
+    return (
         alt.Chart(per_modality_df)
         .mark_bar()
         .encode(
@@ -20,15 +20,8 @@ def build_density_chart(per_modality_df: pd.DataFrame) -> alt.Chart:
             color=alt.Color("modalite:N", title="Modalité"),
             tooltip=["modalite", "densite", "mots", "connecteurs"],
         )
+        .properties(title="Graphique de densité")
     )
-
-    density_norm_rule = (
-        alt.Chart(pd.DataFrame({"norme": [1.37]}))
-        .mark_rule(color="red", strokeDash=[6, 4])
-        .encode(y=alt.Y("norme:Q"))
-    )
-
-    return (density_chart + density_norm_rule).properties(title="Graphique de densité")
 
 
 def build_connector_density_chart(per_modality_label_df: pd.DataFrame) -> alt.Chart:
