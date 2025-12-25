@@ -5,6 +5,7 @@ import io
 import re
 import json
 from collections import Counter, defaultdict
+import html
 from pathlib import Path
 from typing import Dict, List
 
@@ -1313,6 +1314,36 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                     use_container_width=True,
                     hide_index=True,
                 )
+
+                context_map = (
+                    ngram_results.set_index("N-gram")["Contexte"]
+                    if "Contexte" in ngram_results.columns
+                    else pd.Series(dtype=str)
+                )
+
+                if not context_map.empty:
+                    st.markdown("#### Contextes des N-grams")
+
+                    def _highlight_ngram(context_text: str, ngram_value: str) -> str:
+                        if not context_text:
+                            return ""
+
+                        escaped_context = html.escape(context_text)
+                        pattern = re.compile(re.escape(ngram_value), re.IGNORECASE)
+                        return pattern.sub(lambda match: f"<mark>{match.group(0)}</mark>", escaped_context)
+
+                    for _, row in display_df.iterrows():
+                        ngram_value = row.get("N-gram", "")
+                        context_text = context_map.get(ngram_value, "")
+
+                        if not context_text:
+                            continue
+
+                        highlighted_context = _highlight_ngram(context_text, ngram_value)
+                        st.markdown(
+                            f"**{ngram_value}**<br>{highlighted_context}",
+                            unsafe_allow_html=True,
+                        )
 
     with tabs[10]:
         st.subheader("Simi cosinus (réponses de modèles)")
