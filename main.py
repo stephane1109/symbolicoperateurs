@@ -1332,6 +1332,11 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                     if "Occurrences détaillées" in ngram_results.columns
                     else {}
                 )
+                frequency_map = (
+                    ngram_results.set_index("N-gram")["Fréquence"].to_dict()
+                    if "Fréquence" in ngram_results.columns
+                    else {}
+                )
 
                 if context_map:
                     st.markdown("#### Contextes des N-grams")
@@ -1362,8 +1367,12 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                         if not detailed_contexts:
                             continue
 
+                        occurrence_total = frequency_map.get(
+                            ngram_value, len(detailed_contexts)
+                        )
+
                         st.markdown(
-                            f"**{ngram_value}** – {len(detailed_contexts)} occurrence(s)",
+                            f"**{ngram_value}** – {occurrence_total} occurrence(s)",
                         )
 
                         for index, context_entry in enumerate(detailed_contexts, start=1):
