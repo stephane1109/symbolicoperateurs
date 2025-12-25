@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-import io
 import re
 import json
 from collections import Counter, defaultdict
@@ -22,6 +21,15 @@ from analyses import (
     count_connectors,
     count_connectors_by_label,
     generate_label_colors,
+)
+from fcts_utils import (
+    build_annotation_style_block,
+    build_dataframe,
+    build_variable_stats,
+    display_centered_chart,
+    display_centered_image,
+    parse_iramuteq,
+    render_connectors_reminder,
 )
 from connecteurs import (
     get_connectors_path,
@@ -81,153 +89,6 @@ from graphiques.densitegraph import (
     build_density_chart,
     build_density_scatter_chart,
 )
-
-
-def display_centered_image(image_buffer: io.BytesIO, caption: str, width: int = 1200) -> None:
-    """Afficher une image centrée avec une largeur et une légende cohérentes."""
-
-    center_col = st.columns([1, 2, 1])[1]
-    center_col.image(image_buffer, width=width, caption=caption)
-
-
-def display_centered_chart(chart: alt.Chart) -> None:
-    """Afficher un graphique Altair centré dans la page."""
-
-    center_col = st.columns([1, 2, 1])[1]
-    center_col.altair_chart(chart, use_container_width=True)
-
-
-def build_annotation_style_block(label_style_block: str) -> str:
-    """Créer un bloc de style commun pour l'affichage des annotations HTML."""
-
-    return f"""
-    <style>
-    .connector-annotation {{
-        background-color: #eef3ff;
-        border-radius: 4px;
-        padding: 2px 6px;
-        margin: 0 2px;
-        display: inline-block;
-        border: 1px solid #c3d4ff;
-    }}
-    .connector-label {{
-        color: #1a56db;
-        font-weight: 700;
-        margin-right: 6px;
-    }}
-    .connector-text {{
-        color: #6b7280;
-        font-weight: 500;
-    }}
-    .annotated-container {{
-        line-height: 1.6;
-        font-size: 15px;
-    }}
-    {label_style_block}
-    </style>
-    """
-
-
-def parse_iramuteq(content: str) -> List[Dict[str, str]]:
-    """Analyser un fichier texte de type IRaMuTeQ en une liste d'enregistrements."""
-
-    lines = content.splitlines()
-    records: List[Dict[str, str]] = []
-    index = 0
-
-    while index < len(lines):
-        line = lines[index].strip()
-
-        if line.startswith("****"):
-            tokens = line[4:].strip().split()
-            variables: Dict[str, str] = {}
-
-            for token in tokens:
-                if token.startswith("*") and "_" in token:
-                    name, modality = token[1:].split("_", maxsplit=1)
-                    variables[name.strip()] = modality.strip()
-
-            index += 1
-            text_lines: List[str] = []
-
-            while index < len(lines) and not lines[index].strip().startswith("****"):
-                text_lines.append(lines[index])
-                index += 1
-
-            records.append(
-                {
-                    **variables,
-                    "entete": line,
-                    "texte": "\n".join(text_lines).strip(),
-                }
-            )
-        else:
-            index += 1
-
-    return records
-
-
-def build_dataframe(records: List[Dict[str, str]]) -> pd.DataFrame:
-    """Créer un DataFrame avec les variables, les modalités et le texte."""
-
-    if not records:
-        return pd.DataFrame()
-
-    return pd.DataFrame(records)
-
-
-def build_variable_stats(
-    dataframe: pd.DataFrame,
-    variables: List[str],
-    connectors: Dict[str, str],
-    labels: List[str],
-) -> pd.DataFrame:
-    """Construire un tableau des occurrences par variable, modalité et label."""
-
-    rows: List[Dict[str, str | int]] = []
-
-    for variable in variables:
-        if variable not in dataframe.columns:
-            continue
-
-        for modality, subset in dataframe.dropna(subset=[variable]).groupby(variable):
-            modality_text = " ".join(subset["texte"].dropna())
-            label_counts = count_connectors_by_label(modality_text, connectors)
-
-            for label in labels:
-                rows.append(
-                    {
-                        "variable": variable,
-                        "modalite": modality,
-                        "label": label,
-                        "occurrences": label_counts.get(label, 0),
-                    }
-                )
-
-    return pd.DataFrame(rows)
-
-
-def render_connectors_reminder(connectors: Dict[str, str]) -> None:
-    """Afficher une phrase rappelant les connecteurs sélectionnés."""
-
-    if not connectors:
-        st.info(
-            "Aucun connecteur sélectionné pour les analyses. Rendez-vous dans l'onglet « Connecteurs » pour en choisir."
-        )
-        return
-
-    connectors_by_label: Dict[str, List[str]] = {}
-    for connector, label in connectors.items():
-        connectors_by_label.setdefault(label, []).append(connector)
-
-    label_summaries = [
-        f"{label} ({len(names)})" for label, names in sorted(connectors_by_label.items())
-    ]
-    st.caption(
-        "Connecteurs sélectionnés par catégorie — "
-        + ", ".join(label_summaries)
-        + f" — Total : {len(connectors)}"
-    )
 
 
 def main() -> None:
