@@ -1269,6 +1269,136 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
         if all(result.empty for result in results_by_size.values()):
             st.info("Aucun N-gram n'a pu être calculé à partir du texte fourni.")
         else:
+            def build_ngram_download_html(results: dict[int, pd.DataFrame]) -> str:
+                annotation_style = build_annotation_style_block("")
+
+                def _format_context_block(context_entry: dict[str, object], ngram_value: str) -> str:
+                    raw_text = str(
+                        context_entry.get("texte_complet")
+                        or context_entry.get("contexte")
+                        or ""
+                    )
+
+                    if not raw_text.strip():
+                        return ""
+
+                    pattern = build_ngram_pattern(ngram_value.split())
+                    highlighted = pattern.sub(
+                        lambda match: (
+                            "<span class=\"connector-annotation\">"
+                            f"<span class=\"connector-text\">{match.group(0)}</span>"
+                            "</span>"
+                        ),
+                        raw_text,
+                    )
+
+                    header_parts: list[str] = []
+                    entete = str(context_entry.get("entete", "") or "").strip()
+                    if entete:
+                        header_parts.append(entete)
+
+                    modalities = context_entry.get("modalites", []) or []
+                    if modalities:
+                        header_parts.append(
+                            ", ".join(str(modality) for modality in modalities)
+                        )
+
+                    header_text = " • ".join(header_parts) or "Texte"
+
+                    return "\n".join(
+                        [
+                            "<div class=\"context-block\">",
+                            f"<div class=\"context-header\">{header_text}</div>",
+                            f"<div class=\"context-body\">{highlighted}</div>",
+                            "</div>",
+                        ]
+                    )
+
+                sections: list[str] = [
+                    "<!DOCTYPE html>",
+                    "<html lang=\"fr\">",
+                    "<head>",
+                    "<meta charset=\"utf-8\" />",
+                    annotation_style,
+                    "<style>",
+                    "body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; padding: 24px; background: #f8fafc; color: #111827; }",
+                    "h1, h2 { color: #0f172a; }",
+                    ".ngram-section { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06); }",
+                    ".ngram-entry { margin: 12px 0; padding: 12px 14px; border-radius: 10px; background: #f9fafb; border: 1px solid #e5e7eb; }",
+                    ".ngram-title { font-size: 17px; font-weight: 700; color: #0ea5e9; margin-bottom: 6px; }",
+                    ".ngram-frequency { color: #475569; font-size: 14px; margin-bottom: 8px; }",
+                    ".context-block { background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 10px; padding: 10px 12px; margin: 10px 0; }",
+                    ".context-header { font-weight: 700; color: #312e81; margin-bottom: 6px; }",
+                    ".context-body { line-height: 1.6; }",
+                    "</style>",
+                    "</head>",
+                    "<body>",
+                    "<h1>Occurrences des N-grams</h1>",
+                ]
+
+                for size in range(3, 7):
+                    ngram_df = results.get(size)
+                    if ngram_df is None or ngram_df.empty:
+                        continue
+
+                    sections.append(
+                        f"<div class=\"ngram-section\"><h2>N-grams de {size} mots</h2>"
+                    )
+
+                    for _, row in ngram_df.iterrows():
+                        ngram_value = row.get("N-gram", "")
+                        frequency_value = row.get("Fréquence", 0)
+
+                        sections.append(
+                            "\n".join(
+                                [
+                                    "<div class=\"ngram-entry\">",
+                                    f"<div class=\"ngram-title\">{ngram_value}</div>",
+                                    f"<div class=\"ngram-frequency\">{frequency_value} occurrence(s)</div>",
+                                ]
+                            )
+                        )
+
+                        detailed_contexts = row.get("Occurrences détaillées") or []
+
+                        if not detailed_contexts and "Contexte" in row:
+                            context_text = row.get("Contexte", "")
+                            if context_text:
+                                detailed_contexts = [
+                                    {
+                                        "contexte": context_text,
+                                        "modalites": [],
+                                        "entete": "",
+                                        "texte_complet": context_text,
+                                    }
+                                ]
+
+                        if not detailed_contexts:
+                            sections.append("<p>Aucun contexte disponible.</p></div>")
+                            continue
+
+                        for context_entry in detailed_contexts:
+                            block_html = _format_context_block(context_entry, ngram_value)
+                            if block_html:
+                                sections.append(block_html)
+
+                        sections.append("</div>")
+
+                    sections.append("</div>")
+
+                sections.extend(["</body>", "</html>"])
+                return "\n".join(sections)
+
+            downloadable_ngram_html = build_ngram_download_html(results_by_size)
+
+            st.download_button(
+                label="Tout télécharger", 
+                data=downloadable_ngram_html,
+                file_name="ngrams.html",
+                mime="text/html",
+                help="Télécharger tous les N-grams et leurs contextes au format HTML.",
+            )
+
             for size in range(3, 7):
                 st.markdown(f"### N-grams de {size} mots")
                 ngram_results = results_by_size[size]
