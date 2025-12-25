@@ -27,7 +27,12 @@ def iter_ngrams(words: List[str], n: int) -> Iterable[tuple[str, ...]]:
 def extract_ngram_context(
     text: str, ngram_tokens: tuple[str, ...], header: str | None = None, max_length: int = 240
 ) -> str:
-    """Retourner la phrase (ou un extrait) contenant le n-gram recherché."""
+    """Retourner la phrase (ou un extrait) contenant le n-gram recherché.
+
+    Le contenu n'est pas échappé pour permettre l'affichage HTML en aval lorsque
+    le texte source contient déjà du balisage (par exemple dans l'onglet « Texte
+    annoté » de l'interface Streamlit).
+    """
 
     pattern = re.compile(r"\b" + re.escape(" ".join(ngram_tokens)) + r"\b", re.IGNORECASE)
     sentences = re.split(r"(?<=[.!?;:])\s+", text)
@@ -105,7 +110,9 @@ def compute_ngram_statistics(
     modality_counts_by_size: dict[int, dict[str, Counter[str]]] = {
         size: defaultdict(Counter) for size in requested_sizes
     }
-    contexts_by_size: dict[int, dict[str, str]] = {size: {} for size in requested_sizes}
+    contexts_by_size: dict[int, dict[str, list[dict[str, object]]]] = {
+        size: defaultdict(list) for size in requested_sizes
+    }
 
     for _, row in dataframe.iterrows():
         text_value = str(row.get("texte", "") or "")
@@ -130,11 +137,17 @@ def compute_ngram_statistics(
                 for modality in modalities:
                     modality_counts_by_size[n][ngram][modality] += 1
 
-                if ngram not in contexts_by_size[n]:
-                    header = str(row.get("entete", "") or "")
-                    contexts_by_size[n][ngram] = extract_ngram_context(
-                        text_value, ngram_tokens, header=header
-                    )
+                header = str(row.get("entete", "") or "")
+                contexts_by_size[n][ngram].append(
+                    {
+                        "contexte": extract_ngram_context(
+                            text_value, ngram_tokens, header=header
+                        ),
+                        "entete": header,
+                        "modalites": modalities,
+                        "texte_complet": text_value,
+                    }
+                )
 
     rows = []
 
@@ -161,13 +174,17 @@ def compute_ngram_statistics(
                 else "N/A"
             )
 
+            context_entries = contexts_by_size[n].get(ngram, [])
+            first_context = context_entries[0].get("contexte", "") if context_entries else ""
+
             rows.append(
                 {
                     "N-gram": ngram,
                     "Taille": len(ngram.split()),
                     "Fréquence": frequency,
                     "Modalités associées": modalities_display,
-                    "Contexte": contexts_by_size[n].get(ngram, ""),
+                    "Contexte": first_context,
+                    "Occurrences détaillées": context_entries,
                 }
             )
 

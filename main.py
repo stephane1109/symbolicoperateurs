@@ -5,7 +5,6 @@ import io
 import re
 import json
 from collections import Counter, defaultdict
-import html
 from pathlib import Path
 from typing import Dict, List
 
@@ -1281,6 +1280,12 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                 )
                 display_df = display_df.fillna("")
 
+                st.caption(
+                    "Le champ « Modalités associées » affiche combien de fois le N-gram "
+                    "apparaît pour chaque modalité (ex. « model=gpt (27) » signifie 27 occurrences "
+                    "dans les textes où model=gpt)."
+                )
+
                 if search_pattern.strip():
                     try:
                         match_mask = display_df["N-gram"].str.contains(
@@ -1305,6 +1310,8 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
                 if "Contexte" in display_df.columns:
                     display_df = display_df.drop(columns=["Contexte"])
+                if "Occurrences détaillées" in display_df.columns:
+                    display_df = display_df.drop(columns=["Occurrences détaillées"])
 
                 if search_pattern.strip():
                     display_df.insert(0, "Correspond au motif", match_mask.values)
@@ -1316,34 +1323,76 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                 )
 
                 context_map = (
-                    ngram_results.set_index("N-gram")["Contexte"]
+                    ngram_results.set_index("N-gram")["Contexte"].to_dict()
                     if "Contexte" in ngram_results.columns
-                    else pd.Series(dtype=str)
+                    else {}
+                )
+                context_details_map = (
+                    ngram_results.set_index("N-gram")["Occurrences détaillées"].to_dict()
+                    if "Occurrences détaillées" in ngram_results.columns
+                    else {}
                 )
 
-                if not context_map.empty:
+                if context_map:
                     st.markdown("#### Contextes des N-grams")
 
                     def _highlight_ngram(context_text: str, ngram_value: str) -> str:
                         if not context_text:
                             return ""
 
-                        escaped_context = html.escape(context_text)
                         pattern = re.compile(re.escape(ngram_value), re.IGNORECASE)
-                        return pattern.sub(lambda match: f"<mark>{match.group(0)}</mark>", escaped_context)
+                        return pattern.sub(
+                            lambda match: f"<mark>{match.group(0)}</mark>", context_text
+                        )
 
                     for _, row in display_df.iterrows():
                         ngram_value = row.get("N-gram", "")
-                        context_text = context_map.get(ngram_value, "")
+                        detailed_contexts = context_details_map.get(ngram_value, []) or []
 
-                        if not context_text:
+                        if not detailed_contexts and ngram_value in context_map:
+                            detailed_contexts = [
+                                {
+                                    "contexte": context_map.get(ngram_value, ""),
+                                    "modalites": [],
+                                    "entete": "",
+                                    "texte_complet": context_map.get(ngram_value, ""),
+                                }
+                            ]
+
+                        if not detailed_contexts:
                             continue
 
-                        highlighted_context = _highlight_ngram(context_text, ngram_value)
                         st.markdown(
-                            f"**{ngram_value}**<br>{highlighted_context}",
-                            unsafe_allow_html=True,
+                            f"**{ngram_value}** – {len(detailed_contexts)} occurrence(s)",
                         )
+
+                        for index, context_entry in enumerate(detailed_contexts, start=1):
+                            context_text = context_entry.get("contexte", "")
+                            highlighted_context = _highlight_ngram(context_text, ngram_value)
+                            header_parts: list[str] = []
+
+                            entete = str(context_entry.get("entete", "") or "").strip()
+                            if entete:
+                                header_parts.append(entete)
+
+                            modalities = context_entry.get("modalites", []) or []
+                            if modalities:
+                                header_parts.append(
+                                    ", ".join(str(modality) for modality in modalities)
+                                )
+
+                            header_text = " • ".join(header_parts) or "Texte"
+
+                            with st.expander(f"Occurrence {index} – {header_text}"):
+                                st.markdown(highlighted_context, unsafe_allow_html=True)
+
+                                full_text = str(context_entry.get("texte_complet", "") or "")
+                                if full_text and full_text.strip() != context_text.strip():
+                                    st.markdown("**Texte complet**")
+                                    st.markdown(
+                                        _highlight_ngram(full_text, ngram_value),
+                                        unsafe_allow_html=True,
+                                    )
 
     with tabs[10]:
         st.subheader("Simi cosinus (réponses de modèles)")
