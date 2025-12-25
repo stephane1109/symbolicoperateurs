@@ -1340,6 +1340,10 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
                 if context_map:
                     st.markdown("#### Contextes des N-grams")
+                    st.markdown(
+                        build_annotation_style_block(""),
+                        unsafe_allow_html=True,
+                    )
 
                     def _highlight_ngram(context_text: str, ngram_value: str) -> str:
                         if not context_text:
@@ -1347,7 +1351,12 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
                         pattern = re.compile(re.escape(ngram_value), re.IGNORECASE)
                         return pattern.sub(
-                            lambda match: f"<mark>{match.group(0)}</mark>", context_text
+                            lambda match: (
+                                "<span class=\"connector-annotation\">"
+                                f"<span class=\"connector-text\">{match.group(0)}</span>"
+                                "</span>"
+                            ),
+                            context_text,
                         )
 
                     for _, row in display_df.iterrows():
