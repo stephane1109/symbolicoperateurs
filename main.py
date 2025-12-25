@@ -31,7 +31,7 @@ from connecteurs import (
     set_selected_connectors,
 )
 from lexiconnorm import render_lexicon_norm_tab
-from ngram import compute_ngram_statistics
+from ngram import build_ngram_pattern, compute_ngram_statistics
 from densite import (
     compute_density,
     compute_density_by_label,
@@ -1349,7 +1349,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                         if not context_text:
                             return ""
 
-                        pattern = re.compile(re.escape(ngram_value), re.IGNORECASE)
+                        pattern = build_ngram_pattern(ngram_value.split())
                         return pattern.sub(
                             lambda match: (
                                 "<span class=\"connector-annotation\">"
