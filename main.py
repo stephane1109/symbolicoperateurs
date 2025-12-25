@@ -500,7 +500,7 @@ def main() -> None:
         st.subheader("Densité des connecteurs")
         render_connectors_reminder(filtered_connectors)
         st.write(
-            "Densité des textes analysés : La densité, c'est simplement le nombre de connecteurs "
+            "Densité des textes analysés : La densité, elle correspond au nombre de connecteurs "
             "ramené à une base (pour 1 000 mots). C'est ce qui permet de dire par exemple : "
             '"Ce texte est 3 fois plus \'logique\' que l\'autre".'
         )
@@ -898,7 +898,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
         st.markdown(
             """
-            Dans cet onglet, les motifs regex repèrent des structures combinées "programmation"
+            Dans cet onglet, les motifs regex repèrent des structures combinées
             (ex : si…alors, si…sinon) dans les segments. La recherche est bornée par la ponctuation
             du texte (. ! ? ; : ou retour ligne) garantissant que les connecteurs sont détectés dans
             une unité lexicale (la phrase).
@@ -1202,11 +1202,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
         st.subheader("N-gram (3 à 6 mots)")
         st.markdown(
             """
-            ### N-grammes vs cooccurrences
-
-            Ce document résume les différences entre l'extraction d'**n-grammes** et l'analyse de **cooccurrences**, deux approches courantes pour modéliser la proximité entre mots.
-
-            #### N-grammes
+            ### N-grammes
             - Un n-gramme est une séquence contiguë de *n* unités (mots) dans un texte.
             - Ils capturent l'ordre et la continuité : un trigramme (n=3) reflète par exemple trois mots successifs.
             """
