@@ -1380,28 +1380,32 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                             ngram_value, len(detailed_contexts)
                         )
 
-                        st.markdown(
-                            f"**{ngram_value}** – {occurrence_total} occurrence(s)",
-                        )
-
-                        for index, context_entry in enumerate(detailed_contexts, start=1):
-                            context_text = context_entry.get("contexte", "")
-                            highlighted_context = _highlight_ngram(context_text, ngram_value)
-                            header_parts: list[str] = []
-
-                            entete = str(context_entry.get("entete", "") or "").strip()
-                            if entete:
-                                header_parts.append(entete)
-
-                            modalities = context_entry.get("modalites", []) or []
-                            if modalities:
-                                header_parts.append(
-                                    ", ".join(str(modality) for modality in modalities)
+                        expander_label = f"{ngram_value} – {occurrence_total} occurrence(s)"
+                        with st.expander(expander_label):
+                            for index, context_entry in enumerate(
+                                detailed_contexts, start=1
+                            ):
+                                context_text = context_entry.get("contexte", "")
+                                highlighted_context = _highlight_ngram(
+                                    context_text, ngram_value
                                 )
+                                header_parts: list[str] = []
 
-                            header_text = " • ".join(header_parts) or "Texte"
+                                entete = (
+                                    str(context_entry.get("entete", "") or "").strip()
+                                )
+                                if entete:
+                                    header_parts.append(entete)
 
-                            with st.expander(f"Occurrence {index} – {header_text}"):
+                                modalities = context_entry.get("modalites", []) or []
+                                if modalities:
+                                    header_parts.append(
+                                        ", ".join(str(modality) for modality in modalities)
+                                    )
+
+                                header_text = " • ".join(header_parts) or "Texte"
+
+                                st.markdown(f"**Occurrence {index} – {header_text}**")
                                 st.markdown(highlighted_context, unsafe_allow_html=True)
 
                                 full_text = str(context_entry.get("texte_complet", "") or "")
