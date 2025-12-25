@@ -1267,6 +1267,8 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
             if "Contexte" in display_df.columns:
                 display_df = display_df.drop(columns=["Contexte"])
 
+            display_df = display_df.fillna("")
+
             if search_pattern.strip():
                 try:
                     match_mask = display_df["N-gram"].str.contains(
