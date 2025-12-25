@@ -369,7 +369,7 @@ def main() -> None:
             st.info("Sélectionnez au moins un connecteur pour calculer la densité.")
         else:
             st.subheader("Sélection des variables/modalités")
-            density_variables = [column for column in filtered_df.columns if column not in ("texte", "entete")]
+            density_variables = [column for column in df.columns if column not in ("texte", "entete")]
             default_density_index = 0 if not density_variables else 1
             density_variable_choice = st.selectbox(
                 "Variable à filtrer pour la densité",
@@ -382,7 +382,7 @@ def main() -> None:
 
             if density_variable_choice != "(Aucune)":
                 modality_options = sorted(
-                    filtered_df[density_variable_choice].dropna().unique().tolist()
+                    df[density_variable_choice].dropna().unique().tolist()
                 )
                 density_modalities = st.multiselect(
                     "Modalités à inclure",
@@ -392,7 +392,7 @@ def main() -> None:
                 )
 
             density_filtered_df = filter_dataframe_by_modalities(
-                filtered_df,
+                df,
                 None if density_variable_choice == "(Aucune)" else density_variable_choice,
                 density_modalities or None,
             )
@@ -548,7 +548,7 @@ def main() -> None:
 
     with tabs[5]:
         render_connectors_reminder(filtered_connectors)
-        render_lexicon_norm_tab(filtered_df, filtered_connectors)
+        render_lexicon_norm_tab(df, filtered_connectors)
 
     with tabs[6]:
         st.subheader("Hash (LMS entre connecteurs)")

@@ -108,13 +108,13 @@ def _select_variable_modalities(
 
 
 def render_lexicon_norm_tab(
-    filtered_df: pd.DataFrame, filtered_connectors: Dict[str, str]
+    dataframe: pd.DataFrame, filtered_connectors: Dict[str, str]
 ) -> None:
     """Afficher l'onglet « Lexicon norm » avec les normes sélectionnées."""
 
     st.subheader("Lexicon norm")
 
-    if filtered_df.empty:
+    if dataframe.empty:
         st.info("Aucune donnée disponible après filtrage.")
         return
 
@@ -131,7 +131,7 @@ def render_lexicon_norm_tab(
         )
         return
 
-    variables = [column for column in filtered_df.columns if column not in ("texte", "entete")]
+    variables = [column for column in dataframe.columns if column not in ("texte", "entete")]
     default_index = 0 if not variables else 1
     variable_choice = st.selectbox(
         "Variable à filtrer",
@@ -140,7 +140,7 @@ def render_lexicon_norm_tab(
         help="Choisissez la variable utilisée pour séparer les modalités.",
     )
 
-    modality_options = _select_variable_modalities(filtered_df, variable_choice)
+    modality_options = _select_variable_modalities(dataframe, variable_choice)
     selected_modalities = st.multiselect(
         "Modalités incluses",
         modality_options,
@@ -155,7 +155,7 @@ def render_lexicon_norm_tab(
     )
 
     density_filtered_df = filter_dataframe_by_modalities(
-        filtered_df,
+        dataframe,
         None if variable_choice == "(Aucune)" else variable_choice,
         selected_modalities or None,
     )
