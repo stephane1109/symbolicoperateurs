@@ -285,12 +285,6 @@ def main() -> None:
         st.subheader("Texte annoté par connecteurs")
         annotation_style = build_annotation_style_block(label_style_block)
 
-        st.markdown(annotation_style, unsafe_allow_html=True)
-        st.markdown(
-            f"<div class='annotated-container'>{annotated_html}</div>",
-            unsafe_allow_html=True,
-        )
-
         downloadable_html = f"""<!DOCTYPE html>
         <html lang=\"fr\">
         <head>
@@ -303,10 +297,16 @@ def main() -> None:
         </html>"""
 
         st.download_button(
-            label="Télécharger le texte annoté (HTML)",
+            label="Télécharger le texte annoté",
             data=downloadable_html,
             file_name="texte_brut_connecteurs.html",
             mime="text/html",
+        )
+
+        st.markdown(annotation_style, unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='annotated-container'>{annotated_html}</div>",
+            unsafe_allow_html=True,
         )
 
         if not filtered_connectors:
