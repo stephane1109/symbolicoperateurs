@@ -209,19 +209,6 @@ def main() -> None:
                 get_selected_connectors().values()
             ) or all_labels
 
-            connectors_by_label: Dict[str, List[str]] = {}
-            for connector, label in available_connectors.items():
-                connectors_by_label.setdefault(label, []).append(connector)
-
-            st.markdown("### Connecteurs disponibles par catégorie")
-            columns = st.columns(2)
-
-            for index, label in enumerate(sorted(connectors_by_label)):
-                connectors_names = sorted(connectors_by_label[label])
-                with columns[index % 2]:
-                    st.markdown(f"**{label} ({len(connectors_names)})**")
-                    st.markdown("\n".join(f"- {name}" for name in connectors_names))
-
             selected_labels = st.multiselect(
                 "Labels de connecteurs à inclure",
                 all_labels,
