@@ -315,13 +315,15 @@ def main() -> None:
         else:
             stats_df = count_connectors(combined_text, filtered_connectors)
 
+        
         st.subheader("Statistiques des connecteurs")
         if stats_df.empty:
             st.info("Aucun connecteur trouvé dans le texte sélectionné.")
         else:
             st.dataframe(stats_df, use_container_width=True)
-
-            st.markdown("#### Fréquences des connecteurs")
+            
+            st.subheader("Fréquences des connecteurs")
+            
             chart = (
                 alt.Chart(stats_df)
                 .mark_bar()
