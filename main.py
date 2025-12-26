@@ -80,6 +80,7 @@ from simicosinus import (
     compute_cosine_similarity_by_variable,
     get_french_stopwords,
 )
+from tf_idf import render_tfidf_tab
 from graphiques.igraph import (
     CosineGraphConfig,
     create_cosine_network_image,
@@ -124,6 +125,7 @@ def main() -> None:
             "Regex motifs",
             "Test de lisibilité",
             "N-gram",
+            "TF-IDF",
             "Simi cosinus",
         ]
     )
@@ -1434,6 +1436,9 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                                     )
 
     with tabs[10]:
+        render_tfidf_tab(df)
+
+    with tabs[11]:
         st.subheader("Simi cosinus (réponses de modèles)")
         st.write(
             "Comparer la similarité cosinus entre les réponses des modèles en "
