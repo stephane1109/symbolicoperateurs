@@ -273,7 +273,7 @@ def main() -> None:
         st.download_button(
             label="Télécharger le texte annoté (HTML)",
             data=downloadable_html,
-            file_name="texte_annote.html",
+            file_name="texte_brut_connecteurs.html",
             mime="text/html",
         )
 
@@ -335,7 +335,7 @@ def main() -> None:
         st.write(
             "Extraction automatique des segments dont la première ligne contient les marqueurs "
             "IRaMuTeQ (encodage commençant par `**** *`). Le sous-corpus peut être copié, "
-            "téléchargé au format texte ou réutilisé pour d'autres analyses."
+            "téléchargé au format texte pour être réutilisé pour d'autres analyses."
         )
 
         subcorpus_segments = build_subcorpus(records, filtered_connectors)
@@ -361,9 +361,8 @@ def main() -> None:
         st.subheader("Densité des connecteurs")
         render_connectors_reminder(filtered_connectors)
         st.write(
-            "Densité des textes analysés : La densité, elle correspond au nombre de connecteurs "
-            "ramené à une base (pour 1 000 mots). C'est ce qui permet de dire par exemple : "
-            '"Ce texte est 3 fois plus \'logique\' que l\'autre".'
+            "Densité des textes analysés : La densité correspond au nombre de connecteurs "
+            "ramené à une base (pour 1 000 mots). "
         )
         if not filtered_connectors:
             st.info("Sélectionnez au moins un connecteur pour calculer la densité.")
@@ -1077,15 +1076,13 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
         st.caption(
             "La formule originale (206.835 − 1.015 × mots/phrases − 84.6 × syllabes/mot) "
-            "a été conservée pour ce calcul. Les syllabes sont estimées par comptage des "
-            "groupes de voyelles ; les résultats restent indicatifs pour le français."
+            "a été conservée pour ce calcul."
         )
 
     with tabs[9]:
         st.subheader("N-gram (3 à 6 mots)")
         st.markdown(
             """
-            ### N-grammes
             - Un n-gramme est une séquence contiguë de *n* unités (mots) dans un texte.
             - Ils capturent l'ordre et la continuité : un trigramme (n=3) reflète par exemple trois mots successifs.
             """
