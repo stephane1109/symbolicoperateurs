@@ -161,7 +161,7 @@ def main() -> None:
         st.subheader("Choisir les connecteurs à analyser")
         st.write ("Dans cet onglet, vous devez sélectionner les connecteurs logiques qui auront un impact sur les analyses"
                   "Données brutes, Sous-corpus, Densité, Norme Lexicon et Hash. Vous pouvez à tout moment relancer "
-                  vos analyses en sélectionnant ou en supprimant des connecteurs dans la section « Connecteurs."
+                  vos analyses en sélectionnant ou en supprimant des connecteurs dans la section Connecteurs."
                   )
         render_connectors_reminder(get_selected_connectors())
         connectors_path = get_connectors_path()
