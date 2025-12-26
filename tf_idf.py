@@ -102,20 +102,38 @@ def render_wordcloud(top_terms: List[tuple[str, float]]) -> None:
         return
 
     frequencies = {term: score for term, score in top_terms}
-    wordcloud = WordCloud(width=1000, height=500, background_color="white")
+    wordcloud = WordCloud(width=1200, height=600, background_color="white")
     cloud_image = wordcloud.generate_from_frequencies(frequencies)
 
-    plt.figure(figsize=(12, 6))
-    plt.imshow(cloud_image, interpolation="bilinear")
-    plt.axis("off")
-    st.pyplot(plt.gcf())
-    plt.close()
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.imshow(cloud_image, interpolation="bilinear")
+    ax.axis("off")
+
+    spacer, container, spacer_2 = st.columns([1, 3, 1])
+    with container:
+        st.pyplot(fig, use_container_width=False)
+
+    plt.close(fig)
 
 
 def render_tfidf_tab(dataframe: pd.DataFrame) -> None:
     """Afficher l'onglet TF-IDF pour explorer les modalités d'une variable."""
 
     st.subheader("Analyse TF-IDF par variable")
+
+    st.markdown(
+        """
+        Le TF-IDF (Term Frequency – Inverse Document Frequency) mesure l'importance
+        d'un terme dans un document en combinant :
+
+        - la fréquence du terme dans le document (TF) ;
+        - la rareté du terme dans l'ensemble des documents (IDF), ce qui réduit le poids des mots courants.
+
+        Dans cette application, chaque modalité concatène l'ensemble de ses textes avant
+        le calcul : les scores sont donc basés sur le texte complet de chaque modalité,
+        et non sur des extraits.
+        """
+    )
 
     if dataframe.empty:
         st.info("Aucune donnée disponible après filtrage.")
