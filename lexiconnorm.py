@@ -209,7 +209,13 @@ def render_lexicon_norm_tab(
             xOffset="label",
             y=alt.Y("densite:Q", title=f"Densité pour {int(base)} mots"),
             color=alt.Color("label:N", title="Connecteur"),
-            tooltip=["modalite", "label", "densite", "mots", "connecteurs"],
+            tooltip=[
+                alt.Tooltip("modalite:N", title="Modalité"),
+                alt.Tooltip("label:N", title="Connecteur"),
+                alt.Tooltip("densite:Q", title="Densité", format=".4f"),
+                alt.Tooltip("mots:Q", title="Mots"),
+                alt.Tooltip("connecteurs:Q", title="Connecteurs"),
+            ],
         )
     )
 
@@ -221,7 +227,11 @@ def render_lexicon_norm_tab(
             .mark_rule(color="#dc2626", strokeDash=[6, 3])
             .encode(
                 y=alt.Y("densite:Q", title=None),
-                tooltip=["label", "densite", "occurrences"],
+                tooltip=[
+                    alt.Tooltip("label:N", title="Connecteur"),
+                    alt.Tooltip("densite:Q", title="Densité", format=".4f"),
+                    alt.Tooltip("occurrences:Q", title="Occurrences"),
+                ],
             )
         )
 

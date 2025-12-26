@@ -6,6 +6,7 @@ from typing import Iterable
 
 import altair as alt
 import pandas as pd
+from pandas.api.types import is_float_dtype, is_numeric_dtype
 
 
 def build_density_chart(per_modality_df: pd.DataFrame) -> alt.Chart:
@@ -18,7 +19,12 @@ def build_density_chart(per_modality_df: pd.DataFrame) -> alt.Chart:
             x=alt.X("modalite:N", title="Modalité"),
             y=alt.Y("densite:Q", title="Densité"),
             color=alt.Color("modalite:N", title="Modalité"),
-            tooltip=["modalite", "densite", "mots", "connecteurs"],
+            tooltip=[
+                alt.Tooltip("modalite:N", title="Modalité"),
+                alt.Tooltip("densite:Q", title="Densité", format=".4f"),
+                alt.Tooltip("mots:Q", title="Mots"),
+                alt.Tooltip("connecteurs:Q", title="Connecteurs"),
+            ],
         )
         .properties(title="Graphique de densité")
     )
@@ -35,10 +41,38 @@ def build_connector_density_chart(per_modality_label_df: pd.DataFrame) -> alt.Ch
             xOffset="label",
             y=alt.Y("densite:Q", title="Densité"),
             color=alt.Color("label:N", title="Connecteur"),
-            tooltip=["modalite", "label", "densite", "connecteurs", "mots"],
+            tooltip=[
+                alt.Tooltip("modalite:N", title="Modalité"),
+                alt.Tooltip("label:N", title="Connecteur"),
+                alt.Tooltip("densite:Q", title="Densité", format=".4f"),
+                alt.Tooltip("connecteurs:Q", title="Connecteurs"),
+                alt.Tooltip("mots:Q", title="Mots"),
+            ],
         )
         .properties(title="Densité par connecteur et modalité")
     )
+
+
+def _format_tooltip_fields(df: pd.DataFrame, fields: Iterable[str]) -> list[alt.Tooltip]:
+    """Formater les info-bulles pour limiter les décimales des valeurs flottantes."""
+
+    tooltips: list[alt.Tooltip] = []
+
+    for field in fields:
+        if field not in df.columns:
+            tooltips.append(alt.Tooltip(field))
+            continue
+
+        series = df[field]
+
+        if is_float_dtype(series):
+            tooltips.append(alt.Tooltip(f"{field}:Q", format=".4f"))
+        elif is_numeric_dtype(series):
+            tooltips.append(alt.Tooltip(f"{field}:Q"))
+        else:
+            tooltips.append(alt.Tooltip(f"{field}:N"))
+
+    return tooltips
 
 
 def build_density_scatter_chart(
@@ -71,7 +105,10 @@ def build_density_scatter_chart(
                 title="Densité totale",
                 scale=alt.Scale(scheme="oranges"),
             ),
-            tooltip=list(tooltip_fields) if tooltip_fields is not None else list(scatter_df.columns),
+            tooltip=_format_tooltip_fields(
+                scatter_df,
+                tooltip_fields if tooltip_fields is not None else list(scatter_df.columns),
+            ),
         )
         .properties(height=500)
     )
