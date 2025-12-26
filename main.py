@@ -167,6 +167,21 @@ def main() -> None:
 
         render_connectors_reminder(get_selected_connectors())
         connectors_path = get_connectors_path()
+
+        with st.expander("Afficher le contenu de connecteurs.json"):
+            st.caption(f"Fichier chargé : `{connectors_path}`")
+            try:
+                with connectors_path.open(encoding="utf-8") as handle:
+                    st.json(json.load(handle))
+            except FileNotFoundError:
+                st.error(
+                    "Le fichier de connecteurs est introuvable. Vérifiez la présence de "
+                    "`dictionnaires/connecteurs.json`."
+                )
+            except json.JSONDecodeError:
+                st.error(
+                    "Impossible de lire `connecteurs.json` : le fichier ne contient pas un JSON valide."
+                )
         try:
             available_connectors = load_available_connectors(connectors_path)
         except FileNotFoundError:
