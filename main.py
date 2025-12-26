@@ -1541,7 +1541,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
             return
 
         st.markdown("### Matrice de similarité cosinus")
-        st.dataframe(similarity_df.style.format("{:.3f}"), use_container_width=True)
+        st.dataframe(similarity_df.style.format("{:.4f}"), use_container_width=True)
 
         similarity_long = (
             similarity_df.reset_index()
@@ -1565,7 +1565,12 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
         focus_distances["Distance (1 - Similarité)"] = 1 - focus_distances["Similarité"]
         focus_distances = focus_distances.sort_values("Similarité", ascending=False)
 
-        st.dataframe(focus_distances.style.format({"Similarité": "{:.3f}", "Distance (1 - Similarité)": "{:.3f}"}), use_container_width=True)
+        st.dataframe(
+            focus_distances.style.format(
+                {"Similarité": "{:.4f}", "Distance (1 - Similarité)": "{:.4f}"}
+            ),
+            use_container_width=True,
+        )
 
         distance_chart = (
             alt.Chart(focus_distances)
@@ -1575,8 +1580,10 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                 x=alt.X("Similarité:Q", title="Similarité cosinus"),
                 tooltip=[
                     alt.Tooltip("Modèle:N", title="Modèle"),
-                    alt.Tooltip("Similarité:Q", format=".3f", title="Similarité"),
-                    alt.Tooltip("Distance (1 - Similarité):Q", format=".3f", title="Distance"),
+                    alt.Tooltip("Similarité:Q", format=".4f", title="Similarité"),
+                    alt.Tooltip(
+                        "Distance (1 - Similarité):Q", format=".4f", title="Distance"
+                    ),
                 ],
             )
             .properties(title=f"Distances par rapport à {focus_model}")
@@ -1598,7 +1605,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                     ),
                     title="Cosinus",
                 ),
-                tooltip=["Modalité", "Comparée à", alt.Tooltip("Similarité:Q", format=".3f")],
+                tooltip=["Modalité", "Comparée à", alt.Tooltip("Similarité:Q", format=".4f")],
             )
             .properties(
                 title="Carte de chaleur des similarités",
