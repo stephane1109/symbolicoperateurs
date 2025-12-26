@@ -105,7 +105,7 @@ def main() -> None:
         unsafe_allow_html=True,
     )
     st.write("Pour des raisons d’interopérabilité entre applications, le corpus doit être formaté selon les exigences"
-             "d’IRaMuTeQ : chaque texte commence par une ligne d’en-tête du type **** *variable_modalité."
+             "d’IRaMuTeQ : chaque texte commence par une ligne d’en-tête du type **** *variable_modalité.\n\n"
              "Pour le moment, l’application fonctionne avec un fichier dictionnaire.json, que vous pouvez consulter dans l’onglet « Connecteurs », "
              "ainsi qu’avec des règles regex. À l’avenir, une réflexion sera menée pour y associer une bibliothèque NLP (comme spaCy ou BERT), "
              "ce qui rendrait l’approche moins rigide que des règles regex. Toutefois, je suis en partie limité par le fait que l’application "
