@@ -729,7 +729,13 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                             x=alt.X("modalite:N", title="Modalité"),
                             y=alt.Y("lms:Q", title="LMS (mots)"),
                             color=alt.Color("modalite:N", title="Modalité"),
-                            tooltip=["modalite", "lms", "segments", "min", "max"],
+                            tooltip=[
+                                alt.Tooltip("modalite:N", title="Modalité"),
+                                alt.Tooltip("lms:Q", title="LMS", format=".4f"),
+                                alt.Tooltip("segments:Q", title="Segments"),
+                                alt.Tooltip("min:Q", title="Min"),
+                                alt.Tooltip("max:Q", title="Max"),
+                            ],
                         )
                     )
 
@@ -764,7 +770,12 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                             x=alt.X("modalite:N", title="Modalité"),
                             y=alt.Y("ecart_type:Q", title="Écart-type (mots)"),
                             color=alt.Color("modalite:N", title="Modalité"),
-                            tooltip=["modalite", "ecart_type", "segments", "lms"],
+                            tooltip=[
+                                alt.Tooltip("modalite:N", title="Modalité"),
+                                alt.Tooltip("ecart_type:Q", title="Écart-type", format=".4f"),
+                                alt.Tooltip("segments:Q", title="Segments"),
+                                alt.Tooltip("lms:Q", title="LMS", format=".4f"),
+                            ],
                         )
                     )
 
