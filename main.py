@@ -104,6 +104,9 @@ def main() -> None:
         "révéler un langage machine (si, alors, sinon, et, ou...)</span>",
         unsafe_allow_html=True,
     )
+    st.write("Pour des raisons d’interopérabilité entre applications, le corpus doit être formaté selon les exigences"
+             "d’IRaMuTeQ : chaque texte commence par une ligne d’en-tête du type **** *variable_modalité."
+            )
     st.caption("[www.codeandcortex.fr](https://www.codeandcortex.fr)")
     st.markdown("---")
     st.write(
