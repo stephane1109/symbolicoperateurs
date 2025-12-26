@@ -1483,20 +1483,20 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
         render_tfidf_tab(df)
 
     with tabs[11]:
-        st.subheader("Simi cosinus (réponses de modèles)")
+        st.subheader("Similarité cosinus")
         st.write(
-            "Comparer la similarité cosinus entre les réponses des modèles en "
+            "Comparer la similarité cosinus entre les variables en "
             "concaténant l'intégralité des textes par modalité."
         )
 
         model_variables = [column for column in df.columns if column not in ("texte", "entete")]
 
         if not model_variables:
-            st.info("Aucune variable de modèle n'a été trouvée dans le fichier importé.")
+            st.info("Aucune variable n'a été trouvée dans le fichier importé.")
             return
 
         model_variable_choice = st.selectbox(
-            "Variable contenant les modèles à comparer",
+            "Variable à comparer",
             model_variables,
             help="Les textes seront regroupés par modalité de cette variable avant le calcul TF-IDF.",
         )
@@ -1508,10 +1508,10 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
             return
 
         selected_modalities = st.multiselect(
-            "Modalités de modèles à inclure",
+            "Modalités à inclure",
             modality_options,
             default=modality_options,
-            help="Choisissez les modèles dont les réponses seront comparées.",
+            help="Choisissez les modalités.",
         )
 
         if not selected_modalities:
