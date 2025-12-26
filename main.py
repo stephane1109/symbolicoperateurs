@@ -163,8 +163,9 @@ def main() -> None:
             "<span style='color: white'>"
             "Dans cet onglet, vous devez sélectionner les connecteurs logiques qui auront un impact sur les analyses"
             "Données brutes, Sous-corpus, Densité, Norme Lexicon et Hash."
-            "Vous pouvez à tout moment relancer vos analyses en sélectionnant ou en supprimant des connecteurs dans la section Connecteurs.</span>"
-                    )
+            "Vous pouvez à tout moment relancer vos analyses en sélectionnant ou en supprimant des connecteurs dans la section Connecteurs.</span>",
+            unsafe_allow_html=True,
+            )
         render_connectors_reminder(get_selected_connectors())
         connectors_path = get_connectors_path()
         try:
