@@ -321,6 +321,7 @@ def main() -> None:
         else:
             st.dataframe(stats_df, use_container_width=True)
 
+            st.markdown("#### Fréquences des connecteurs")
             chart = (
                 alt.Chart(stats_df)
                 .mark_bar()
