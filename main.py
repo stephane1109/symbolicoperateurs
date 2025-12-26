@@ -159,7 +159,8 @@ def main() -> None:
 
     with tabs[1]:
         st.subheader("Choisir les connecteurs à analyser")
-        st.write ("""Dans cet onglet, vous devez sélectionner les connecteurs logiques qui auront un impact sur les analyses
+        st.markdown
+                  ("""Dans cet onglet, vous devez sélectionner les connecteurs logiques qui auront un impact sur les analyses
                   Données brutes, Sous-corpus, Densité, Norme Lexicon et Hash. 
                   Vous pouvez à tout moment relancer vos analyses en sélectionnant ou en supprimant des connecteurs dans la section Connecteurs."""
                   )
