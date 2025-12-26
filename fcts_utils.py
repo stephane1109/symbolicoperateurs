@@ -79,6 +79,7 @@ def build_annotation_style_block(label_style_block: str) -> str:
     .annotated-container {{
         line-height: 1.6;
         font-size: 15px;
+        margin-bottom: 24px;
     }}
     {label_style_block}
     </style>
