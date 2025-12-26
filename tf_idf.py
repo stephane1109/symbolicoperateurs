@@ -192,12 +192,6 @@ def render_tfidf_tab(dataframe: pd.DataFrame) -> None:
         use_container_width=True,
     )
 
-    available_modalities = sorted(tfidf_scores.keys())
-    modality_for_cloud = st.selectbox(
-        "Modalité pour le nuage de mots",
-        available_modalities,
-        help="Choisissez la modalité dont les termes TF-IDF seront représentés.",
-    )
-
-    st.markdown(f"### Nuage de mots – {modality_for_cloud}")
-    render_wordcloud(tfidf_scores.get(modality_for_cloud, []))
+    for modality in sorted(tfidf_scores.keys()):
+        st.markdown(f"### Nuage de mots – {variable_choice} / {modality}")
+        render_wordcloud(tfidf_scores.get(modality, []))
