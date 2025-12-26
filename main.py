@@ -110,7 +110,8 @@ def main() -> None:
              "ainsi qu’avec des règles regex. \n"
              "À l’avenir, une réflexion sera menée pour y associer une bibliothèque NLP (comme spaCy et/ou BERT), "
              "ce qui rendrait l’approche moins rigide que des règles regex. Toutefois, je suis en partie limité par le fait que l’application "
-             "est hébergée sur Streamlit Cloud (gratuit), avec des ressources restreintes."
+             "est hébergée sur Streamlit Cloud (gratuit), avec des ressources restreintes.\n\n" 
+             "les stopwords sont toutefois filtrés avec la librairie NLP NLTK, la plus légère."
             )
     st.caption("[www.codeandcortex.fr](https://www.codeandcortex.fr)")
     st.markdown("---")
