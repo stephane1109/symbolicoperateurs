@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import re
 import json
+from html import escape
 from pathlib import Path
 from typing import Dict, List
 
@@ -66,6 +67,7 @@ from regexanalyse import (
     split_segments,
     summarize_matches_by_segment,
 )
+from pattern import find_logical_patterns, load_logical_patterns, load_spacy_model
 from test_lesch_Kincaid import (
     READABILITY_SCALE,
     compute_flesch_kincaid_metrics,
@@ -83,6 +85,62 @@ from graphiques.densitegraph import (
     build_connector_density_chart,
     build_density_chart,
 )
+
+
+def _slugify_label(label: str) -> str:
+    """Convertir un label en identifiant CSS sécuritaire."""
+
+    slug = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+    return slug or "label"
+
+
+@st.cache_resource(show_spinner=False)
+def get_cached_spacy_model():
+    """Charger et mettre en cache le modèle spaCy français."""
+
+    return load_spacy_model()
+
+
+def annotate_logical_matches_html(text: str, matches: List[dict]) -> str:
+    """Retourner une version HTML du texte annoté avec les motifs détectés."""
+
+    if not text:
+        return ""
+
+    if not matches:
+        return escape(text).replace("\n", "<br />\n")
+
+    sorted_matches = sorted(matches, key=lambda item: item.get("start", 0))
+    fragments: List[str] = []
+    cursor = 0
+
+    for match in sorted_matches:
+        start = int(match.get("start", 0))
+        end = int(match.get("end", 0))
+
+        if start < cursor:
+            continue
+
+        fragments.append(escape(text[cursor:start]))
+        label = str(match.get("label", "")).strip()
+        label_class = _slugify_label(label)
+        span_text = escape(text[start:end])
+        safe_label = escape(label) if label else "Motif"
+        interpretation = escape(str(match.get("interpretation", "")).strip())
+
+        fragments.append(
+            f'<span class="connector-annotation connector-{label_class}" '
+            f'title="{interpretation}">'
+            f'<span class="connector-label">{safe_label}</span>'
+            f'<span class="connector-text">{span_text}</span>'
+            "</span>"
+        )
+
+        cursor = end
+
+    fragments.append(escape(text[cursor:]))
+
+    return "".join(fragments).replace("\n", "<br />\n")
 
 
 def main() -> None:
@@ -125,6 +183,7 @@ def main() -> None:
             "Lexicon norm",
             "Hash",
             "Regex motifs",
+            "Patterns",
             "Test de lisibilité",
             "N-gram",
             "TF-IDF",
@@ -936,6 +995,150 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
                 st.altair_chart(alt_counts_chart, use_container_width=True)
 
     with tabs[8]:
+        st.subheader("Patterns")
+        st.markdown(
+            """
+            Cette section s'appuie sur spaCy pour repérer des combinaisons de connecteurs
+            définies dans le fichier `dictionnaires/motifs_progr_regex.json`. Chaque motif
+            met en évidence une relation logique (catégorie, interprétation) directement
+            dans le texte filtré.
+            """
+        )
+
+        try:
+            logical_patterns = load_logical_patterns()
+        except FileNotFoundError:
+            st.error(
+                "Le fichier `dictionnaires/motifs_progr_regex.json` est introuvable. "
+                "Ajoutez-le pour utiliser les patterns."
+            )
+            logical_patterns = []
+        except json.JSONDecodeError:
+            st.error(
+                "Le fichier `motifs_progr_regex.json` ne contient pas un JSON valide."
+            )
+            logical_patterns = []
+
+        if not logical_patterns:
+            st.info(
+                "Aucune règle de pattern n'a pu être chargée. Vérifiez le dictionnaire associé."
+            )
+        else:
+            try:
+                nlp = get_cached_spacy_model()
+            except OSError:
+                st.error(
+                    "Le modèle spaCy `fr_core_news_sm` est introuvable. Installez-le avec "
+                    "`python -m spacy download fr_core_news_sm` pour activer cette section."
+                )
+                nlp = None
+            except Exception as exc:  # noqa: BLE001
+                st.error(f"Impossible de charger le modèle spaCy : {exc}")
+                nlp = None
+
+            if nlp is not None:
+                matches = find_logical_patterns(combined_text, nlp)
+
+                pattern_colors = generate_label_colors(
+                    [match.get("label", "") for match in matches]
+                )
+                pattern_styles = build_label_style_block(pattern_colors)
+                pattern_annotation_style = build_annotation_style_block(pattern_styles)
+
+                st.markdown(pattern_annotation_style, unsafe_allow_html=True)
+
+                annotated_patterns = annotate_logical_matches_html(combined_text, matches)
+                st.markdown("Corpus annoté (patterns spaCy)")
+                st.markdown(
+                    f"<div class='annotated-container'>{annotated_patterns}</div>",
+                    unsafe_allow_html=True,
+                )
+
+                downloadable_patterns_html = f"""<!DOCTYPE html>
+                <html lang=\"fr\">
+                <head>
+                <meta charset=\"utf-8\" />
+                {pattern_annotation_style}
+                </head>
+                <body>
+                <div class='annotated-container'>{annotated_patterns}</div>
+                </body>
+                </html>"""
+
+                st.download_button(
+                    label="Télécharger le corpus annoté (patterns)",
+                    data=downloadable_patterns_html,
+                    file_name="corpus_patterns_annote.html",
+                    mime="text/html",
+                )
+
+                st.markdown("---")
+                st.subheader("Occurrences détectées")
+
+                if matches:
+                    matches_df = pd.DataFrame(matches).rename(
+                        columns={
+                            "label": "Label",
+                            "category": "Catégorie",
+                            "interpretation": "Interprétation",
+                            "span": "Texte",  # type: ignore[key-typo]
+                        }
+                    )
+
+                    st.dataframe(
+                        matches_df[[
+                            "Label",
+                            "Catégorie",
+                            "Interprétation",
+                            "Texte",
+                            "start",
+                            "end",
+                        ]],
+                        use_container_width=True,
+                    )
+
+                    counts_df = (
+                        matches_df.groupby("Label")
+                        .size()
+                        .reset_index(name="Occurrences")
+                        .sort_values("Occurrences", ascending=False)
+                    )
+
+                    if not counts_df.empty:
+                        chart = (
+                            alt.Chart(counts_df)
+                            .mark_bar()
+                            .encode(
+                                x=alt.X("Label:N", sort="-y", title="Label"),
+                                y=alt.Y("Occurrences:Q", title="Occurrences"),
+                                tooltip=["Label", "Occurrences"],
+                                color=alt.Color("Label:N", legend=None),
+                            )
+                        )
+
+                        st.altair_chart(chart, use_container_width=True)
+                else:
+                    st.info("Aucun pattern n'a été détecté dans le texte filtré.")
+
+        st.markdown("---")
+        st.subheader("Règles de patterns disponibles")
+
+        if logical_patterns:
+            patterns_df = pd.DataFrame(
+                [
+                    {
+                        "Label": pattern.label,
+                        "Catégorie": pattern.category,
+                        "Interprétation": pattern.interpretation,
+                        "Regex": pattern.regex,
+                    }
+                    for pattern in logical_patterns
+                ]
+            )
+
+            st.dataframe(patterns_df, use_container_width=True)
+
+    with tabs[9]:
         st.subheader("Test de lisibilité (Flesch-Kincaid)")
         render_connectors_reminder(filtered_connectors)
 
@@ -1140,7 +1343,7 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
             "a été conservée pour ce calcul."
         )
 
-    with tabs[9]:
+    with tabs[10]:
         st.subheader("N-gram (3 à 6 mots)")
         st.markdown(
             """
@@ -1494,10 +1697,10 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
                                         unsafe_allow_html=True,
                                     )
 
-    with tabs[10]:
+    with tabs[11]:
         render_tfidf_tab(df)
 
-    with tabs[11]:
+    with tabs[12]:
         st.subheader("Similarité cosinus")
         st.write(
             "Comparer la similarité cosinus entre les variables en "
