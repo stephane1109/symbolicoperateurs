@@ -103,27 +103,21 @@ def _tokenize(text: str) -> List[str]:
     return re.findall(r"\b\w+\b", text, flags=re.UNICODE)
 
 
-def _build_boundary_pattern_for_text(
-    text: str, connectors: Dict[str, str], segmentation_mode: SegmentationMode
-) -> re.Pattern[str] | None:
-    """Choisir un motif de segmentation adapté au contenu fourni."""
+def _is_connector(boundary: str | None, connector_pattern: re.Pattern[str] | None) -> bool:
+    """Vérifier si une borne correspond à un connecteur (et non à de la ponctuation)."""
 
-    connector_pattern = _build_connector_pattern(connectors)
-    include_punctuation = (
-        segmentation_mode == "connecteurs_et_ponctuation"
-        and connector_pattern is not None
-        and connector_pattern.search(text) is not None
-    )
+    if not boundary or connector_pattern is None:
+        return False
 
-    return _build_boundary_pattern(
-        connectors, include_punctuation, connector_pattern=connector_pattern
-    )
+    return connector_pattern.fullmatch(boundary.strip()) is not None
 
 
 def _segments_with_boundaries(
-    text: str, pattern: re.Pattern[str]
+    text: str,
+    pattern: re.Pattern[str],
+    connector_pattern: re.Pattern[str] | None,
 ) -> List[tuple[str, Optional[str], Optional[str]]]:
-    """Retourner les segments associés à leurs connecteurs de borne."""
+    """Retourner uniquement les segments bornés par au moins un connecteur."""
 
     segments: List[tuple[str, Optional[str], Optional[str]]] = []
     last_end = 0
@@ -131,16 +125,20 @@ def _segments_with_boundaries(
 
     for match in pattern.finditer(text):
         segment = text[last_end: match.start()]
+        next_connector = match.group(0)
 
-        if segment.strip():
-            segments.append((segment, previous_connector, match.group(0)))
+        previous_is_connector = _is_connector(previous_connector, connector_pattern)
+        next_is_connector = _is_connector(next_connector, connector_pattern)
 
-        previous_connector = match.group(0)
+        if segment.strip() and (previous_is_connector or next_is_connector):
+            segments.append((segment, previous_connector, next_connector))
+
+        previous_connector = next_connector
         last_end = match.end()
 
     trailing = text[last_end:]
 
-    if trailing.strip():
+    if trailing.strip() and _is_connector(previous_connector, connector_pattern):
         segments.append((trailing, previous_connector, None))
 
     return segments
@@ -156,12 +154,28 @@ def split_segments_by_connectors(
 
     text = _remove_metadata_first_line(text)
 
-    pattern = _build_boundary_pattern_for_text(text, connectors, segmentation_mode)
+    connector_pattern = _build_connector_pattern(connectors)
+
+    if connector_pattern is None:
+        return []
+
+    connector_found = connector_pattern.search(text)
+
+    if connector_found is None:
+        return [text]
+
+    include_punctuation = segmentation_mode == "connecteurs_et_ponctuation"
+
+    pattern = _build_boundary_pattern(
+        connectors, include_punctuation, connector_pattern=connector_pattern
+    )
 
     if pattern is None:
         return []
 
-    segments_with_boundaries = _segments_with_boundaries(text, pattern)
+    segments_with_boundaries = _segments_with_boundaries(
+        text, pattern, connector_pattern
+    )
 
     return [segment for segment, _, _ in segments_with_boundaries]
 
@@ -193,12 +207,37 @@ def segments_with_word_lengths(
 
     text = _remove_metadata_first_line(text)
 
-    pattern = _build_boundary_pattern_for_text(text, connectors, segmentation_mode)
+    connector_pattern = _build_connector_pattern(connectors)
+
+    if connector_pattern is None:
+        return []
+
+    connector_found = connector_pattern.search(text)
+
+    if connector_found is None:
+        tokens = _tokenize(text)
+        if tokens:
+            return [
+                {
+                    "segment": text.strip(),
+                    "segment_avec_marqueurs": text.strip(),
+                    "longueur": len(tokens),
+                    "connecteur_precedent": "",
+                    "connecteur_suivant": "",
+                }
+            ]
+        return []
+
+    include_punctuation = segmentation_mode == "connecteurs_et_ponctuation"
+
+    pattern = _build_boundary_pattern(
+        connectors, include_punctuation, connector_pattern=connector_pattern
+    )
 
     if pattern is None:
         return []
 
-    segments = _segments_with_boundaries(text, pattern)
+    segments = _segments_with_boundaries(text, pattern, connector_pattern)
     entries: List[Dict[str, str | int]] = []
 
     for segment, previous_connector, next_connector in segments:

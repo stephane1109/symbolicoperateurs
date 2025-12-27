@@ -30,3 +30,17 @@ def test_punctuation_applied_when_connectors_present():
         "il hésite",
         "il continue",
     ]
+
+
+def test_punctuation_segments_must_touch_connectors():
+    connectors = {"si": "condition"}
+    text = "Bonjour. Ensuite si tu veux. Merci."
+
+    segments = hash_module.split_segments_by_connectors(
+        text, connectors, segmentation_mode="connecteurs_et_ponctuation"
+    )
+
+    assert [segment.strip() for segment in segments] == [
+        "Ensuite",
+        "tu veux",
+    ]
