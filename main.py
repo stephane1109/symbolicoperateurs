@@ -471,16 +471,34 @@ def main() -> None:
 
                 if not per_modality_df.empty:
                     st.subheader("Densité par modalité sélectionnée")
+                    modality_display_df = per_modality_df.copy()
+                    modality_display_df["densite"] = modality_display_df["densite"].apply(
+                        lambda value: f"{value:.2f}"
+                    )
+                    modality_display_df["mots"] = modality_display_df["mots"].apply(
+                        lambda value: f"{int(value)}"
+                    )
+                    modality_display_df["connecteurs"] = modality_display_df["connecteurs"].apply(
+                        lambda value: f"{int(value)}"
+                    )
+
+                    modality_display_df = modality_display_df.rename(
+                        columns={
+                            "modalite": "Modalité",
+                            "densite": "Densité",
+                            "mots": "Mots comptés",
+                            "connecteurs": "Connecteurs",
+                        }
+                    )
+
                     st.dataframe(
-                        per_modality_df.rename(
-                            columns={
-                                "modalite": "Modalité",
-                                "densite": "Densité",
-                                "mots": "Mots comptés",
-                                "connecteurs": "Connecteurs",
-                            }
-                        ),
+                        modality_display_df,
                         use_container_width=True,
+                        column_config={
+                            "Densité": st.column_config.TextColumn("Densité"),
+                            "Mots comptés": st.column_config.TextColumn("Mots comptés"),
+                            "Connecteurs": st.column_config.TextColumn("Connecteurs"),
+                        },
                     )
 
                     st.markdown("#### Graphique de densité")
@@ -491,17 +509,35 @@ def main() -> None:
 
                     if not per_modality_label_df.empty:
                         st.markdown("#### Densité par connecteur et modalité")
+                        modality_label_display_df = per_modality_label_df.copy()
+                        modality_label_display_df["densite"] = modality_label_display_df[
+                            "densite"
+                        ].apply(lambda value: f"{value:.2f}")
+                        modality_label_display_df["mots"] = modality_label_display_df[
+                            "mots"
+                        ].apply(lambda value: f"{int(value)}")
+                        modality_label_display_df["connecteurs"] = modality_label_display_df[
+                            "connecteurs"
+                        ].apply(lambda value: f"{int(value)}")
+
+                        modality_label_display_df = modality_label_display_df.rename(
+                            columns={
+                                "modalite": "Modalité",
+                                "label": "Connecteur",
+                                "densite": "Densité",
+                                "mots": "Mots comptés",
+                                "connecteurs": "Connecteurs",
+                            }
+                        )
+
                         st.dataframe(
-                            per_modality_label_df.rename(
-                                columns={
-                                    "modalite": "Modalité",
-                                    "label": "Connecteur",
-                                    "densite": "Densité",
-                                    "mots": "Mots comptés",
-                                    "connecteurs": "Connecteurs",
-                                }
-                            ),
+                            modality_label_display_df,
                             use_container_width=True,
+                            column_config={
+                                "Densité": st.column_config.TextColumn("Densité"),
+                                "Mots comptés": st.column_config.TextColumn("Mots comptés"),
+                                "Connecteurs": st.column_config.TextColumn("Connecteurs"),
+                            },
                         )
 
                         st.altair_chart(
