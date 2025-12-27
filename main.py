@@ -584,33 +584,57 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
             )
         else:
             st.subheader("Sélection des variables/modalités")
-            hash_variables = [column for column in filtered_df.columns if column not in ("texte", "entete")]
-            default_hash_index = 0 if not hash_variables else 1
-            hash_variable_choice = st.selectbox(
-                "Variable à filtrer pour la LMS",
-                ["(Aucune)"] + hash_variables,
-                index=default_hash_index,
-                help="Restreindre le calcul de la LMS à certaines modalités.",
+            hash_variables = [
+                column for column in filtered_df.columns if column not in ("texte", "entete")
+            ]
+
+            selected_hash_variables = st.multiselect(
+                "Variables à filtrer pour la LMS",
+                hash_variables,
+                default=hash_variables,
+                help=(
+                    "Choisissez les variables à filtrer. Laisser vide pour utiliser l'ensemble"
+                    " du corpus actuellement chargé."
+                ),
             )
 
-            hash_modalities: List[str] = []
-
-            if hash_variable_choice != "(Aucune)":
-                modality_options = sorted(
-                    filtered_df[hash_variable_choice].dropna().unique().tolist()
+            if not selected_hash_variables:
+                st.info(
+                    "Aucune variable sélectionnée : la LMS sera calculée sur tous les textes "
+                    "affichés dans l'onglet « Données brutes »"
                 )
-                hash_modalities = st.multiselect(
-                    "Modalités à inclure",
+
+            hash_modality_filters: Dict[str, List[str]] = {}
+            hash_filtered_df = filtered_df.copy()
+
+            for variable in selected_hash_variables:
+                modality_options = sorted(
+                    hash_filtered_df[variable].dropna().unique().tolist()
+                )
+                selected_modalities = st.multiselect(
+                    f"Modalités à inclure pour {variable}",
                     modality_options,
                     default=modality_options,
-                    help="Choisissez les modalités dont les textes seront pris en compte.",
+                    help=(
+                        "Sélectionnez les modalités dont les textes seront pris en compte pour"
+                        " cette variable."
+                    ),
                 )
+                hash_modality_filters[variable] = selected_modalities
 
-            hash_filtered_df = filter_dataframe_by_modalities(
-                filtered_df,
-                None if hash_variable_choice == "(Aucune)" else hash_variable_choice,
-                hash_modalities or None,
-            )
+                if selected_modalities:
+                    hash_filtered_df = hash_filtered_df[
+                        hash_filtered_df[variable].isin(selected_modalities)
+                    ]
+                else:
+                    hash_filtered_df = hash_filtered_df.iloc[0:0]
+
+            if hash_filtered_df.empty:
+                st.info(
+                    "Aucun texte ne correspond aux filtres appliqués. Ajustez vos sélections pour"
+                    " continuer."
+                )
+                return
 
             hash_text = build_text_from_dataframe(hash_filtered_df)
             segment_lengths = compute_segment_word_lengths(
@@ -671,120 +695,127 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
                     use_container_width=True,
                 )
 
-                per_modality_hash_df = average_segment_length_by_modality(
-                    hash_filtered_df,
-                    None if hash_variable_choice == "(Aucune)" else hash_variable_choice,
-                    filtered_connectors,
-                    hash_modalities or None,
-                    segmentation_mode,
-                )
-
-                if not per_modality_hash_df.empty:
-                    st.subheader("LMS par modalité sélectionnée")
-                    st.dataframe(
-                        per_modality_hash_df.rename(
-                            columns={
-                                "modalite": "Modalité",
-                                "segments": "Segments comptés",
-                                "lms": "LMS",
-                            }
-                        ),
-                        use_container_width=True,
+                for variable, selected_modalities in hash_modality_filters.items():
+                    per_modality_hash_df = average_segment_length_by_modality(
+                        hash_filtered_df,
+                        variable,
+                        filtered_connectors,
+                        selected_modalities or None,
+                        segmentation_mode,
                     )
 
-                    lms_chart = (
-                        alt.Chart(per_modality_hash_df)
-                        .mark_bar()
-                        .encode(
-                            x=alt.X("modalite:N", title="Modalité"),
-                            y=alt.Y("lms:Q", title="LMS (mots)"),
-                            color=alt.Color("modalite:N", title="Modalité"),
-                            tooltip=[
-                                alt.Tooltip("modalite:N", title="Modalité"),
-                                alt.Tooltip("lms:Q", title="LMS", format=".4f"),
-                                alt.Tooltip("segments:Q", title="Segments"),
-                            ],
+                    if not per_modality_hash_df.empty:
+                        st.subheader(f"LMS par modalité sélectionnée ({variable})")
+                        st.dataframe(
+                            per_modality_hash_df.rename(
+                                columns={
+                                    "modalite": "Modalité",
+                                    "segments": "Segments comptés",
+                                    "lms": "LMS",
+                                }
+                            ),
+                            use_container_width=True,
                         )
-                    )
 
-                    st.altair_chart(lms_chart, use_container_width=True)
-
-                std_by_modality_df = standard_deviation_by_modality(
-                    hash_filtered_df,
-                    None if hash_variable_choice == "(Aucune)" else hash_variable_choice,
-                    filtered_connectors,
-                    hash_modalities or None,
-                    segmentation_mode,
-                )
-
-                if not std_by_modality_df.empty:
-                    st.subheader("Ecart-type")
-                    st.markdown(ECART_TYPE_EXPLANATION)
-                    st.dataframe(
-                        std_by_modality_df.rename(
-                            columns={
-                                "modalite": "Modalité",
-                                "segments": "Segments comptés",
-                                "lms": "LMS",
-                                "ecart_type": "Écart-type",
-                            }
-                        ),
-                        use_container_width=True,
-                    )
-
-                    std_chart = (
-                        alt.Chart(std_by_modality_df)
-                        .mark_bar()
-                        .encode(
-                            x=alt.X("modalite:N", title="Modalité"),
-                            y=alt.Y("ecart_type:Q", title="Écart-type (mots)"),
-                            color=alt.Color("modalite:N", title="Modalité"),
-                            tooltip=[
-                                alt.Tooltip("modalite:N", title="Modalité"),
-                                alt.Tooltip("ecart_type:Q", title="Écart-type", format=".4f"),
-                                alt.Tooltip("segments:Q", title="Segments"),
-                                alt.Tooltip("lms:Q", title="LMS", format=".4f"),
-                            ],
-                        )
-                    )
-
-                    st.altair_chart(std_chart, use_container_width=True)
-
-                    st.markdown("#### Dispersion des longueurs (moyenne ± écart-type)")
-
-                    dispersion_chart = (
-                        alt.Chart(
-                            std_by_modality_df.assign(
-                                borne_inferieure=lambda df: (df["lms"] - df["ecart_type"]).clip(lower=0),
-                                borne_superieure=lambda df: df["lms"] + df["ecart_type"],
+                        lms_chart = (
+                            alt.Chart(per_modality_hash_df)
+                            .mark_bar()
+                            .encode(
+                                x=alt.X("modalite:N", title="Modalité"),
+                                y=alt.Y("lms:Q", title="LMS (mots)"),
+                                color=alt.Color("modalite:N", title="Modalité"),
+                                tooltip=[
+                                    alt.Tooltip("modalite:N", title="Modalité"),
+                                    alt.Tooltip("lms:Q", title="LMS", format=".4f"),
+                                    alt.Tooltip("segments:Q", title="Segments"),
+                                ],
                             )
                         )
-                        .mark_errorbar(orient="horizontal")
-                        .encode(
-                            y=alt.Y("modalite:N", title="Modalité"),
-                            x=alt.X("borne_inferieure:Q", title="Longueur (mots)"),
-                            x2="borne_superieure:Q",
-                            color=alt.Color("modalite:N", title="Modalité"),
-                            tooltip=[
-                                alt.Tooltip("modalite:N", title="Modalité"),
-                                alt.Tooltip("lms:Q", title="LMS (moyenne)", format=".2f"),
-                                alt.Tooltip("ecart_type:Q", title="Écart-type", format=".2f"),
-                                alt.Tooltip("segments:Q", title="Segments comptés"),
-                            ],
-                        )
+
+                        st.altair_chart(lms_chart, use_container_width=True)
+
+                    std_by_modality_df = standard_deviation_by_modality(
+                        hash_filtered_df,
+                        variable,
+                        filtered_connectors,
+                        selected_modalities or None,
+                        segmentation_mode,
                     )
 
-                    lms_points = (
-                        alt.Chart(std_by_modality_df)
-                        .mark_point(size=70, filled=True)
-                        .encode(
-                            y=alt.Y("modalite:N", title="Modalité"),
-                            x=alt.X("lms:Q", title="Longueur (mots)"),
-                            color=alt.Color("modalite:N", title="Modalité"),
+                    if not std_by_modality_df.empty:
+                        st.subheader(f"Ecart-type ({variable})")
+                        st.markdown(ECART_TYPE_EXPLANATION)
+                        st.dataframe(
+                            std_by_modality_df.rename(
+                                columns={
+                                    "modalite": "Modalité",
+                                    "segments": "Segments comptés",
+                                    "lms": "LMS",
+                                    "ecart_type": "Écart-type",
+                                }
+                            ),
+                            use_container_width=True,
                         )
-                    )
 
-                    st.altair_chart(dispersion_chart + lms_points, use_container_width=True)
+                        std_chart = (
+                            alt.Chart(std_by_modality_df)
+                            .mark_bar()
+                            .encode(
+                                x=alt.X("modalite:N", title="Modalité"),
+                                y=alt.Y("ecart_type:Q", title="Écart-type (mots)"),
+                                color=alt.Color("modalite:N", title="Modalité"),
+                                tooltip=[
+                                    alt.Tooltip("modalite:N", title="Modalité"),
+                                    alt.Tooltip("ecart_type:Q", title="Écart-type", format=".4f"),
+                                    alt.Tooltip("segments:Q", title="Segments"),
+                                    alt.Tooltip("lms:Q", title="LMS", format=".4f"),
+                                ],
+                            )
+                        )
+
+                        st.altair_chart(std_chart, use_container_width=True)
+
+                        st.markdown(
+                            "#### Dispersion des longueurs (moyenne ± écart-type)"
+                        )
+
+                        dispersion_chart = (
+                            alt.Chart(
+                                std_by_modality_df.assign(
+                                    borne_inferieure=lambda df: (
+                                        df["lms"] - df["ecart_type"]
+                                    ).clip(lower=0),
+                                    borne_superieure=lambda df: df["lms"] + df["ecart_type"],
+                                )
+                            )
+                            .mark_errorbar(orient="horizontal")
+                            .encode(
+                                y=alt.Y("modalite:N", title="Modalité"),
+                                x=alt.X("borne_inferieure:Q", title="Longueur (mots)"),
+                                x2="borne_superieure:Q",
+                                color=alt.Color("modalite:N", title="Modalité"),
+                                tooltip=[
+                                    alt.Tooltip("modalite:N", title="Modalité"),
+                                    alt.Tooltip("lms:Q", title="LMS (moyenne)", format=".2f"),
+                                    alt.Tooltip("ecart_type:Q", title="Écart-type", format=".2f"),
+                                    alt.Tooltip("segments:Q", title="Segments comptés"),
+                                ],
+                            )
+                        )
+
+                        lms_points = (
+                            alt.Chart(std_by_modality_df)
+                            .mark_point(size=70, filled=True)
+                            .encode(
+                                y=alt.Y("modalite:N", title="Modalité"),
+                                x=alt.X("lms:Q", title="Longueur (mots)"),
+                                color=alt.Color("modalite:N", title="Modalité"),
+                            )
+                        )
+
+                        st.altair_chart(
+                            dispersion_chart + lms_points, use_container_width=True
+                        )
 
     with tabs[7]:
         st.subheader("Regex motifs")
