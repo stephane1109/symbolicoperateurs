@@ -9,11 +9,14 @@ de texte délimités par les connecteurs détectés dans le texte. L'idée :
 
 import re
 from statistics import mean
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Literal, Optional
 
 import pandas as pd
 
 from densite import build_text_from_dataframe, filter_dataframe_by_modalities
+
+
+SegmentationMode = Literal["connecteurs", "connecteurs_et_ponctuation"]
 
 
 METADATA_LINE_PATTERN = re.compile(r"^\*{4}\s+\*model_gpt\s+\*prompt_1\s*$", re.IGNORECASE)
@@ -71,6 +74,29 @@ def _build_connector_pattern(connectors: Dict[str, str]) -> re.Pattern[str] | No
     return re.compile(rf"\b({pattern})\b", re.IGNORECASE)
 
 
+def _build_boundary_pattern(
+    connectors: Dict[str, str], include_punctuation: bool
+) -> re.Pattern[str] | None:
+    """Construire un motif pour les bornes de segment (connecteurs, ponctuation)."""
+
+    connector_pattern = _build_connector_pattern(connectors)
+    punctuation_pattern = r"[\.!?;:]+" if include_punctuation else None
+
+    if connector_pattern is None and not punctuation_pattern:
+        return None
+
+    if connector_pattern is None:
+        return re.compile(punctuation_pattern, re.IGNORECASE)
+
+    if not punctuation_pattern:
+        return connector_pattern
+
+    return re.compile(
+        rf"{connector_pattern.pattern}|{punctuation_pattern}",
+        re.IGNORECASE,
+    )
+
+
 def _tokenize(text: str) -> List[str]:
     return re.findall(r"\b\w+\b", text, flags=re.UNICODE)
 
@@ -101,15 +127,19 @@ def _segments_with_boundaries(
     return segments
 
 
-def split_segments_by_connectors(text: str, connectors: Dict[str, str]) -> List[str]:
-    """Découper le texte en segments entre les connecteurs fournis."""
+def split_segments_by_connectors(
+    text: str, connectors: Dict[str, str], segmentation_mode: SegmentationMode = "connecteurs"
+) -> List[str]:
+    """Découper le texte en segments entre les connecteurs ou ponctuations choisies."""
 
     if not text:
         return []
 
     text = _remove_metadata_first_line(text)
 
-    pattern = _build_connector_pattern(connectors)
+    pattern = _build_boundary_pattern(
+        connectors, include_punctuation=(segmentation_mode == "connecteurs_et_ponctuation")
+    )
 
     if pattern is None:
         return []
@@ -119,10 +149,12 @@ def split_segments_by_connectors(text: str, connectors: Dict[str, str]) -> List[
     return [segment for segment, _, _ in segments_with_boundaries]
 
 
-def compute_segment_word_lengths(text: str, connectors: Dict[str, str]) -> List[int]:
-    """Obtenir la longueur (en mots) de chaque segment entre connecteurs."""
+def compute_segment_word_lengths(
+    text: str, connectors: Dict[str, str], segmentation_mode: SegmentationMode = "connecteurs"
+) -> List[int]:
+    """Obtenir la longueur (en mots) de chaque segment selon le mode de segmentation."""
 
-    segments = split_segments_by_connectors(text, connectors)
+    segments = split_segments_by_connectors(text, connectors, segmentation_mode)
     lengths = []
 
     for segment in segments:
@@ -135,7 +167,7 @@ def compute_segment_word_lengths(text: str, connectors: Dict[str, str]) -> List[
 
 
 def segments_with_word_lengths(
-    text: str, connectors: Dict[str, str]
+    text: str, connectors: Dict[str, str], segmentation_mode: SegmentationMode = "connecteurs"
 ) -> List[Dict[str, str | int]]:
     """Retourner chaque segment avec sa longueur en mots."""
 
@@ -144,7 +176,9 @@ def segments_with_word_lengths(
 
     text = _remove_metadata_first_line(text)
 
-    pattern = _build_connector_pattern(connectors)
+    pattern = _build_boundary_pattern(
+        connectors, include_punctuation=(segmentation_mode == "connecteurs_et_ponctuation")
+    )
 
     if pattern is None:
         return []
@@ -171,10 +205,12 @@ def segments_with_word_lengths(
     return entries
 
 
-def average_segment_length(text: str, connectors: Dict[str, str]) -> float:
-    """Calculer la Longueur Moyenne des Segments (LMS) entre connecteurs."""
+def average_segment_length(
+    text: str, connectors: Dict[str, str], segmentation_mode: SegmentationMode = "connecteurs"
+) -> float:
+    """Calculer la Longueur Moyenne des Segments (LMS)."""
 
-    lengths = compute_segment_word_lengths(text, connectors)
+    lengths = compute_segment_word_lengths(text, connectors, segmentation_mode)
 
     if not lengths:
         return 0.0
@@ -187,6 +223,7 @@ def average_segment_length_by_modality(
     variable: Optional[str],
     connectors: Dict[str, str],
     modalities: Optional[Iterable[str]] = None,
+    segmentation_mode: SegmentationMode = "connecteurs",
 ) -> pd.DataFrame:
     """Calculer la LMS par modalité pour une variable donnée."""
 
@@ -202,7 +239,7 @@ def average_segment_length_by_modality(
 
     for modality, subset in filtered_df.groupby(variable):
         text_value = build_text_from_dataframe(subset)
-        lengths = compute_segment_word_lengths(text_value, connectors)
+        lengths = compute_segment_word_lengths(text_value, connectors, segmentation_mode)
         lms_value = float(mean(lengths)) if lengths else 0.0
 
         rows.append(
