@@ -4,7 +4,7 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Sequence
+from typing import Iterable, List, Mapping, Sequence
 
 import spacy
 from spacy.language import Language
@@ -12,6 +12,10 @@ from spacy.matcher import Matcher
 from spacy.tokens import Doc, Span
 
 DEFAULT_RULES_PATH = Path("dictionnaires/motifs_progr_regex.json")
+POS_HINTS: Mapping[str, dict[str, str]] = {
+    # Désambiguïse le « si » conjonction de condition/causalité.
+    "si": {"POS": "SCONJ"},
+}
 
 
 @dataclass(frozen=True)
@@ -73,7 +77,10 @@ def _extract_connectors(regex: str) -> List[tuple[list[str], bool]]:
     return connectors
 
 
-def _build_token_patterns(connectors: Sequence[tuple[list[str], bool]]) -> List[List[dict]]:
+def _build_token_patterns(
+    connectors: Sequence[tuple[list[str], bool]],
+    pos_hints: Mapping[str, Mapping[str, str]] = POS_HINTS,
+) -> List[List[dict]]:
     patterns: List[List[dict]] = [[]]
 
     for tokens, optional in connectors:
@@ -86,7 +93,10 @@ def _build_token_patterns(connectors: Sequence[tuple[list[str], bool]]) -> List[
             if current:
                 current.append({"OP": "*"})
 
-            current.extend({"LOWER": token} for token in tokens)
+            for token in tokens:
+                pattern_token = {"LOWER": token}
+                pattern_token.update(pos_hints.get(token, {}))
+                current.append(pattern_token)
             expanded.append(current)
 
         patterns = [pattern for pattern in expanded if pattern]
