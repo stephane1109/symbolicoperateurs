@@ -5,7 +5,7 @@ import re
 from dataclasses import dataclass
 from html import escape
 from pathlib import Path
-from typing import Dict, Iterable, List, Sequence
+from typing import Dict, List, Sequence
 
 
 @dataclass
@@ -141,38 +141,3 @@ def count_segments_by_pattern(segment_rows: Sequence[Dict[str, object]]) -> Dict
                 counts[identifier] = counts.get(identifier, 0) + 1
 
     return counts
-
-
-def build_regex_style_block(labels: Iterable[str]) -> str:
-    """Construire un bloc CSS pour les annotations de motifs regex."""
-
-    palette = [
-        "#0EA5E9",
-        "#22C55E",
-        "#A855F7",
-        "#F97316",
-        "#EF4444",
-        "#14B8A6",
-        "#8B5CF6",
-    ]
-
-    unique_labels = [label for label in labels if label]
-    styles: List[str] = []
-
-    for index, label in enumerate(unique_labels):
-        color = palette[index % len(palette)]
-        label_class = _slugify_identifier(label)
-        styles.append(
-            f".regex-annotation.regex-{label_class} {{ background-color: {color}1a; "
-            f"border: 1px solid {color}; border-radius: 4px; padding: 2px 4px; "
-            "margin: 0 1px; }}"
-        )
-        styles.append(
-            f".regex-annotation.regex-{label_class} .regex-label {{ color: {color}; "
-            "font-weight: 700; margin-right: 4px; }}"
-        )
-        styles.append(
-            ".regex-annotation .regex-text { color: #374151; font-weight: 500; }"
-        )
-
-    return "\n".join(styles)

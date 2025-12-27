@@ -62,30 +62,3 @@ def standard_deviation_by_modality(
         )
 
     return pd.DataFrame(rows).sort_values("modalite").reset_index(drop=True)
-
-
-def segment_lengths_by_modality(
-    dataframe: pd.DataFrame,
-    variable: Optional[str],
-    connectors: Dict[str, str],
-    modalities: Optional[Iterable[str]] = None,
-    segmentation_mode: SegmentationMode = "connecteurs",
-) -> pd.DataFrame:
-    """Retourner toutes les longueurs de segments annotées par modalité."""
-
-    if dataframe.empty:
-        return pd.DataFrame(columns=["modalite", "longueur"])
-
-    filtered_df = filter_dataframe_by_modalities(dataframe, variable, modalities)
-
-    if not variable or variable not in filtered_df.columns or filtered_df.empty:
-        return pd.DataFrame(columns=["modalite", "longueur"])
-
-    rows: List[Dict[str, float | int | str]] = []
-
-    for modality, subset in filtered_df.groupby(variable):
-        text_value = build_text_from_dataframe(subset)
-        lengths = compute_segment_word_lengths(text_value, connectors, segmentation_mode)
-        rows.extend({"modalite": modality, "longueur": length} for length in lengths)
-
-    return pd.DataFrame(rows).reset_index(drop=True)

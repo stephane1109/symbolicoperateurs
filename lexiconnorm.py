@@ -11,7 +11,6 @@ import pandas as pd
 import streamlit as st
 
 from densite import (
-    build_text_from_dataframe,
     compute_density_per_modality_by_label,
     compute_total_connectors,
     count_words,
@@ -62,37 +61,6 @@ def load_norms_from_lexicon(
                 "occurrences": float(numeric_values.sum()),
             }
         )
-
-    return pd.DataFrame(rows).sort_values("label").reset_index(drop=True)
-
-
-def compute_norm_densities_by_label(
-    text: str, connectors: Dict[str, str], labels: Sequence[str], base: int
-) -> pd.DataFrame:
-    """Calculer la densité de normes par label sur un texte donné."""
-
-    if not text or not connectors or not labels:
-        return pd.DataFrame(columns=["label", "densite", "occurrences"])
-
-    word_count = count_words(text)
-    if word_count == 0:
-        return pd.DataFrame(columns=["label", "densite", "occurrences"])
-
-    rows: List[Dict[str, float | int | str]] = []
-
-    for label in labels:
-        label_connectors = {
-            connector: connector_label
-            for connector, connector_label in connectors.items()
-            if connector_label == label
-        }
-        occurrences = compute_total_connectors(text, label_connectors)
-        density = 0.0
-
-        if occurrences:
-            density = (occurrences / word_count) * float(base)
-
-        rows.append({"label": label.lower(), "densite": density, "occurrences": occurrences})
 
     return pd.DataFrame(rows).sort_values("label").reset_index(drop=True)
 
