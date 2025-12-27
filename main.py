@@ -87,13 +87,29 @@ from graphiques.densitegraph import (
 from friedman import analyser_effet
 
 
-def guess_friedman_columns(df: pd.DataFrame) -> tuple[list[str], list[str], str | None, str | None, str | None]:
-    """Proposer automatiquement des colonnes pour l'onglet Friedman/Kruskal."""
+def guess_friedman_columns(
+    df: pd.DataFrame,
+) -> tuple[list[str], list[str], list[str], str | None, str | None, str | None]:
+    """Proposer automatiquement des colonnes pour l'onglet Friedman/Kruskal.
+
+    - ``available_columns`` : toutes les colonnes hors texte/en-tête ;
+    - ``numeric_candidates`` : colonnes déjà typées numériques ;
+    - ``convertible_candidates`` : colonnes convertibles en numérique (valeurs
+      coercibles avec ``pd.to_numeric``) pour éviter de bloquer lorsque les
+      métriques arrivent en chaîne de caractères ;
+    - ``*_guess`` : propositions pour modèle, consigne, score.
+    """
 
     available_columns = [column for column in df.columns if column not in ("texte", "entete")]
     numeric_candidates = [
         column for column in available_columns if pd.api.types.is_numeric_dtype(df[column])
     ]
+
+    convertible_candidates = []
+    for column in available_columns:
+        coerced = pd.to_numeric(df[column], errors="coerce")
+        if coerced.notna().any():
+            convertible_candidates.append(column)
 
     def find_by_keyword(columns: list[str], keywords: list[str]) -> str | None:
         for column in columns:
@@ -112,7 +128,8 @@ def guess_friedman_columns(df: pd.DataFrame) -> tuple[list[str], list[str], str 
     )
     consigne_guess = find_by_keyword(available_columns, ["consigne", "prompt", "instruction"])
     score_guess = find_by_keyword(
-        numeric_candidates, ["score", "metric", "métrique", "densite", "densité", "lms", "note"]
+        numeric_candidates + convertible_candidates,
+        ["score", "metric", "métrique", "densite", "densité", "density", "lms", "note", "hash"],
     )
 
     if modele_guess is None:
@@ -122,9 +139,18 @@ def guess_friedman_columns(df: pd.DataFrame) -> tuple[list[str], list[str], str 
         consigne_guess = first_distinct(available_columns, {modele_guess})
 
     if score_guess is None:
-        score_guess = first_distinct(numeric_candidates, {modele_guess, consigne_guess})
+        score_guess = first_distinct(
+            numeric_candidates + convertible_candidates, {modele_guess, consigne_guess}
+        )
 
-    return available_columns, numeric_candidates, modele_guess, consigne_guess, score_guess
+    return (
+        available_columns,
+        numeric_candidates,
+        convertible_candidates,
+        modele_guess,
+        consigne_guess,
+        score_guess,
+    )
 
 
 def main() -> None:
@@ -1667,6 +1693,7 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
         (
             available_columns,
             numeric_candidates,
+            convertible_candidates,
             modele_guess,
             consigne_guess,
             score_guess,
@@ -1699,6 +1726,13 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
                 st.warning(
                     "Aucune colonne numérique détectée automatiquement. Sélectionnez "
                     "manuellement une mesure quantitative avant de lancer l'analyse."
+                )
+            elif not convertible_candidates:
+                st.caption("Colonnes numériques détectées : " + ", ".join(numeric_candidates))
+            else:
+                st.caption(
+                    "Colonnes numériques ou convertibles détectées : "
+                    + ", ".join(sorted(set(numeric_candidates + convertible_candidates)))
                 )
 
             default_modele_index = (
