@@ -41,7 +41,6 @@ from lexiconnorm import render_lexicon_norm_tab
 from ngram import build_ngram_pattern, compute_ngram_statistics
 from densite import (
     compute_density,
-    compute_density_by_label,
     compute_total_connectors,
     count_words,
     build_text_from_dataframe,
@@ -83,7 +82,6 @@ from tf_idf import render_tfidf_tab
 from graphiques.densitegraph import (
     build_connector_density_chart,
     build_density_chart,
-    build_density_scatter_chart,
 )
 
 
@@ -544,94 +542,6 @@ def main() -> None:
                             build_connector_density_chart(per_modality_label_df),
                             use_container_width=True,
                         )
-
-                density_labels = sorted(set(filtered_connectors.values()))
-
-                if not density_labels:
-                    st.info("Aucun label de connecteur disponible pour le graphique de classification.")
-                else:
-                    default_x_index = density_labels.index("ALTERNATIVE") if "ALTERNATIVE" in density_labels else 0
-                    default_y_index = density_labels.index("CONDITION") if "CONDITION" in density_labels else min(1, len(density_labels) - 1)
-
-                    st.subheader("Classification visuelle (X-Y)")
-                    col_x, col_y = st.columns(2)
-                    selected_x_label = col_x.selectbox(
-                        "Marqueur pour l'axe horizontal",
-                        density_labels,
-                        index=default_x_index,
-                        help="Choisissez le connecteur dont la densité sera placée sur l'axe horizontal.",
-                    )
-                    selected_y_label = col_y.selectbox(
-                        "Marqueur pour l'axe vertical",
-                        density_labels,
-                        index=default_y_index,
-                        help="Choisissez le connecteur dont la densité sera placée sur l'axe vertical.",
-                    )
-
-                    scatter_rows: List[Dict[str, float | str]] = []
-
-                    if density_variable_choice != "(Aucune)":
-                        for modality, subset in density_filtered_df.groupby(
-                            density_variable_choice
-                        ):
-                            text_value = build_text_from_dataframe(subset)
-                            densities = compute_density_by_label(
-                                text_value,
-                                filtered_connectors,
-                                base=int(base),
-                            )
-                            scatter_rows.append(
-                                {
-                                    "entree": f"{density_variable_choice} = {modality}",
-                                    "densite_x": densities.get(selected_x_label, 0.0),
-                                    "densite_y": densities.get(selected_y_label, 0.0),
-                                    "densite_totale": compute_density(
-                                        text_value, filtered_connectors, base=int(base)
-                                    ),
-                                    density_variable_choice: modality,
-                                }
-                            )
-                    else:
-                        for idx, row in density_filtered_df.iterrows():
-                            text_value = str(row.get("texte", "") or "")
-                            densities = compute_density_by_label(
-                                text_value,
-                                filtered_connectors,
-                                base=int(base),
-                            )
-                            scatter_rows.append(
-                                {
-                                    "entree": (str(row.get("entete", "")).strip() or f"Entrée {idx + 1}"),
-                                    "densite_x": densities.get(selected_x_label, 0.0),
-                                    "densite_y": densities.get(selected_y_label, 0.0),
-                                    "densite_totale": compute_density(
-                                        text_value, filtered_connectors, base=int(base)
-                                    ),
-                                    **{
-                                        variable: str(row.get(variable, ""))
-                                        for variable in selected_variables
-                                        if variable in density_filtered_df.columns
-                                    },
-                                }
-                            )
-
-                    scatter_df = pd.DataFrame(scatter_rows)
-
-                    if scatter_df.empty:
-                        st.info("Aucune donnée disponible pour générer le graphique de densité.")
-                    else:
-                        tooltip_fields = ["entree", "densite_x", "densite_y", "densite_totale"] + [
-                            variable for variable in selected_variables if variable in scatter_df.columns
-                        ]
-
-                        scatter_chart = build_density_scatter_chart(
-                            scatter_df,
-                            selected_x_label,
-                            selected_y_label,
-                            tooltip_fields=tooltip_fields,
-                        )
-
-                        st.altair_chart(scatter_chart, use_container_width=True)
 
     with tabs[5]:
         render_connectors_reminder(filtered_connectors)
