@@ -3,35 +3,30 @@
   "description": "Motifs regex minimalistes pour détecter des structures de type programmation (condition, branchement, séquence) dans un corpus en minuscules, une fois le texte déjà découpé en segments.",
   "patterns": [
     {
-      "id": "if_then_same_sentence",
       "interpretation": "si X, alors je fais Z",
       "label": "si … alors - si X, alors je fais Z",
       "category": "IF_THEN",
       "regex": "\\bsi\\b.*?\\balors\\b"
     },
     {
-      "id": "if_or_optional_then_same_sentence",
       "interpretation": "si X ou Y, (alors) je fais Z",
       "label": "si … ou … (alors) - si X ou Y, (alors) je fais Z",
       "category": "IF_OR",
       "regex": "\\bsi\\b.*?\\bou\\b.*?(?:\\balors\\b)?"
     },
     {
-      "id": "if_then_else_same_sentence",
       "interpretation": "si X, alors je fais Z, sinon je fais W",
       "label": "si … alors … sinon - si X, alors je fais Z, sinon je fais W",
       "category": "IF_THEN_ELSE",
       "regex": "\\bsi\\b.*?\\balors\\b.*?\\bsinon\\b"
     },
     {
-      "id": "procedure_dabord_puis_ensuite_same_sentence",
       "interpretation": "d’abord je fais X, puis je fais Y, (ensuite je fais Z)",
       "label": "d’abord … puis … (ensuite) - d’abord je fais X, puis je fais Y, (ensuite je fais Z)",
       "category": "PROCEDURE",
       "regex": "\\bd[’']?\\s*abord\\b.*?\\bpuis\\b(?:.*?\\bensuite\\b)?"
     },
     {
-      "id": "if_or_or_same_sentence",
       "interpretation": "si X ou Y ou (si) Z, (alors) je fais W",
       "label": "si … ou … ou - si X ou Y ou (si) Z, (alors) je fais W",
       "category": "IF_OR_OR",
@@ -39,7 +34,6 @@
       "notes": "Deux alternatives OU successives. La seconde peut être de la forme « ou si … ». « alors » reste optionnel."
     },
     {
-      "id": "if_or_if_same_sentence",
       "interpretation": "si X, ou si Y, je fais Z",
       "label": "si … ou si - si X, ou si Y, je fais Z",
       "category": "IF_OR_IF",
@@ -47,7 +41,6 @@
       "notes": "Détecte « si … ou si … » sans traverser la ponctuation."
     },
     {
-    "id": "if_and_then_same_sentence",
     "label": "si … et … alors - si X et Y, alors je fais Z",
     "category": "IF_AND_THEN",
     "regex": "\\bsi\\b[^.!?;:\\n]*?\\bet\\b[^.!?;:\\n]*?\\balors\\b",
@@ -55,7 +48,6 @@
     "notes": "Cumul de conditions (AND) avec marqueur de conséquence explicite."
     },
     {
-    "id": "if_and_no_then_same_sentence",
     "label": "si … et … (sans alors) - si X et Y, je fais Z",
     "category": "IF_AND_NO_THEN",
     "regex": "\\bsi\\b(?![^.!?;:\\n]*?\\balors\\b)[^.!?;:\\n]*?\\bet\\b[^.!?;:\\n]*?",
