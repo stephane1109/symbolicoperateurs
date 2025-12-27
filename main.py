@@ -552,8 +552,9 @@ def main() -> None:
         render_connectors_reminder(filtered_connectors)
         st.write(
             """
-La "LMS" correspond à la Longueur Moyenne des Segments d'un texte, délimités ici par un
-point (ou !, ?), ou par un retour à la ligne. Hypothèse :
+La "LMS" correspond à la Longueur Moyenne des Segments d'un texte, délimités uniquement
+par les connecteurs sélectionnés (mots ou locutions du dictionnaire). La ponctuation qui
+n'est pas un connecteur n'intervient pas dans le découpage. Hypothèse :
 - Des segments courts signalent un texte "haché", saccadé, algorithmique.
 - Des segments longs évoquent une prose fluide, narrative ou explicative.
             """
@@ -562,7 +563,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
 
         if not segment_lengths:
             st.info(
-                "Impossible de calculer la LMS : aucun segment n'a été détecté (ponctuation/retours à la ligne)."
+                "Impossible de calculer la LMS : aucun segment n'a été détecté entre connecteurs."
             )
         else:
             st.subheader("Sélection des variables/modalités")
