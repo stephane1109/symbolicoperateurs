@@ -1672,10 +1672,18 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
             score_guess,
         ) = guess_friedman_columns(df)
 
+        st.caption(
+            "Colonnes détectées (hors texte/en-tête) : "
+            + ", ".join(available_columns)
+            if available_columns
+            else "Aucune colonne détectée au-delà du texte et de l'entête."
+        )
+
         if len(available_columns) < 3:
             st.info(
                 "Ajoutez au moins trois colonnes (modèle, consigne, métrique numérique) "
-                "dans votre fichier pour lancer l'analyse."
+                "dans votre fichier pour lancer l'analyse. Si ces colonnes existent déjà, "
+                "renommez-les pour qu'elles soient distinctes et relancez l'import."
             )
         else:
             effect_choice = st.radio(
