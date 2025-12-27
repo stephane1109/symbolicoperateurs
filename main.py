@@ -657,6 +657,21 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
                     "Impossible de calculer la LMS : aucun segment n'a été détecté entre connecteurs."
                 )
             else:
+                st.download_button(
+                    label="Télécharger le texte",
+                    data=hash_text,
+                    file_name="texte_filtre_hash.txt",
+                    mime="text/plain",
+                    help=(
+                        "Récupérez le texte correspondant aux variables/modalités sélectionnées pour"
+                        " vérifier le filtrage appliqué."
+                    ),
+                )
+                st.caption(
+                    "Utilisez ce bouton pour contrôler le contenu exact retenu après votre sélection"
+                    " de variables et modalités."
+                )
+
                 segment_entries = segments_with_word_lengths(
                     hash_text, filtered_connectors, segmentation_mode
                 )
