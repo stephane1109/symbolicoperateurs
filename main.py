@@ -27,7 +27,6 @@ from fcts_utils import (
     build_dataframe,
     build_variable_stats,
     display_centered_chart,
-    display_centered_image,
     parse_iramuteq,
     render_connectors_reminder,
 )
@@ -81,10 +80,6 @@ from simicosinus import (
     get_french_stopwords,
 )
 from tf_idf import render_tfidf_tab
-from graphiques.igraph import (
-    CosineGraphConfig,
-    create_cosine_network_image,
-)
 from graphiques.densitegraph import (
     build_connector_density_chart,
     build_density_chart,
@@ -1630,30 +1625,6 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
         )
 
         display_centered_chart(heatmap)
-
-        st.markdown("### Réseau des similarités")
-        similarity_threshold = st.slider(
-            "Seuil minimal de similarité cosinus pour afficher une arête",
-            min_value=0.0,
-            max_value=1.0,
-            value=0.5,
-            step=0.05,
-        )
-        layout_choice = st.selectbox(
-            "Disposition du graphe",
-            ["fruchterman_reingold", "kamada_kawai", "circle"],
-            help="Choisissez l'algorithme de placement des nœuds.",
-        )
-
-        config = CosineGraphConfig(min_similarity=similarity_threshold, layout=layout_choice)
-        network_image = create_cosine_network_image(
-            similarity_df.to_numpy(), similarity_df.index.tolist(), config
-        )
-
-        display_centered_image(
-            network_image,
-            "Réseau des similarités cosinus",
-        )
 
 
 if __name__ == "__main__":
