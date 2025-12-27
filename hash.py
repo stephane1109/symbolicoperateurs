@@ -75,11 +75,13 @@ def _build_connector_pattern(connectors: Dict[str, str]) -> re.Pattern[str] | No
 
 
 def _build_boundary_pattern(
-    connectors: Dict[str, str], include_punctuation: bool
+    connectors: Dict[str, str],
+    include_punctuation: bool,
+    connector_pattern: re.Pattern[str] | None = None,
 ) -> re.Pattern[str] | None:
     """Construire un motif pour les bornes de segment (connecteurs, ponctuation)."""
 
-    connector_pattern = _build_connector_pattern(connectors)
+    connector_pattern = connector_pattern or _build_connector_pattern(connectors)
     punctuation_pattern = r"[\.!?;:]+" if include_punctuation else None
 
     if connector_pattern is None and not punctuation_pattern:
@@ -99,6 +101,23 @@ def _build_boundary_pattern(
 
 def _tokenize(text: str) -> List[str]:
     return re.findall(r"\b\w+\b", text, flags=re.UNICODE)
+
+
+def _build_boundary_pattern_for_text(
+    text: str, connectors: Dict[str, str], segmentation_mode: SegmentationMode
+) -> re.Pattern[str] | None:
+    """Choisir un motif de segmentation adapté au contenu fourni."""
+
+    connector_pattern = _build_connector_pattern(connectors)
+    include_punctuation = (
+        segmentation_mode == "connecteurs_et_ponctuation"
+        and connector_pattern is not None
+        and connector_pattern.search(text) is not None
+    )
+
+    return _build_boundary_pattern(
+        connectors, include_punctuation, connector_pattern=connector_pattern
+    )
 
 
 def _segments_with_boundaries(
@@ -137,9 +156,7 @@ def split_segments_by_connectors(
 
     text = _remove_metadata_first_line(text)
 
-    pattern = _build_boundary_pattern(
-        connectors, include_punctuation=(segmentation_mode == "connecteurs_et_ponctuation")
-    )
+    pattern = _build_boundary_pattern_for_text(text, connectors, segmentation_mode)
 
     if pattern is None:
         return []
@@ -176,9 +193,7 @@ def segments_with_word_lengths(
 
     text = _remove_metadata_first_line(text)
 
-    pattern = _build_boundary_pattern(
-        connectors, include_punctuation=(segmentation_mode == "connecteurs_et_ponctuation")
-    )
+    pattern = _build_boundary_pattern_for_text(text, connectors, segmentation_mode)
 
     if pattern is None:
         return []
