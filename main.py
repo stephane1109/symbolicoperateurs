@@ -660,8 +660,6 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                                 "modalite": "Modalité",
                                 "segments": "Segments comptés",
                                 "lms": "LMS",
-                                "min": "Min",
-                                "max": "Max",
                             }
                         ),
                         use_container_width=True,
@@ -678,8 +676,6 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
                                 alt.Tooltip("modalite:N", title="Modalité"),
                                 alt.Tooltip("lms:Q", title="LMS", format=".4f"),
                                 alt.Tooltip("segments:Q", title="Segments"),
-                                alt.Tooltip("min:Q", title="Min"),
-                                alt.Tooltip("max:Q", title="Max"),
                             ],
                         )
                     )
