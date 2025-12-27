@@ -191,12 +191,12 @@ def average_segment_length_by_modality(
     """Calculer la LMS par modalité pour une variable donnée."""
 
     if dataframe.empty:
-        return pd.DataFrame(columns=["modalite", "segments", "lms", "min", "max"])
+        return pd.DataFrame(columns=["modalite", "segments", "lms"])
 
     filtered_df = filter_dataframe_by_modalities(dataframe, variable, modalities)
 
     if not variable or variable not in filtered_df.columns or filtered_df.empty:
-        return pd.DataFrame(columns=["modalite", "segments", "lms", "min", "max"])
+        return pd.DataFrame(columns=["modalite", "segments", "lms"])
 
     rows: List[Dict[str, float | int | str]] = []
 
@@ -210,8 +210,6 @@ def average_segment_length_by_modality(
                 "modalite": modality,
                 "segments": len(lengths),
                 "lms": lms_value,
-                "min": min(lengths) if lengths else 0,
-                "max": max(lengths) if lengths else 0,
             }
         )
 
