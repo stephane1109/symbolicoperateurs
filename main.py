@@ -67,7 +67,7 @@ from regexanalyse import (
     split_segments,
     summarize_matches_by_segment,
 )
-from pattern import find_logical_patterns, load_logical_patterns, load_spacy_model
+from pattern import find_logical_patterns, load_spacy_model
 from test_lesch_Kincaid import (
     READABILITY_SCALE,
     compute_flesch_kincaid_metrics,
@@ -998,31 +998,23 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
         st.subheader("Patterns")
         st.markdown(
             """
-            Cette section s'appuie sur spaCy pour repérer des combinaisons de connecteurs
-            définies dans le fichier `dictionnaires/motifs_progr_regex.json`. Chaque motif
-            met en évidence une relation logique (catégorie, interprétation) directement
-            dans le texte filtré.
+            Cette section s'appuie sur spaCy et le POS-tagging pour repérer des
+            occurrences des connecteurs « si » et « alors ». Sélectionnez les
+            connecteurs à analyser pour voir le texte annoté et le nombre de
+            patterns détectés.
             """
         )
 
-        try:
-            logical_patterns = load_logical_patterns()
-        except FileNotFoundError:
-            st.error(
-                "Le fichier `dictionnaires/motifs_progr_regex.json` est introuvable. "
-                "Ajoutez-le pour utiliser les patterns."
-            )
-            logical_patterns = []
-        except json.JSONDecodeError:
-            st.error(
-                "Le fichier `motifs_progr_regex.json` ne contient pas un JSON valide."
-            )
-            logical_patterns = []
+        col_si, col_alors = st.columns(2)
+        with col_si:
+            si_checked = st.checkbox("si", value=True)
+        with col_alors:
+            alors_checked = st.checkbox("alors", value=True)
 
-        if not logical_patterns:
-            st.info(
-                "Aucune règle de pattern n'a pu être chargée. Vérifiez le dictionnaire associé."
-            )
+        selected_connectors = [connector for connector, checked in (("si", si_checked), ("alors", alors_checked)) if checked]
+
+        if not selected_connectors:
+            st.info("Sélectionnez au moins un connecteur pour lancer la détection.")
         else:
             try:
                 nlp = get_cached_spacy_model()
@@ -1038,7 +1030,7 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
                 nlp = None
 
             if nlp is not None:
-                matches = find_logical_patterns(combined_text, nlp)
+                matches = find_logical_patterns(combined_text, selected_connectors, nlp)
 
                 pattern_colors = generate_label_colors(
                     [match.get("label", "") for match in matches]
@@ -1120,24 +1112,6 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
                         st.altair_chart(chart, use_container_width=True)
                 else:
                     st.info("Aucun pattern n'a été détecté dans le texte filtré.")
-
-        st.markdown("---")
-        st.subheader("Règles de patterns disponibles")
-
-        if logical_patterns:
-            patterns_df = pd.DataFrame(
-                [
-                    {
-                        "Label": pattern.label,
-                        "Catégorie": pattern.category,
-                        "Interprétation": pattern.interpretation,
-                        "Regex": pattern.regex,
-                    }
-                    for pattern in logical_patterns
-                ]
-            )
-
-            st.dataframe(patterns_df, use_container_width=True)
 
     with tabs[9]:
         st.subheader("Test de lisibilité (Flesch-Kincaid)")
