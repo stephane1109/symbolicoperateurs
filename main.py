@@ -731,7 +731,7 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
                     )
 
                     if not per_modality_hash_df.empty:
-                        st.subheader(f"Modalité(s) sélectionnée(s) de la {variable}")
+                        st.subheader(f"Modalité(s) sélectionnée(s) de la variable : {variable}")
                         st.dataframe(
                             per_modality_hash_df.rename(
                                 columns={
@@ -769,7 +769,7 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
                     )
 
                     if not std_by_modality_df.empty:
-                        st.subheader(f"Ecart-type de {variable}")
+                        st.subheader(f"Ecart-type de la variable : {variable}")
                         st.markdown(ECART_TYPE_EXPLANATION)
                         st.dataframe(
                             std_by_modality_df.rename(
