@@ -33,27 +33,6 @@ def _build_connector_pattern(connectors: Dict[str, str]) -> re.Pattern[str]:
     return re.compile(rf"\b({pattern})\b", re.IGNORECASE)
 
 
-def annotate_connectors(text: str, connectors: Dict[str, str]) -> str:
-    """Insérer les étiquettes des connecteurs avant chaque occurrence dans le texte."""
-
-    if not text:
-        return ""
-
-    cleaned_connectors = {key: value for key, value in connectors.items() if key}
-    if not cleaned_connectors:
-        return text
-
-    pattern = _build_connector_pattern(cleaned_connectors)
-    lower_map = {key.lower(): value for key, value in cleaned_connectors.items()}
-
-    def _replacer(match: re.Match[str]) -> str:
-        matched_connector = match.group(0)
-        label = lower_map.get(matched_connector.lower(), "")
-        return f"[{label}] {matched_connector}"
-
-    return pattern.sub(_replacer, text)
-
-
 def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
     """Retourner une version HTML du texte annoté avec les labels des connecteurs.
 

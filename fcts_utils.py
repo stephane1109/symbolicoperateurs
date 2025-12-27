@@ -7,7 +7,6 @@ thématiques.
 
 from __future__ import annotations
 
-import io
 from typing import Dict, List
 
 import altair as alt
@@ -15,22 +14,6 @@ import pandas as pd
 import streamlit as st
 
 from analyses import count_connectors_by_label
-
-
-def display_centered_image(image_buffer: io.BytesIO, caption: str, width: int = 1200) -> None:
-    """## Afficher une image centrée
-
-    - **Objectif** : présenter une image générée (graphique, réseau, etc.) dans une
-      colonne centrale pour une lecture confortable.
-    - **Paramètres** :
-      - `image_buffer` : flux mémoire contenant l'image à afficher.
-      - `caption` : légende qui contextualise le visuel.
-      - `width` : largeur maximale en pixels pour conserver une mise en page cohérente.
-    - **Retour** : `None` — l'image est directement rendue dans l'interface Streamlit.
-    """
-
-    center_col = st.columns([1, 2, 1])[1]
-    center_col.image(image_buffer, width=width, caption=caption)
 
 
 def display_centered_chart(chart: alt.Chart) -> None:
