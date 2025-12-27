@@ -10,3 +10,7 @@ matplotlib==3.9.1
 vl-convert-python==1.6.1
 wordcloud==1.9.3
 spacy==3.7.5
+
+spacy-lookups-data==1.0.5
+# Modèle FR "md" installé depuis le wheel officiel (compatible spaCy 3.7.x)
+fr-core-news-sm @ https://github.com/explosion/spacy-models/releases/download/fr_core_news_sm-3.7.0/fr_core_news_sm-3.7.0-py3-none-any.whl
