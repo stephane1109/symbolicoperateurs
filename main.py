@@ -1580,7 +1580,7 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
             .properties(
                 title="Carte de chaleur des similarités",
                 width=alt.Step(80),
-                height=alt.Step(40),
+                height=alt.Step(80),
             )
         )
 
