@@ -116,8 +116,29 @@ def load_logical_patterns(path: Path = DEFAULT_RULES_PATH) -> List[LogicalPatter
     return logical_patterns
 
 
-def load_spacy_model(model: str = "fr_core_news_sm") -> Language:
-    return spacy.load(model)
+def load_spacy_model(model: str | None = None) -> Language:
+    """Charger un modèle spaCy français.
+
+    Essaie d'abord le modèle moyen (md) puis le petit (sm) pour assurer la
+    compatibilité avec les environnements où seul l'un des deux est installé.
+    """
+
+    candidates = [model] if model else ["fr_core_news_md", "fr_core_news_sm"]
+    last_error: Exception | None = None
+
+    for candidate in candidates:
+        if candidate is None:
+            continue
+
+        try:
+            return spacy.load(candidate)
+        except OSError as exc:  # noqa: PERF203 - boucle courte
+            last_error = exc
+
+    if last_error is not None:
+        raise last_error
+
+    raise OSError("Aucun modèle spaCy français n'a été fourni.")
 
 
 def build_matcher(nlp: Language, patterns: Iterable[LogicalPattern]) -> Matcher:

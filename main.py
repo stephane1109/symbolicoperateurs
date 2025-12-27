@@ -1028,8 +1028,9 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
                 nlp = get_cached_spacy_model()
             except OSError:
                 st.error(
-                    "Le modèle spaCy `fr_core_news_sm` est introuvable. Installez-le avec "
-                    "`python -m spacy download fr_core_news_sm` pour activer cette section."
+                    "Le modèle spaCy `fr_core_news_md` (ou `fr_core_news_sm`) est introuvable. "
+                    "Installez-le avec `python -m spacy download fr_core_news_md` pour activer "
+                    "cette section."
                 )
                 nlp = None
             except Exception as exc:  # noqa: BLE001
