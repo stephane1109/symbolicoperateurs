@@ -440,22 +440,16 @@ def main() -> None:
                     "Utilisez ce bouton pour vérifier facilement le contenu exact retenu après votre sélection de variables et modalités."
                 )
 
-                base = st.number_input(
-                    "Base de normalisation (mots)",
-                    min_value=10,
-                    max_value=100_000,
-                    value=1000,
-                    step=10,
-                )
+                base = 1000
 
                 total_words = count_words(density_text)
                 total_connectors = compute_total_connectors(density_text, filtered_connectors)
-                density = compute_density(density_text, filtered_connectors, base=int(base))
+                density = compute_density(density_text, filtered_connectors, base=base)
 
                 col1, col2, col3 = st.columns(3)
                 col1.metric("Nombre total de mots", f"{total_words:,}".replace(",", " "))
                 col2.metric("Occurrences de connecteurs", f"{total_connectors:,}".replace(",", " "))
-                col3.metric(f"Densité pour {int(base):,} mots", f"{density:.2f}".replace(",", " "))
+                col3.metric(f"Densité pour {base:,} mots", f"{density:.2f}".replace(",", " "))
 
                 if total_connectors == 0:
                     st.info("Aucun connecteur détecté : la densité est nulle pour ce texte.")
@@ -469,13 +463,13 @@ def main() -> None:
                     density_filtered_df,
                     None if density_variable_choice == "(Aucune)" else density_variable_choice,
                     filtered_connectors,
-                    base=int(base),
+                    base=base,
                 )
                 per_modality_label_df = compute_density_per_modality_by_label(
                     density_filtered_df,
                     None if density_variable_choice == "(Aucune)" else density_variable_choice,
                     filtered_connectors,
-                    base=int(base),
+                    base=base,
                 )
 
                 if not per_modality_df.empty:
