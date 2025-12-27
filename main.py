@@ -84,6 +84,7 @@ from graphiques.densitegraph import (
     build_connector_density_chart,
     build_density_chart,
 )
+from friedman import analyser_effet
 
 
 def main() -> None:
@@ -130,6 +131,7 @@ def main() -> None:
             "N-gram",
             "TF-IDF",
             "Simi cosinus",
+            "Friedman",
         ]
     )
 
@@ -1612,6 +1614,115 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
         )
 
         display_centered_chart(heatmap)
+
+    with tabs[12]:
+        st.subheader("Friedman / Kruskal–Wallis")
+        st.write(
+            "Tester l'effet d'une consigne/prompt ou d'un modèle sur une métrique "
+            "numérique déjà présente dans vos données en construisant "
+            "automatiquement le tableau croisé adapté. Voir le fichier "
+            "`friedman_guide.md` pour plus de détails."
+        )
+
+        available_columns = [
+            column for column in df.columns if column not in ("texte", "entete")
+        ]
+        numeric_candidates = [
+            column for column in available_columns if pd.api.types.is_numeric_dtype(df[column])
+        ]
+
+        if len(available_columns) < 3:
+            st.info(
+                "Ajoutez au moins trois colonnes (modèle, consigne, métrique numérique) "
+                "dans votre fichier pour lancer l'analyse."
+            )
+        else:
+            effect_choice = st.radio(
+                "Effet à tester",
+                options=["consigne", "modele"],
+                help=(
+                    "Consigne : Friedman (conditions répétées sur les modèles). "
+                    "Modèle : Kruskal–Wallis (groupes indépendants)."
+                ),
+            )
+
+            default_modele_index = 0
+            default_consigne_index = 1 if len(available_columns) > 1 else 0
+            score_default_index = (
+                available_columns.index(numeric_candidates[0])
+                if numeric_candidates
+                else min(2, len(available_columns) - 1)
+            )
+
+            col_a, col_b, col_c = st.columns(3)
+            modele_column = col_a.selectbox(
+                "Colonne modèle",
+                available_columns,
+                index=default_modele_index,
+                help="Identifiant du système ou modèle évalué.",
+            )
+            consigne_column = col_b.selectbox(
+                "Colonne consigne/prompt",
+                available_columns,
+                index=default_consigne_index,
+                help="Identifiant de la consigne ou du prompt testé.",
+            )
+            score_column = col_c.selectbox(
+                "Colonne métrique numérique",
+                available_columns,
+                index=score_default_index,
+                help="Score ou mesure quantitative à comparer (densité, LMS, etc.).",
+            )
+
+            aggregation_choice = st.selectbox(
+                "Fonction d'agrégation pour le tableau croisé",
+                ["mean", "median", "max", "min"],
+                help=(
+                    "Comment agréger les valeurs quand plusieurs observations existent "
+                    "pour la même combinaison modèle/consigne."
+                ),
+            )
+
+            st.caption(
+                "Les tests nécessitent au moins deux modèles et trois consignes avec "
+                "des valeurs numériques pour chaque combinaison. Les lignes "
+                "incomplètes sont ignorées automatiquement."
+            )
+
+            if st.button("Lancer l'analyse Friedman/Kruskal–Wallis", type="primary"):
+                try:
+                    nom_test, tableau, statistique, pvalue = analyser_effet(
+                        df[[modele_column, consigne_column, score_column]].copy(),
+                        effet=effect_choice,
+                        colonne_modele=modele_column,
+                        colonne_consigne=consigne_column,
+                        colonne_score=score_column,
+                        fonction_agregation=aggregation_choice,
+                    )
+                except ValueError as exc:
+                    st.error(str(exc))
+                except Exception as exc:  # pragma: no cover - sécurité utilisateur
+                    st.error(f"Impossible d'appliquer le test : {exc}")
+                else:
+                    st.success(
+                        f"Test {nom_test} appliqué : statistique = {statistique:.4f}, "
+                        f"p-value = {pvalue:.6f}"
+                    )
+
+                    index_name = tableau.index.name or modele_column
+                    tableau_display = tableau.reset_index().rename(
+                        columns={index_name: modele_column}
+                    )
+
+                    st.markdown("### Tableau croisé utilisé")
+                    st.dataframe(tableau_display, use_container_width=True)
+
+                    st.download_button(
+                        "Télécharger le tableau (CSV)",
+                        data=tableau_display.to_csv(index=False).encode("utf-8"),
+                        file_name="tableau_croise_friedman.csv",
+                        mime="text/csv",
+                    )
 
 
 if __name__ == "__main__":
