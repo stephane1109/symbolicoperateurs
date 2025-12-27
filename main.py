@@ -392,7 +392,7 @@ def main() -> None:
         render_connectors_reminder(filtered_connectors)
         st.write(
             "Densité des textes analysés : La densité correspond au nombre de connecteurs "
-            "ramené à une base (pour 1 000 mots). "
+            "ramené à une base de 1 000 mots. "
         )
         if not filtered_connectors:
             st.info("Sélectionnez au moins un connecteur pour calculer la densité.")
@@ -453,7 +453,7 @@ def main() -> None:
 
                 st.caption(
                     "La densité correspond au nombre de connecteurs ramené à une base commune. "
-                    "Un score élevé signale un texte plus riche en articulations logiques."
+                    "Un score élevé signale un texte plus riche en connecteurs logiques."
                 )
 
                 per_modality_df = compute_density_per_modality(
