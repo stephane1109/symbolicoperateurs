@@ -1,17 +1,12 @@
 from __future__ import annotations
 
-import json
-import re
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Iterable, List, Sequence
+from typing import Iterable, List
 
 import spacy
 from spacy.language import Language
 from spacy.matcher import Matcher
 from spacy.tokens import Doc, Span
-
-DEFAULT_RULES_PATH = Path("dictionnaires/motifs_progr_regex.json")
 
 
 @dataclass(frozen=True)
@@ -22,98 +17,55 @@ class LogicalPattern:
     label: str
     category: str
     interpretation: str
-    regex: str
     token_patterns: List[List[dict]]
 
 
-def _load_json_rules(path: Path = DEFAULT_RULES_PATH) -> Sequence[dict]:
-    with path.open(encoding="utf-8") as handle:
-        payload = json.load(handle)
-    return payload.get("patterns", [])
+DEFAULT_CONNECTOR_DETAILS = {
+    "si": LogicalPattern(
+        name="LOGICAL_SI",
+        label="si",
+        category="Condition",
+        interpretation="Condition introduite par 'si'.",
+        token_patterns=[[{"LEMMA": "si", "POS": {"IN": ["SCONJ", "CCONJ", "ADV"]}}]],
+    ),
+    "alors": LogicalPattern(
+        name="LOGICAL_ALORS",
+        label="alors",
+        category="Conséquence",
+        interpretation="Conséquence ou enchaînement marqué par 'alors'.",
+        token_patterns=[[{"LEMMA": "alors", "POS": {"IN": ["SCONJ", "CCONJ", "ADV"]}}]],
+    ),
+}
 
 
-def _extract_connectors(regex: str) -> List[tuple[list[str], bool]]:
-    cleaned = regex.replace("\\b", " ")
-    raw_tokens = [
-        token
-        for token in re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ']+", cleaned)
-        if len(token) > 1
-    ]
-
-    connectors: List[tuple[list[str], bool]] = []
-    index = 0
-    while index < len(raw_tokens):
-        token = raw_tokens[index]
-
-        if f"(?![^)]*\\b{token}\\b" in regex:
-            index += 1
-            continue
-
-        optional = f"\\b{token}\\b)?" in regex
-
-        # Gestion des groupes explicites (ex: tu\s+peux)
-        if index + 1 < len(raw_tokens):
-            next_token = raw_tokens[index + 1]
-            combined = f"\\b{token}\\s+{next_token}\\b"
-            if combined in regex:
-                optional = f"{combined})?" in regex
-                connectors.append(([token, next_token], optional))
-                index += 2
-                continue
-
-        # Gestion spécifique de d'abord
-        if token == "abord" and "d[’']?\\s*abord" in regex:
-            connectors.append((['d\'', "abord"], optional))
-            index += 1
-            continue
-
-        connectors.append(([token], optional))
-        index += 1
-
-    return connectors
+def _build_combined_pattern() -> LogicalPattern:
+    return LogicalPattern(
+        name="LOGICAL_SI_ALORS",
+        label="si ... alors",
+        category="Structure conditionnelle",
+        interpretation="Relation conditionnelle reliant 'si' et 'alors'.",
+        token_patterns=[
+            [
+                {"LEMMA": "si", "POS": {"IN": ["SCONJ", "CCONJ", "ADV"]}},
+                {"OP": "*"},
+                {"LEMMA": "alors", "POS": {"IN": ["SCONJ", "CCONJ", "ADV"]}},
+            ]
+        ],
+    )
 
 
-def _build_token_patterns(connectors: Sequence[tuple[list[str], bool]]) -> List[List[dict]]:
-    patterns: List[List[dict]] = [[]]
+def build_selected_patterns(selected_connectors: Iterable[str]) -> List[LogicalPattern]:
+    normalized = {connector.lower().strip() for connector in selected_connectors}
+    patterns: List[LogicalPattern] = []
 
-    for tokens, optional in connectors:
-        expanded: List[List[dict]] = []
-        for base in patterns:
-            if optional:
-                expanded.append(base)
+    for connector in ("si", "alors"):
+        if connector in normalized:
+            patterns.append(DEFAULT_CONNECTOR_DETAILS[connector])
 
-            current = list(base)
-            if current:
-                current.append({"OP": "*"})
-
-            current.extend({"LOWER": token} for token in tokens)
-            expanded.append(current)
-
-        patterns = [pattern for pattern in expanded if pattern]
+    if {"si", "alors"}.issubset(normalized):
+        patterns.append(_build_combined_pattern())
 
     return patterns
-
-
-def load_logical_patterns(path: Path = DEFAULT_RULES_PATH) -> List[LogicalPattern]:
-    rules = _load_json_rules(path)
-    logical_patterns: List[LogicalPattern] = []
-
-    for index, rule in enumerate(rules):
-        regex = rule.get("regex", "")
-        connectors = _extract_connectors(regex)
-        token_patterns = _build_token_patterns(connectors)
-        logical_patterns.append(
-            LogicalPattern(
-                name=f"LOGICAL_{index}",
-                label=rule.get("label", ""),
-                category=rule.get("category", ""),
-                interpretation=rule.get("interpretation", ""),
-                regex=regex,
-                token_patterns=token_patterns,
-            )
-        )
-
-    return logical_patterns
 
 
 def load_spacy_model(model: str | None = None) -> Language:
@@ -150,9 +102,14 @@ def build_matcher(nlp: Language, patterns: Iterable[LogicalPattern]) -> Matcher:
     return matcher
 
 
-def find_logical_patterns(text: str, nlp: Language | None = None) -> List[dict]:
+def find_logical_patterns(
+    text: str,
+    selected_connectors: Iterable[str] | None = None,
+    nlp: Language | None = None,
+) -> List[dict]:
     nlp = nlp or load_spacy_model()
-    logical_patterns = load_logical_patterns()
+    connectors = selected_connectors if selected_connectors is not None else ("si", "alors")
+    logical_patterns = build_selected_patterns(connectors)
     matcher = build_matcher(nlp, logical_patterns)
 
     doc: Doc = nlp(text)
@@ -174,7 +131,6 @@ def find_logical_patterns(text: str, nlp: Language | None = None) -> List[dict]:
                 "label": logical.label,
                 "category": logical.category,
                 "interpretation": logical.interpretation,
-                "regex": logical.regex,
                 "span": span.text,
                 "start": span.start_char,
                 "end": span.end_char,
