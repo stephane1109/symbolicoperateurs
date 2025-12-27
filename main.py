@@ -54,6 +54,7 @@ from ecartype import (
 )
 from hash import (
     ECART_TYPE_EXPLANATION,
+    SegmentationMode,
     average_segment_length,
     average_segment_length_by_modality,
     compute_segment_word_lengths,
@@ -552,14 +553,30 @@ def main() -> None:
         render_connectors_reminder(filtered_connectors)
         st.write(
             """
-La "LMS" correspond à la Longueur Moyenne des Segments d'un texte, délimités uniquement
-par les connecteurs sélectionnés (mots ou locutions du dictionnaire). La ponctuation qui
-n'est pas un connecteur n'intervient pas dans le découpage. Hypothèse :
+La "LMS" correspond à la Longueur Moyenne des Segments d'un texte. Vous pouvez choisir
+un découpage basé uniquement sur les connecteurs sélectionnés, ou bien considérer qu'une
+ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
 - Des segments courts signalent un texte "haché", saccadé, algorithmique.
 - Des segments longs évoquent une prose fluide, narrative ou explicative.
             """
         )
-        segment_lengths = compute_segment_word_lengths(combined_text, filtered_connectors)
+        segmentation_labels: Dict[str, SegmentationMode] = {
+            "Entre connecteurs uniquement (ignore la ponctuation)": "connecteurs",
+            "Connecteurs + ponctuation qui ferme le segment": "connecteurs_et_ponctuation",
+        }
+        segmentation_choice = st.radio(
+            "Mode de calcul de la LMS",
+            list(segmentation_labels.keys()),
+            help=(
+                "Le découpage peut se faire uniquement entre connecteurs, ou bien s'arrêter"
+                " dès qu'un signe de ponctuation forte (., ?, !, ;, :) est rencontré."
+            ),
+        )
+        segmentation_mode = segmentation_labels[segmentation_choice]
+
+        segment_lengths = compute_segment_word_lengths(
+            combined_text, filtered_connectors, segmentation_mode
+        )
 
         if not segment_lengths:
             st.info(
@@ -596,17 +613,25 @@ n'est pas un connecteur n'intervient pas dans le découpage. Hypothèse :
             )
 
             hash_text = build_text_from_dataframe(hash_filtered_df)
-            segment_lengths = compute_segment_word_lengths(hash_text, filtered_connectors)
+            segment_lengths = compute_segment_word_lengths(
+                hash_text, filtered_connectors, segmentation_mode
+            )
 
             if not hash_text or not segment_lengths:
                 st.info(
                     "Impossible de calculer la LMS : aucun segment n'a été détecté entre connecteurs."
                 )
             else:
-                segment_entries = segments_with_word_lengths(hash_text, filtered_connectors)
+                segment_entries = segments_with_word_lengths(
+                    hash_text, filtered_connectors, segmentation_mode
+                )
                 segment_lengths = [entry["longueur"] for entry in segment_entries]
-                average_length = average_segment_length(hash_text, filtered_connectors)
-                _, std_dev = compute_length_standard_deviation(hash_text, filtered_connectors)
+                average_length = average_segment_length(
+                    hash_text, filtered_connectors, segmentation_mode
+                )
+                _, std_dev = compute_length_standard_deviation(
+                    hash_text, filtered_connectors, segmentation_mode
+                )
 
                 col1, col2, col3, col4 = st.columns(4)
                 col1.metric("Segments comptabilisés", str(len(segment_lengths)))
@@ -651,6 +676,7 @@ n'est pas un connecteur n'intervient pas dans le découpage. Hypothèse :
                     None if hash_variable_choice == "(Aucune)" else hash_variable_choice,
                     filtered_connectors,
                     hash_modalities or None,
+                    segmentation_mode,
                 )
 
                 if not per_modality_hash_df.empty:
@@ -688,6 +714,7 @@ n'est pas un connecteur n'intervient pas dans le découpage. Hypothèse :
                     None if hash_variable_choice == "(Aucune)" else hash_variable_choice,
                     filtered_connectors,
                     hash_modalities or None,
+                    segmentation_mode,
                 )
 
                 if not std_by_modality_df.empty:
