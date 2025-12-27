@@ -27,7 +27,6 @@ from fcts_utils import (
     build_dataframe,
     build_variable_stats,
     display_centered_chart,
-    display_centered_image,
     parse_iramuteq,
     render_connectors_reminder,
 )
@@ -81,14 +80,6 @@ from simicosinus import (
     get_french_stopwords,
 )
 from tf_idf import render_tfidf_tab
-from graphiques.igraph import (
-    CosineGraphConfig,
-    create_cosine_network_image,
-)
-from graphiques.dendrogram import (
-    DendrogramConfig,
-    create_cosine_dendrogram_image,
-)
 from graphiques.densitegraph import (
     build_connector_density_chart,
     build_density_chart,
@@ -1634,77 +1625,6 @@ point (ou !, ?), ou par un retour à la ligne. Hypothèse :
         )
 
         display_centered_chart(heatmap)
-
-        st.markdown("### Réseau des similarités")
-        similarity_threshold = st.slider(
-            "Seuil minimal de similarité cosinus pour afficher une arête",
-            min_value=0.0,
-            max_value=1.0,
-            value=0.5,
-            step=0.05,
-        )
-        layout_choice = st.selectbox(
-            "Disposition du graphe",
-            ["fruchterman_reingold", "kamada_kawai", "circle"],
-            help="Choisissez l'algorithme de placement des nœuds.",
-        )
-
-        config = CosineGraphConfig(min_similarity=similarity_threshold, layout=layout_choice)
-        network_image = create_cosine_network_image(
-            similarity_df.to_numpy(), similarity_df.index.tolist(), config
-        )
-
-        display_centered_image(
-            network_image,
-            "Réseau des similarités cosinus",
-        )
-
-        st.markdown("### Dendrogramme (clustering hiérarchique)")
-        st.write(
-            "Visualisez les regroupements hiérarchiques à partir des distances "
-            "(1 - similarité cosinus). Le dendrogramme colore les branches au-delà "
-            "du seuil choisi pour faciliter la lecture des clusters."
-        )
-
-        linkage_method = st.selectbox(
-            "Méthode de liaison",
-            ["average", "complete", "single", "weighted"],
-            help=(
-                "Choisissez l'algorithme d'agrégation utilisé pour construire le "
-                "dendrogramme."
-            ),
-        )
-
-        color_threshold_enabled = st.checkbox(
-            "Appliquer un seuil de couleur sur les branches",
-            value=True,
-            help=(
-                "Activer pour colorer les branches dont la distance dépasse le seuil."
-            ),
-        )
-        color_threshold_value = (
-            st.slider(
-                "Seuil de couleur (distance 1 - similarité)",
-                min_value=0.0,
-                max_value=1.0,
-                value=0.5,
-                step=0.05,
-            )
-            if color_threshold_enabled
-            else None
-        )
-
-        dendrogram_config = DendrogramConfig(
-            method=linkage_method, color_threshold=color_threshold_value
-        )
-        dendrogram_image = create_cosine_dendrogram_image(
-            similarity_df.to_numpy(), similarity_df.index.tolist(), dendrogram_config
-        )
-
-        display_centered_image(
-            dendrogram_image,
-            "Dendrogramme des similarités cosinus",
-        )
 
 
 if __name__ == "__main__":
