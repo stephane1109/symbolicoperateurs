@@ -87,6 +87,72 @@ from graphiques.densitegraph import (
 from friedman import analyser_effet
 
 
+def guess_friedman_columns(
+    df: pd.DataFrame,
+) -> tuple[list[str], list[str], list[str], str | None, str | None, str | None]:
+    """Proposer automatiquement des colonnes pour l'onglet Friedman/Kruskal.
+
+    - ``available_columns`` : toutes les colonnes hors texte/en-tête ;
+    - ``numeric_candidates`` : colonnes déjà typées numériques ;
+    - ``convertible_candidates`` : colonnes convertibles en numérique (valeurs
+      coercibles avec ``pd.to_numeric``) pour éviter de bloquer lorsque les
+      métriques arrivent en chaîne de caractères ;
+    - ``*_guess`` : propositions pour modèle, consigne, score.
+    """
+
+    available_columns = [column for column in df.columns if column not in ("texte", "entete")]
+    numeric_candidates = [
+        column for column in available_columns if pd.api.types.is_numeric_dtype(df[column])
+    ]
+
+    convertible_candidates = []
+    for column in available_columns:
+        coerced = pd.to_numeric(df[column], errors="coerce")
+        if coerced.notna().any():
+            convertible_candidates.append(column)
+
+    def find_by_keyword(columns: list[str], keywords: list[str]) -> str | None:
+        for column in columns:
+            if any(keyword in column.lower() for keyword in keywords):
+                return column
+        return None
+
+    def first_distinct(columns: list[str], forbidden: set[str | None]) -> str | None:
+        for column in columns:
+            if column not in forbidden:
+                return column
+        return None
+
+    modele_guess = find_by_keyword(
+        available_columns, ["modele", "model", "système", "systeme", "model_name"]
+    )
+    consigne_guess = find_by_keyword(available_columns, ["consigne", "prompt", "instruction"])
+    score_guess = find_by_keyword(
+        numeric_candidates + convertible_candidates,
+        ["score", "metric", "métrique", "densite", "densité", "density", "lms", "note", "hash"],
+    )
+
+    if modele_guess is None:
+        modele_guess = first_distinct(available_columns, set())
+
+    if consigne_guess is None:
+        consigne_guess = first_distinct(available_columns, {modele_guess})
+
+    if score_guess is None:
+        score_guess = first_distinct(
+            numeric_candidates + convertible_candidates, {modele_guess, consigne_guess}
+        )
+
+    return (
+        available_columns,
+        numeric_candidates,
+        convertible_candidates,
+        modele_guess,
+        consigne_guess,
+        score_guess,
+    )
+
+
 def main() -> None:
     st.set_page_config(page_title="Symbolic Connectors", layout="wide")
 
@@ -1624,17 +1690,27 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
             "`friedman_guide.md` pour plus de détails."
         )
 
-        available_columns = [
-            column for column in df.columns if column not in ("texte", "entete")
-        ]
-        numeric_candidates = [
-            column for column in available_columns if pd.api.types.is_numeric_dtype(df[column])
-        ]
+        (
+            available_columns,
+            numeric_candidates,
+            convertible_candidates,
+            modele_guess,
+            consigne_guess,
+            score_guess,
+        ) = guess_friedman_columns(df)
+
+        st.caption(
+            "Colonnes détectées (hors texte/en-tête) : "
+            + ", ".join(available_columns)
+            if available_columns
+            else "Aucune colonne détectée au-delà du texte et de l'entête."
+        )
 
         if len(available_columns) < 3:
             st.info(
                 "Ajoutez au moins trois colonnes (modèle, consigne, métrique numérique) "
-                "dans votre fichier pour lancer l'analyse."
+                "dans votre fichier pour lancer l'analyse. Si ces colonnes existent déjà, "
+                "renommez-les pour qu'elles soient distinctes et relancez l'import."
             )
         else:
             effect_choice = st.radio(
@@ -1646,12 +1722,40 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
                 ),
             )
 
-            default_modele_index = 0
-            default_consigne_index = 1 if len(available_columns) > 1 else 0
+            if not numeric_candidates:
+                st.warning(
+                    "Aucune colonne numérique détectée automatiquement. Sélectionnez "
+                    "manuellement une mesure quantitative avant de lancer l'analyse."
+                )
+            elif not convertible_candidates:
+                st.caption("Colonnes numériques détectées : " + ", ".join(numeric_candidates))
+            else:
+                st.caption(
+                    "Colonnes numériques ou convertibles détectées : "
+                    + ", ".join(sorted(set(numeric_candidates + convertible_candidates)))
+                )
+
+            default_modele_index = (
+                available_columns.index(modele_guess)
+                if modele_guess in available_columns
+                else 0
+            )
+            default_consigne_index = (
+                available_columns.index(consigne_guess)
+                if consigne_guess in available_columns
+                else 1 if len(available_columns) > 1 else 0
+            )
             score_default_index = (
-                available_columns.index(numeric_candidates[0])
+                available_columns.index(score_guess)
+                if score_guess in available_columns
+                else available_columns.index(numeric_candidates[0])
                 if numeric_candidates
                 else min(2, len(available_columns) - 1)
+            )
+
+            st.caption(
+                "Les menus déroulants sont pré-remplis automatiquement d'après les noms de colonnes "
+                "trouvés dans vos données. Vous pouvez les ajuster si nécessaire."
             )
 
             col_a, col_b, col_c = st.columns(3)
