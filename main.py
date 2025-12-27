@@ -430,6 +430,17 @@ def main() -> None:
                 st.info("Aucun texte disponible avec les modalités sélectionnées pour calculer la densité.")
             else:
 
+                st.download_button(
+                    label="Télécharger le texte",
+                    data=density_text,
+                    file_name="texte_filtre_densite.txt",
+                    mime="text/plain",
+                    help="Récupérez le texte correspondant aux variables/modalités sélectionnées pour vérifier le filtrage.",
+                )
+                st.caption(
+                    "Utilisez ce bouton pour vérifier facilement le contenu exact retenu après votre sélection de variables et modalités."
+                )
+
                 base = st.number_input(
                     "Base de normalisation (mots)",
                     min_value=10,
