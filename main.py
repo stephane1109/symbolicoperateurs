@@ -181,22 +181,14 @@ def main() -> None:
 
     st.title("Symbolic Connectors")
     st.markdown(
-        "<span style='color: white'>"
-        "Symbolic => fait référence au courant symbolique de l'ia (analogie à la "
-        "machine/programme) vs connexionnisme (analogie avec le cerveau).<br>"
-        "Connectors => l'idée de rechercher dans un corpus des marqueurs pouvant "
-        "révéler un langage machine (si, alors, sinon, et, ou...)</span>",
-        unsafe_allow_html=True,
+        """Symbolic Connectors : ce titre renvoie au courant symbolique en IA, qui s’appuie sur une logique de programme et de règles (par opposition au connexionnisme, plus proche de l’analogie avec le cerveau). Le nom convient bien à l’objectif de cette application : repérer, dans les réponses des grands modèles de langage (LLM), des traces de “langage machine”, en particulier des structures linguistiques proches de la programmation. (logique conditionnelle - si, alors, sinon, ou, et…).
+
+L’application a été développée pour explorer une hypothèse liée aux réponses des LLM face à une crise suicidaire (article 1). L’idée est que, dans ces situations, les modèles peuvent produire une surfréquence de connecteurs logiques (si, alors, ou, et, sinon…). Or, ce type d’écriture — très procédurale — pourrait augmenter la charge cognitive chez une personne déjà en détresse.
+
+Pour des raisons d’interopérabilité, le corpus doit être formaté selon les exigences d’IRaMuTeQ : chaque texte commence par une ligne d’en-tête du type **** *variable_modalité.
+
+Pour l’instant, l’application repose sur un fichier dictionnaire.json (visible dans l’onglet « Connecteurs ») et sur des règles regex. À terme, l’idéal serait de généraliser l’approche avec une bibliothèque NLP (par exemple spaCy et/ou BERT), afin de rendre la détection moins rigide que des motifs regex. Mais je suis limité par l’hébergement sur Streamlit Cloud (version gratuite), qui impose des ressources restreintes. Toutefois, les stopwords sont filtrés avec NLTK (léger), et l’onglet « patterns » s’appuie sur spaCy."""
     )
-    st.write("Pour des raisons d’interopérabilité entre applications, le corpus doit être formaté selon les exigences"
-             "d’IRaMuTeQ : chaque texte commence par une ligne d’en-tête du type **** *variable_modalité.\n\n"
-             "Pour le moment, l’application fonctionne avec un fichier dictionnaire.json, que vous pouvez consulter dans l’onglet « Connecteurs », "
-             "ainsi qu’avec des règles regex. \n"
-             "À l’avenir, une réflexion sera menée pour y associer une bibliothèque NLP (comme spaCy et/ou BERT), "
-             "ce qui rendrait l’approche moins rigide que des règles regex. Toutefois, je suis en partie limité par le fait que l’application "
-             "est hébergée sur Streamlit Cloud (gratuit), avec des ressources restreintes.\n\n" 
-             "les stopwords sont toutefois filtrés avec la librairie NLP NLTK, la plus légère."
-            )
     st.caption("[www.codeandcortex.fr](https://www.codeandcortex.fr)")
     st.markdown("---")
     st.write(
