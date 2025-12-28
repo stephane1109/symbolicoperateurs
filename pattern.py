@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from html import escape
 from typing import Iterable, List
 
 import spacy
@@ -176,3 +177,52 @@ def find_pattern_segments(text: str, query: str, *, ignore_case: bool = True) ->
         )
 
     return results
+
+
+def _slugify_label(label: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+    return slug or "motif"
+
+
+def annotate_user_pattern_html(text: str, query: str, *, ignore_case: bool = True) -> str:
+    """Annoter le texte avec le motif fourni par l'utilisateur.
+
+    Les occurrences sont surlignées avec une classe CSS réutilisable dans l'interface
+    Streamlit. Les sauts de ligne sont convertis en balises `<br>` afin de préserver
+    les en-têtes IRaMuTeQ (**** *variables/modalités) et la structure du texte.
+    """
+
+    if not text:
+        return ""
+
+    if not query:
+        return escape(text).replace("\n", "<br />\n")
+
+    flags = re.IGNORECASE if ignore_case else 0
+    pattern = re.compile(re.escape(query), flags)
+    matches = list(pattern.finditer(text))
+
+    if not matches:
+        return escape(text).replace("\n", "<br />\n")
+
+    fragments: List[str] = []
+    cursor = 0
+    label_class = _slugify_label(query)
+
+    for match in matches:
+        start, end = match.start(), match.end()
+
+        if start < cursor:
+            continue
+
+        fragments.append(escape(text[cursor:start]))
+        fragments.append(
+            "<span class=\"connector-annotation connector-"
+            f"{label_class}\"><span class=\"connector-label\">{escape(query)}</span>"
+            f"<span class=\"connector-text\">{escape(match.group(0))}</span></span>"
+        )
+        cursor = end
+
+    fragments.append(escape(text[cursor:]))
+
+    return "".join(fragments).replace("\n", "<br />\n")
