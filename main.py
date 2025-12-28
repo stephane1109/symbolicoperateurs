@@ -148,6 +148,27 @@ def annotate_logical_matches_html(text: str, matches: List[dict]) -> str:
     return "".join(fragments).replace("\n", "<br />\n")
 
 
+def format_modalities_for_row(row: pd.Series, variables: List[str]) -> str:
+    """Construire une étiquette lisible des variables/modalités pour une ligne donnée."""
+
+    parts: List[str] = []
+
+    for variable in variables:
+        value = row.get(variable, "")
+
+        if pd.isna(value) or value == "":
+            continue
+
+        parts.append(f"{variable} = {value}")
+
+    header = str(row.get("entete", "")).strip()
+
+    if parts:
+        return " | ".join(parts)
+
+    return header or "Non spécifié"
+
+
 def main() -> None:
     st.set_page_config(page_title="Symbolic Connectors", layout="wide")
 
@@ -1038,37 +1059,76 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
                 mime="text/html",
             )
 
-            pattern_segments = find_pattern_segments(combined_text, pattern_query)
+            enriched_segments: List[dict] = []
+            segment_counter = 1
 
-            if not pattern_segments:
-                st.info("Aucun segment ne contient ce motif dans le texte filtré.")
-            else:
-                segments_df = pd.DataFrame(pattern_segments)[
-                    ["segment_id", "segment", "occurrences"]
-                ].rename(
-                    columns={
-                        "segment_id": "Segment",
-                        "segment": "Texte",
-                        "occurrences": "Occurrences",
-                    }
-                )
+            for _, row in filtered_df.iterrows():
+                row_text = build_text_from_dataframe(pd.DataFrame([row]))
 
-                st.markdown("Segments contenant le motif")
-                st.dataframe(segments_df, use_container_width=True)
+                if not row_text:
+                    continue
 
-                chart_df = segments_df.rename(columns={"Segment": "segment"})
-                chart = (
-                    alt.Chart(chart_df)
-                    .mark_bar()
-                    .encode(
-                        x=alt.X("segment:N", sort="-y", title="Segment"),
-                        y=alt.Y("Occurrences:Q", title="Occurrences du motif"),
-                        tooltip=["segment", "Occurrences"],
+                modalities_label = format_modalities_for_row(row, selected_variables)
+
+                row_segments = find_pattern_segments(row_text, pattern_query)
+
+                for segment in row_segments:
+                    enriched_segments.append(
+                        {
+                            "modalites": modalities_label,
+                            "segment_id": segment_counter,
+                            "segment": segment.get("segment"),
+                            "occurrences": segment.get("occurrences", 0),
+                        }
                     )
-                    .properties(title="Occurrences du motif par segment")
-                )
+                    segment_counter += 1
 
-                st.altair_chart(chart, use_container_width=True)
+            if not enriched_segments:
+                st.info("Aucun segment ne contient ce motif dans le texte filtré.")
+                return
+
+            segments_df = pd.DataFrame(enriched_segments)[
+                ["modalites", "segment_id", "segment", "occurrences"]
+            ].rename(
+                columns={
+                    "modalites": "Variables/modalités",
+                    "segment_id": "Segment",
+                    "segment": "Texte",
+                    "occurrences": "Occurrences",
+                }
+            )
+
+            st.markdown("Segments contenant le motif")
+            st.dataframe(segments_df, use_container_width=True)
+
+            chart_df = segments_df.rename(
+                columns={
+                    "Variables/modalités": "modalite",
+                    "Occurrences": "Occurrences",
+                }
+            )
+
+            occurrences_by_modality = (
+                chart_df.groupby("modalite", as_index=False)["Occurrences"].sum()
+            )
+
+            if occurrences_by_modality.empty:
+                st.info("Aucune répartition par variables/modalités n'est disponible.")
+                return
+
+            chart = (
+                alt.Chart(occurrences_by_modality)
+                .mark_bar()
+                .encode(
+                    x=alt.X("modalite:N", sort="-y", title="Variable / modalité"),
+                    y=alt.Y("Occurrences:Q", title="Occurrences du motif"),
+                    color=alt.Color("modalite:N", title="Variable / modalité"),
+                    tooltip=["modalite", "Occurrences"],
+                )
+                .properties(title="Occurrences du motif par variables/modalités")
+            )
+
+            st.altair_chart(chart, use_container_width=True)
 
     with tabs[9]:
         st.subheader("Test de lisibilité (Flesch-Kincaid)")
