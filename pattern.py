@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Iterable, List
 
@@ -7,6 +8,8 @@ import spacy
 from spacy.language import Language
 from spacy.matcher import Matcher
 from spacy.tokens import Doc, Span
+
+from regexanalyse import split_segments
 
 
 @dataclass(frozen=True)
@@ -134,6 +137,41 @@ def find_logical_patterns(
                 "span": span.text,
                 "start": span.start_char,
                 "end": span.end_char,
+            }
+        )
+
+    return results
+
+
+def find_pattern_segments(text: str, query: str, *, ignore_case: bool = True) -> List[dict]:
+    """Rechercher les segments contenant un motif simple.
+
+    Le motif est recherché tel quel (non-regex) et gère les signes de ponctuation
+    comme « ? ». Chaque segment retourné inclut le nombre d'occurrences, utilisable
+    comme score pour un graphique.
+    """
+
+    if not query:
+        return []
+
+    flags = re.IGNORECASE if ignore_case else 0
+    pattern = re.compile(re.escape(query), flags)
+
+    segments = split_segments(text)
+    results: List[dict] = []
+
+    for index, segment in enumerate(segments, start=1):
+        matches = list(pattern.finditer(segment))
+        if not matches:
+            continue
+
+        results.append(
+            {
+                "segment_id": index,
+                "segment": segment,
+                "occurrences": len(matches),
+                "score": len(matches),
+                "matches": [match.group(0) for match in matches],
             }
         )
 

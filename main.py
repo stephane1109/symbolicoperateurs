@@ -67,7 +67,7 @@ from regexanalyse import (
     split_segments,
     summarize_matches_by_segment,
 )
-from pattern import find_logical_patterns, load_spacy_model
+from pattern import find_logical_patterns, find_pattern_segments, load_spacy_model
 from test_lesch_Kincaid import (
     READABILITY_SCALE,
     compute_flesch_kincaid_metrics,
@@ -1112,6 +1112,49 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
                         st.altair_chart(chart, use_container_width=True)
                 else:
                     st.info("Aucun pattern n'a été détecté dans le texte filtré.")
+
+        st.markdown("---")
+        st.subheader("Recherche de motif simple")
+        st.markdown(
+            "Saisissez un motif (mot, expression ou signe tel que « ? ») pour identifier les segments qui le contiennent."
+        )
+
+        pattern_query = st.text_input(
+            "Motif ou signe à rechercher", placeholder="?", key="simple_pattern_query"
+        )
+
+        if pattern_query:
+            pattern_segments = find_pattern_segments(combined_text, pattern_query)
+
+            if not pattern_segments:
+                st.info("Aucun segment ne contient ce motif dans le texte filtré.")
+            else:
+                segments_df = pd.DataFrame(pattern_segments)[
+                    ["segment_id", "segment", "occurrences"]
+                ].rename(
+                    columns={
+                        "segment_id": "Segment",
+                        "segment": "Texte",
+                        "occurrences": "Occurrences",
+                    }
+                )
+
+                st.markdown("Segments contenant le motif")
+                st.dataframe(segments_df, use_container_width=True)
+
+                chart_df = segments_df.rename(columns={"Segment": "segment"})
+                chart = (
+                    alt.Chart(chart_df)
+                    .mark_bar()
+                    .encode(
+                        x=alt.X("segment:N", sort="-y", title="Segment"),
+                        y=alt.Y("Occurrences:Q", title="Occurrences du motif"),
+                        tooltip=["segment", "Occurrences"],
+                    )
+                    .properties(title="Occurrences du motif par segment")
+                )
+
+                st.altair_chart(chart, use_container_width=True)
 
     with tabs[9]:
         st.subheader("Test de lisibilité (Flesch-Kincaid)")
