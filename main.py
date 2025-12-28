@@ -651,9 +651,9 @@ def main() -> None:
             """
 La "LMS" correspond à la Longueur Moyenne des Segments d'un texte. Vous pouvez choisir
 un découpage basé uniquement sur les connecteurs sélectionnés, ou bien considérer qu'une
-ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
-- Des segments courts signalent un texte "haché", saccadé, algorithmique.
-- Des segments longs évoquent une prose fluide, narrative ou explicative.
+ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
+- Des segments courts signalent un texte plutôt "haché", saccadé, algorithmique.
+- Des segments longs évoquent une prose plus fluide.
             """
         )
         segmentation_labels: Dict[str, SegmentationMode] = {
