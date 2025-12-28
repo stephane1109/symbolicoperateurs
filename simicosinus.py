@@ -100,7 +100,7 @@ def format_aggregated_texts_for_export(
     parts: list[str] = []
 
     for modality, text in sorted(aggregated_texts.items()):
-        modality_header = str(modality)
+        modality_header = f"*{modality}"
         parts.append(f"{modality_header}\n{text.strip()}")
 
     return "\n\n".join(parts).strip()
