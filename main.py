@@ -1,6 +1,6 @@
 """### Application Streamlit des opérateurs symboliques
 
-Ce fichier orchestre l'interface utilisateur : chargement des données,
+Ce fichier gère l'interface utilisateur : chargement des données,
 sélection des connecteurs, calculs (densité, lisibilité, AFC, n-grammes,
 patterns logiques) et affichage des graphiques. Il assemble les fonctions
 des autres modules pour offrir un tableau de bord interactif en français."""
