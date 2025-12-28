@@ -67,7 +67,12 @@ from regexanalyse import (
     split_segments,
     summarize_matches_by_segment,
 )
-from pattern import find_logical_patterns, find_pattern_segments, load_spacy_model
+from pattern import (
+    find_logical_patterns,
+    find_pattern_segments,
+    load_spacy_model,
+    annotate_user_pattern_html,
+)
 from test_lesch_Kincaid import (
     READABILITY_SCALE,
     compute_flesch_kincaid_metrics,
@@ -1005,6 +1010,34 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
         )
 
         if pattern_query:
+            pattern_annotation_style = build_annotation_style_block("")
+            annotated_pattern_html = annotate_user_pattern_html(combined_text, pattern_query)
+
+            st.subheader("Texte annoté par motif")
+            st.markdown(pattern_annotation_style, unsafe_allow_html=True)
+            st.markdown(
+                f"<div class='annotated-container'>{annotated_pattern_html}</div>",
+                unsafe_allow_html=True,
+            )
+
+            annotated_download = f"""<!DOCTYPE html>
+            <html lang=\"fr\">
+            <head>
+            <meta charset=\"utf-8\" />
+            {pattern_annotation_style}
+            </head>
+            <body>
+            <div class='annotated-container'>{annotated_pattern_html}</div>
+            </body>
+            </html>"""
+
+            st.download_button(
+                label="Télécharger le texte annoté par motif",
+                data=annotated_download,
+                file_name="texte_annotes_motif.html",
+                mime="text/html",
+            )
+
             pattern_segments = find_pattern_segments(combined_text, pattern_query)
 
             if not pattern_segments:
