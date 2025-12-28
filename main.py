@@ -1758,17 +1758,19 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
             )
 
         model_variables = [
-            column for column in cosine_filtered_df.columns if column not in ("texte", "entete")
+            column
+            for column in cosine_filtered_df.columns
+            if column not in ("texte", "entete")
         ]
 
         if not model_variables:
             st.info("Aucune variable n'a été trouvée dans le fichier importé.")
             return
 
-        model_variable_choice = st.selectbox(
-            "Variable à comparer",
-            model_variables,
-            help="Les textes seront regroupés par modalité de cette variable avant le calcul TF-IDF.",
+        model_variable_choice = model_variables[0]
+        st.caption(
+            "Les textes seront regroupés par modalité de la variable "
+            f"**{model_variable_choice}** avant le calcul TF-IDF."
         )
 
         modality_options = sorted(
