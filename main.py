@@ -1028,7 +1028,7 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment. Hypothèse :
                 st.altair_chart(alt_counts_chart, use_container_width=True)
 
     with tabs[8]:
-        st.subheader("Patterns")
+        st.subheader("Patterns (motifs)")
         st.markdown(
             "Saisissez un motif (mot, expression ou signe tel que « ? ») pour identifier les segments qui le contiennent."
         )
