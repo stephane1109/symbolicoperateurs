@@ -151,11 +151,10 @@ def find_logical_patterns(
 
 
 def find_pattern_segments(text: str, query: str, *, ignore_case: bool = True) -> List[dict]:
-    """Rechercher les segments contenant un motif simple.
+    """Rechercher les segments contenant un motif (pattern).
 
     Le motif est recherché tel quel (non-regex) et gère les signes de ponctuation
-    comme « ? ». Chaque segment retourné inclut le nombre d'occurrences, utilisable
-    comme score pour un graphique.
+    comme « ? ».
     """
 
     if not query:
