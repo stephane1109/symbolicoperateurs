@@ -1698,7 +1698,68 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
             "concaténant l'intégralité des textes par modalité."
         )
 
-        model_variables = [column for column in df.columns if column not in ("texte", "entete")]
+        st.subheader("Sélection des variables/modalités")
+
+        cosine_variables = [
+            column for column in df.columns if column not in ("texte", "entete")
+        ]
+
+        if not cosine_variables:
+            st.info("Aucune variable n'a été trouvée dans le fichier importé.")
+            return
+
+        selected_cosine_variables = st.multiselect(
+            "Variables à filtrer pour la similarité cosinus",
+            cosine_variables,
+            default=cosine_variables,
+            help=(
+                "Sélectionnez les variables et modalités à inclure avant de calculer la "
+                "similarité cosinus."
+            ),
+        )
+
+        cosine_filtered_df = df.copy()
+        for variable in selected_cosine_variables:
+            modality_options = sorted(
+                cosine_filtered_df[variable].dropna().unique().tolist()
+            )
+            selected_modalities = st.multiselect(
+                f"Modalités à inclure pour {variable}",
+                modality_options,
+                default=modality_options,
+                help="Choisissez les modalités dont les textes seront pris en compte.",
+            )
+
+            if selected_modalities:
+                cosine_filtered_df = cosine_filtered_df[
+                    cosine_filtered_df[variable].isin(selected_modalities)
+                ]
+            else:
+                cosine_filtered_df = cosine_filtered_df.iloc[0:0]
+
+        if cosine_filtered_df.empty:
+            st.info(
+                "Aucun texte ne correspond aux filtres appliqués. Ajustez vos sélections pour "
+                "poursuivre."
+            )
+            return
+
+        cosine_filtered_text = build_text_from_dataframe(cosine_filtered_df)
+        if cosine_filtered_text:
+            st.download_button(
+                label="Télécharger le texte",
+                data=cosine_filtered_text,
+                file_name="texte_filtre_similarite.txt",
+                mime="text/plain",
+                help=(
+                    "Récupérez le texte correspondant aux variables/modalités sélectionnées "
+                    "pour vérifier le filtrage appliqué."
+                ),
+            )
+
+        model_variables = [
+            column for column in cosine_filtered_df.columns if column not in ("texte", "entete")
+        ]
 
         if not model_variables:
             st.info("Aucune variable n'a été trouvée dans le fichier importé.")
@@ -1710,7 +1771,9 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
             help="Les textes seront regroupés par modalité de cette variable avant le calcul TF-IDF.",
         )
 
-        modality_options = sorted(df[model_variable_choice].dropna().unique().tolist())
+        modality_options = sorted(
+            cosine_filtered_df[model_variable_choice].dropna().unique().tolist()
+        )
 
         if not modality_options:
             st.info("Aucune modalité disponible pour la variable sélectionnée.")
@@ -1727,7 +1790,9 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
             st.info("Sélectionnez au moins une modalité pour lancer le calcul.")
             return
 
-        cosine_df = df[df[model_variable_choice].isin(selected_modalities)]
+        cosine_df = cosine_filtered_df[
+            cosine_filtered_df[model_variable_choice].isin(selected_modalities)
+        ]
 
         apply_stopwords = st.checkbox(
             "Appliquer les stopwords français (NLTK) avant le calcul",
