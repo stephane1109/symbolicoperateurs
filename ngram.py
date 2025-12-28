@@ -1,3 +1,10 @@
+"""### Outils autour des n-grammes
+
+Le module fournit la tokenisation simplifiée, la construction de motifs
+regex pour détecter des n-grammes et le calcul de statistiques ou de contexte
+autour des séquences fréquentes. Il est utilisé pour analyser la répétition
+ou la spécificité des expressions dans le corpus."""
+
 from __future__ import annotations
 
 import re

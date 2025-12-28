@@ -1,3 +1,9 @@
+"""### Tests du calcul de hachage textuel
+
+Les tests couvrent les règles de découpe des segments en fonction des
+connecteurs et de la ponctuation, afin d'assurer la cohérence des métriques
+de "hachage" utilisées pour qualifier la fluidité des textes."""
+
 from __future__ import annotations
 
 import hash as hash_module

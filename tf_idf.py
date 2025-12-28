@@ -1,3 +1,10 @@
+"""### Visualisations TF-IDF et nuages de mots
+
+Le module propose les composants Streamlit dédiés au calcul TF-IDF par
+modalité, à la sélection des groupes étudiés et à la génération de nuages de
+mots. Il s'appuie sur la similarité cosinus pour comparer les textes et offrir
+un aperçu synthétique du vocabulaire saillant."""
+
 from __future__ import annotations
 
 from typing import Dict, Iterable, List, Sequence

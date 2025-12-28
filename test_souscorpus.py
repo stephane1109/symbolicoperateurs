@@ -1,3 +1,9 @@
+"""### Tests de construction du sous-corpus
+
+Les tests valident la filtration des enregistrements IRaMuTeQ et la
+reconstitution des segments contenant des connecteurs afin de garantir que
+seuls les prompts pertinents sont conservés."""
+
 from __future__ import annotations
 
 from souscorpus import build_subcorpus

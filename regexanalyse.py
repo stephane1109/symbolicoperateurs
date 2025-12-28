@@ -1,3 +1,10 @@
+"""### Analyse des segments via des règles regex
+
+Le module charge les motifs décrits dans le dictionnaire JSON, compile les
+règles, découpe les segments concernés et génère des surlignages HTML.
+Il offre ainsi une alternative rapide aux recherches linguistiques avancées
+en appliquant des expressions régulières contrôlées."""
+
 from __future__ import annotations
 
 import json
