@@ -1718,6 +1718,12 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
             ),
         )
 
+        if not selected_cosine_variables:
+            st.info(
+                "Sélectionnez au moins une variable pour calculer la similarité cosinus."
+            )
+            return
+
         cosine_filtered_df = df.copy()
         for variable in selected_cosine_variables:
             modality_options = sorted(
@@ -1757,44 +1763,13 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
                 ),
             )
 
-        model_variables = [
-            column
-            for column in cosine_filtered_df.columns
-            if column not in ("texte", "entete")
-        ]
-
-        if not model_variables:
-            st.info("Aucune variable n'a été trouvée dans le fichier importé.")
-            return
-
-        model_variable_choice = model_variables[0]
+        grouping_variable = selected_cosine_variables[0]
         st.caption(
             "Les textes seront regroupés par modalité de la variable "
-            f"**{model_variable_choice}** avant le calcul TF-IDF."
+            f"**{grouping_variable}** avant le calcul TF-IDF."
         )
 
-        modality_options = sorted(
-            cosine_filtered_df[model_variable_choice].dropna().unique().tolist()
-        )
-
-        if not modality_options:
-            st.info("Aucune modalité disponible pour la variable sélectionnée.")
-            return
-
-        selected_modalities = st.multiselect(
-            "Modalités à inclure",
-            modality_options,
-            default=modality_options,
-            help="Choisissez les modalités.",
-        )
-
-        if not selected_modalities:
-            st.info("Sélectionnez au moins une modalité pour lancer le calcul.")
-            return
-
-        cosine_df = cosine_filtered_df[
-            cosine_filtered_df[model_variable_choice].isin(selected_modalities)
-        ]
+        cosine_df = cosine_filtered_df
 
         apply_stopwords = st.checkbox(
             "Appliquer les stopwords français (NLTK) avant le calcul",
@@ -1805,7 +1780,7 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
             ),
         )
 
-        aggregated_texts = aggregate_texts_by_variable(cosine_df, model_variable_choice)
+        aggregated_texts = aggregate_texts_by_variable(cosine_df, grouping_variable)
 
         if len(aggregated_texts) < 2:
             st.info(
@@ -1824,7 +1799,7 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
         st.dataframe(texts_summary, use_container_width=True)
 
         similarity_df = compute_cosine_similarity_by_variable(
-            cosine_df, model_variable_choice, use_stopwords=apply_stopwords
+            cosine_df, grouping_variable, use_stopwords=apply_stopwords
         )
 
         if similarity_df.empty:
