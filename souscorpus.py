@@ -1,3 +1,10 @@
+"""### Construction d'un sous-corpus IRaMuTeQ
+
+Ce module filtre les enregistrements importés, vérifie la présence du préfixe
+de prompt GPT et reconstruit les segments pertinents contenant des connecteurs.
+Il sert à extraire automatiquement les passages utiles avant les analyses
+statistiques ou linguistiques."""
+
 from __future__ import annotations
 
 import re

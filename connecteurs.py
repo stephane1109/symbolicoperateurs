@@ -1,3 +1,10 @@
+"""### Gestion du dictionnaire de connecteurs
+
+Ce module encapsule le chargement des connecteurs, la sélection par
+l'utilisateur et la persistance dans l'état de session Streamlit. Il sert
+d'interface entre les fichiers de dictionnaires et les autres onglets de
+l'application."""
+
 from __future__ import annotations
 
 from pathlib import Path

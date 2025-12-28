@@ -1,3 +1,10 @@
+"""### Module d'analyse des connecteurs
+
+Ce fichier regroupe les fonctions de chargement, d'annotation HTML et de
+comptage des connecteurs logiques. Il sert d'outil central pour préparer les
+statistiques utilisées dans l'interface Streamlit et les traitements
+aval (densité, AFC, normes lexicographiques)."""
+
 from __future__ import annotations
 
 import json

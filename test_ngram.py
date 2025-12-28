@@ -1,3 +1,9 @@
+"""### Tests des utilitaires n-grammes
+
+Ces scénarios vérifient la génération de motifs, le calcul de statistiques
+et l'extraction de contexte autour des séquences fréquentes afin de sécuriser
+les analyses quantitatives et qualitatives sur le corpus."""
+
 import pandas as pd
 
 from ngram import build_ngram_pattern, compute_ngram_statistics, extract_ngram_context

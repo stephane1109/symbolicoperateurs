@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 """
 Le "hachage" du texte est calculé à partir de la Longueur Moyenne des Segments (LMS)
 de texte délimités par les connecteurs détectés dans le texte. L'idée :
 - Des segments courts signalent un texte haché, saccadé, algorithmique.
 - Des segments longs évoquent une prose fluide, narrative ou explicative.
 """
+
+from __future__ import annotations
 
 import re
 from statistics import mean

@@ -1,3 +1,10 @@
+"""### Recherche de motifs logiques avec spaCy
+
+Ce fichier définit les patrons linguistiques décrivant les chaînes de
+connecteurs, s'appuie sur spaCy pour les détecter et propose des fonctions
+pour annoter et présenter les segments correspondants. Il complète les
+analyses regex par une approche structurée des dépendances logiques."""
+
 from __future__ import annotations
 
 import re

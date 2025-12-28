@@ -1,3 +1,10 @@
+"""### Similarité cosinus entre modalités
+
+Ce fichier rassemble les fonctions qui agrègent les textes par variable,
+nettoient les stopwords et calculent la similarité cosinus à partir de
+matrices TF-IDF. Il facilite la comparaison des styles ou thématiques entre
+groupes du corpus."""
+
 from __future__ import annotations
 
 from typing import Dict, Iterable, List

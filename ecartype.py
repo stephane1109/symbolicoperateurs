@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Calcul de l'écart-type des longueurs de segments entre connecteurs."""
+
+from __future__ import annotations
 
 from typing import Dict, Iterable, List, Optional, Tuple
 

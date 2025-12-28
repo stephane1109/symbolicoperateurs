@@ -1,3 +1,9 @@
+"""### Tests de l'analyse factorielle des correspondances
+
+Cette suite valide la construction de la matrice connecteur × document et
+l'exécution de l'AFC sur des jeux de données simplifiés afin de garantir les
+comptages et les dimensions attendues."""
+
 import numpy as np
 import pandas as pd
 
