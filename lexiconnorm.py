@@ -1,4 +1,4 @@
-"""Composants Streamlit pour l'onglet "Lexicon norm"."""
+"""Composants Streamlit pour l'onglet "OpenLexicon"."""
 
 from __future__ import annotations
 
@@ -79,9 +79,9 @@ def _select_variable_modalities(
 def render_lexicon_norm_tab(
     dataframe: pd.DataFrame, filtered_connectors: Dict[str, str]
 ) -> None:
-    """Afficher l'onglet « Lexicon norm » avec les normes sélectionnées."""
+    """Afficher l'onglet « OpenLexicon » avec les normes sélectionnées."""
 
-    st.subheader("Lexicon norm")
+    st.subheader("OpenLexicon")
 
     if dataframe.empty:
         st.info("Aucune donnée disponible après filtrage.")
@@ -137,6 +137,9 @@ def render_lexicon_norm_tab(
     )
 
     st.markdown("### Normes disponibles")
+    st.caption(
+        "Les normes affichées proviennent d'OpenLexicon : http://www.lexique.org/django/openlexicon/."
+    )
 
     norm_density_df = load_norms_from_lexicon(
         Path(__file__).parent / "dictionnaires" / "lexicon.json", normalized_connectors

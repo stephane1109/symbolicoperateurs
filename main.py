@@ -213,7 +213,7 @@ def main() -> None:
             "Données brutes",
             "Sous corpus",
             "Densité",
-            "Lexicon norm",
+            "OpenLexicon",
             "Hash",
             "Regex motifs",
             "Patterns",
@@ -252,7 +252,7 @@ def main() -> None:
         st.subheader("Choisir les connecteurs à analyser")
         st.markdown(
         "Dans cet onglet, vous devez sélectionner les connecteurs logiques qui auront un impact sur les analyses.\n\n"
-        "Données brutes, Sous-corpus, Densité, Norme Lexicon et Hash.\n\n"
+        "Données brutes, Sous-corpus, Densité, Norme OpenLexicon et Hash.\n\n"
         "Vous pouvez à tout moment relancer vos analyses en sélectionnant ou en supprimant des connecteurs dans la section Connecteurs."
                     )
 
