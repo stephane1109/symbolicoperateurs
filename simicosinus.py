@@ -83,3 +83,24 @@ def compute_cosine_similarity_by_variable(
     stop_words = get_french_stopwords() if use_stopwords else None
 
     return compute_cosine_similarity_matrix(aggregated_texts, stop_words=stop_words)
+
+
+def format_aggregated_texts_for_export(
+    aggregated_texts: Dict[str, str], variable: str
+) -> str:
+    """Construire un export texte avec les contenus concaténés par modalité.
+
+    Chaque modalité est précédée d'un en-tête explicite pour faciliter la lecture
+    du fichier téléchargé depuis l'onglet « Simi cosinus ».
+    """
+
+    if not aggregated_texts:
+        return ""
+
+    parts: list[str] = []
+
+    for modality, text in sorted(aggregated_texts.items()):
+        title = f"{variable} = {modality}"
+        parts.append(f"{title}\n{text.strip()}")
+
+    return "\n\n".join(parts).strip()

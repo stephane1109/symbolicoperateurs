@@ -91,6 +91,7 @@ from simicosinus import (
     aggregate_texts_by_variable,
     compute_cosine_similarity_by_variable,
     get_french_stopwords,
+    format_aggregated_texts_for_export,
 )
 from tf_idf import render_tfidf_tab
 from graphiques.densitegraph import (
@@ -1750,19 +1751,6 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
             )
             return
 
-        cosine_filtered_text = build_text_from_dataframe(cosine_filtered_df)
-        if cosine_filtered_text:
-            st.download_button(
-                label="Télécharger le texte",
-                data=cosine_filtered_text,
-                file_name="texte_filtre_similarite.txt",
-                mime="text/plain",
-                help=(
-                    "Récupérez le texte correspondant aux variables/modalités sélectionnées "
-                    "pour vérifier le filtrage appliqué."
-                ),
-            )
-
         grouping_variable = selected_cosine_variables[0]
         st.caption(
             "Les textes seront regroupés par modalité de la variable "
@@ -1781,6 +1769,22 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
         )
 
         aggregated_texts = aggregate_texts_by_variable(cosine_df, grouping_variable)
+
+        aggregated_export_text = format_aggregated_texts_for_export(
+            aggregated_texts, grouping_variable
+        )
+
+        if aggregated_export_text:
+            st.download_button(
+                label="Télécharger les textes concaténés par modalité",
+                data=aggregated_export_text,
+                file_name="textes_par_modalite.txt",
+                mime="text/plain",
+                help=(
+                    "Export des textes regroupés par modalité pour vérifier la composition "
+                    "de la matrice TF-IDF."
+                ),
+            )
 
         if len(aggregated_texts) < 2:
             st.info(
