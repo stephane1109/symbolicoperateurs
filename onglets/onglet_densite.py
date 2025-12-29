@@ -1,4 +1,18 @@
-"""Onglet de calcul de densité des connecteurs."""
+"""# Onglet Densité
+
+Ce module gère l'onglet Streamlit dédié au calcul de la densité des
+connecteurs (nombre d'occurrences rapporté à 1 000 mots) et à leur
+visualisation par modalité.
+
+## Dépendances
+- `densite.py` : construction du texte filtré et calculs de densité,
+  comptages et filtrages par modalité.
+- `fcts_utils.py` : rappel des connecteurs sélectionnés à l'écran.
+- `graphiques/densitegraph.py` : génération des graphiques Altair pour les
+  densités globales et par connecteur.
+- Bibliothèques `streamlit`, `pandas` et `altair` pour l'interface et les
+  visualisations.
+"""
 from __future__ import annotations
 
 from typing import Dict, List

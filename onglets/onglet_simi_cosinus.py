@@ -1,4 +1,16 @@
-"""Onglet Similarité cosinus."""
+"""# Onglet Similarité cosinus
+
+Ce module alimente l'onglet Streamlit qui calcule la similarité cosinus entre
+groupes de textes, avec filtrage par variables et option de suppression des
+stopwords.
+
+## Dépendances
+- `simicosinus.py` : agrégation des textes, construction de la matrice TF-IDF
+  et calcul de la similarité cosinus.
+- `fcts_utils.py` : affichage centré des graphiques dans l'interface.
+- Bibliothèques `streamlit`, `pandas` et `altair` pour la sélection des
+  modalités et la visualisation des matrices.
+"""
 from __future__ import annotations
 
 from typing import List

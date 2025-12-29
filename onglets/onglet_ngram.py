@@ -1,4 +1,14 @@
-"""Onglet N-gram."""
+"""# Onglet N-gram
+
+Ce module fournit l'onglet Streamlit pour explorer les n-grams d'un corpus,
+en filtrant par variables et en appliquant éventuellement des motifs regex.
+
+## Dépendances
+- `ngram.py` : génération des statistiques d'occurrences pour les n-grams.
+- `fcts_utils.py` : création des blocs de style pour l'annotation HTML.
+- Bibliothèques `streamlit`, `pandas` et `altair` pour l'affichage, la
+  sélection des modalités et les graphiques.
+"""
 from __future__ import annotations
 
 from html import escape

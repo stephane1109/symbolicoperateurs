@@ -1,4 +1,14 @@
-"""Onglet d'import et affichage des données importées."""
+"""# Onglet Import
+
+Ce module gère l'onglet Streamlit dédié au téléversement des corpus
+IRaMuTeQ, à leur parsing et à l'affichage du tableau obtenu.
+
+## Dépendances
+- `fcts_utils.py` : fonctions `parse_iramuteq` pour interpréter le fichier
+  source et `build_dataframe` pour structurer les enregistrements.
+- Bibliothèques `streamlit` et `pandas` pour afficher les données et gérer
+  les interactions utilisateur.
+"""
 from __future__ import annotations
 
 from typing import Dict, List, Tuple

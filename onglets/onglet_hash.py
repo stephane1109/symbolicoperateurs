@@ -1,4 +1,19 @@
-"""Onglet Hash pour calculer la LMS entre connecteurs."""
+"""# Onglet Hash
+
+Ce module propose l'onglet Streamlit permettant de calculer la Longueur
+Moyenne des Segments (LMS) entre connecteurs et de comparer différents modes
+de segmentation.
+
+## Dépendances
+- `hash.py` : calculs de longueur de segments, moyennes et modes de
+  segmentation.
+- `ecartype.py` : écart-type des longueurs pour enrichir les indicateurs.
+- `simicosinus.py` : concaténation des textes avec entêtes pour alimenter les
+  statistiques.
+- `fcts_utils.py` : rappel des connecteurs sélectionnés dans l'interface.
+- Bibliothèques `streamlit`, `pandas` et `altair` pour l'affichage et les
+  graphiques.
+"""
 from __future__ import annotations
 
 from typing import Dict, List

@@ -1,4 +1,19 @@
-"""Onglet des données brutes et des statistiques associées."""
+"""# Onglet Données brutes
+
+Ce module affiche l'onglet Streamlit consacré au filtrage des variables du
+corpus, à la visualisation du texte combiné et aux statistiques descriptives
+sur les connecteurs.
+
+## Dépendances
+- `analyses.py` : annotations et comptage des connecteurs, génération des
+  styles de surlignage.
+- `connecteurs.py` : récupération des connecteurs et étiquettes sélectionnés.
+- `densite.py` : concaténation des textes et comptage global des mots.
+- `fcts_utils.py` : calcul des statistiques par variable et rappel des
+  connecteurs actifs.
+- Bibliothèques `streamlit`, `pandas` et `altair` pour l'interface et les
+  graphiques.
+"""
 from __future__ import annotations
 
 from typing import Dict, List, Optional, Tuple
