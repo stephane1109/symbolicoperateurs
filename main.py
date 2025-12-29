@@ -729,7 +729,9 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
                 )
                 return
 
-            hash_text = build_text_from_dataframe(hash_filtered_df)
+            hash_text = concatenate_texts_with_headers(
+                hash_filtered_df, selected_hash_variables
+            )
             segment_lengths = compute_segment_word_lengths(
                 hash_text, filtered_connectors, segmentation_mode
             )
@@ -745,13 +747,13 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
                     file_name="texte_filtre_hash.txt",
                     mime="text/plain",
                     help=(
-                        "Récupérez le texte correspondant aux variables/modalités sélectionnées pour"
-                        " vérifier le filtrage appliqué."
+                        "Récupérez le texte concaténé par variables/modalités sélectionnées, au même"
+                        " format que dans l'onglet 'Similarité cosinus'."
                     ),
                 )
                 st.caption(
                     "Utilisez ce bouton pour contrôler le contenu exact retenu après votre sélection"
-                    " de variables et modalités."
+                    " de variables et modalités, avec l'entête IRaMuTeQ reconstruit."
                 )
 
                 segment_entries = segments_with_word_lengths(
