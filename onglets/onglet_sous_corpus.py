@@ -1,4 +1,16 @@
-"""Onglet de génération de sous-corpus."""
+"""# Onglet Sous-corpus
+
+Ce module présente l'onglet Streamlit permettant d'extraire automatiquement
+les segments marqués IRaMuTeQ pour constituer un sous-corpus téléchargeable.
+
+## Dépendances
+- `souscorpus.py` : construction de la liste de segments correspondant aux
+  connecteurs sélectionnés.
+- `fcts_utils.py` : rappel des connecteurs actifs pour contextualiser
+  l'extraction.
+- Bibliothèque Streamlit pour l'affichage, la zone de texte et le bouton de
+  téléchargement.
+"""
 from __future__ import annotations
 
 from typing import Dict, List

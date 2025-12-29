@@ -1,4 +1,17 @@
-"""Onglet Patterns pour rechercher des motifs personnalisés."""
+"""# Onglet Patterns
+
+Ce module pilote l'onglet Streamlit permettant de rechercher et d'annoter des
+motifs personnalisés dans le corpus, en affichant les segments correspondants
+et leurs métadonnées.
+
+## Dépendances
+- `pattern.py` : détection des segments contenant le motif et annotation HTML
+  du texte combiné.
+- `densite.py` : assemblage du texte complet utilisé pour les annotations.
+- `fcts_utils.py` : génération du bloc de styles pour les surlignages.
+- Bibliothèques `streamlit`, `pandas` et `altair` pour l'interface, la
+  sélection des variables et les graphiques éventuels.
+"""
 from __future__ import annotations
 
 from typing import Dict, List

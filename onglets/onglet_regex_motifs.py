@@ -1,4 +1,18 @@
-"""Onglet pour l'analyse des motifs regex."""
+"""# Onglet Regex motifs
+
+Ce module gère l'onglet Streamlit dédié à l'analyse de motifs regex complexes
+dans le corpus, en chargeant un dictionnaire JSON et en affichant les
+annotations et statistiques associées.
+
+## Dépendances
+- `regexanalyse.py` : chargement des règles regex, segmentation du texte et
+  calcul des statistiques de correspondance.
+- `analyses.py` : génération des couleurs et styles de labels pour les
+  annotations.
+- `fcts_utils.py` : construction du bloc de styles pour l'affichage HTML.
+- Bibliothèques `streamlit`, `pandas`, `altair` et `pathlib` pour la gestion
+  de l'interface, des données et du chemin vers les ressources.
+"""
 from __future__ import annotations
 
 from pathlib import Path

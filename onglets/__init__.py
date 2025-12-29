@@ -1,4 +1,15 @@
-"""Interface d'import des fonctions liées aux onglets Streamlit."""
+"""# Interface des onglets
+
+Ce module centralise l'import des fonctions de rendu de chaque onglet
+Streamlit (densité, connecteurs, TF-IDF, etc.) afin de simplifier leur
+exposition dans l'application principale.
+
+## Dépendances
+- Modules locaux `onglet_*.py` : chaque onglet spécialisé est importé et
+  réexporté via `__all__`.
+- Bibliothèque Streamlit : les fonctions importées reposent sur Streamlit
+  pour afficher les interfaces utilisateur.
+"""
 from .onglet_connecteurs import rendu_connecteurs
 from .onglet_densite import rendu_densite
 from .onglet_donnees_brutes import rendu_donnees_brutes

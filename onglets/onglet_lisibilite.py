@@ -1,4 +1,18 @@
-"""Onglet de test de lisibilité."""
+"""# Onglet Lisibilité
+
+Ce module orchestre l'onglet Streamlit consacré au calcul des indicateurs de
+lisibilité Flesch-Kincaid sur un corpus filtré selon les variables
+saisies.
+
+## Dépendances
+- `densite.py` : construction du texte combiné à partir du DataFrame filtré.
+- `test_lesch_Kincaid.py` : calcul des scores Flesch-Kincaid, bande de
+  difficulté et messages d'interprétation.
+- `fcts_utils.py` : affichage des connecteurs actifs pour guider
+  l'utilisateur.
+- Bibliothèques `streamlit` et `pandas` pour la sélection des modalités et la
+  restitution des résultats.
+"""
 from __future__ import annotations
 
 from typing import Dict, List

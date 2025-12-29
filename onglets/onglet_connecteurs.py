@@ -1,4 +1,18 @@
-"""Onglet de sélection et d'affichage des connecteurs."""
+"""# Onglet Connecteurs
+
+Ce module affiche l'onglet Streamlit permettant de charger le dictionnaire
+de connecteurs, de sélectionner les étiquettes à conserver et de visualiser
+leurs occurrences dans le corpus.
+
+## Dépendances
+- `analyses.py` : annotation HTML des connecteurs et génération des styles
+  associés.
+- `connecteurs.py` : accès au chemin du dictionnaire, sélection et filtrage
+  des connecteurs et labels.
+- `fcts_utils.py` : rappel visuel des connecteurs sélectionnés dans l'UI.
+- Bibliothèque Streamlit et `json` pour l'affichage interactif du fichier
+  `connecteurs.json`.
+"""
 from __future__ import annotations
 
 import json
