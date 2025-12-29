@@ -7,7 +7,7 @@ groupes du corpus."""
 
 from __future__ import annotations
 
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Sequence
 
 import pandas as pd
 from nltk import download
@@ -102,5 +102,68 @@ def format_aggregated_texts_for_export(
     for modality, text in sorted(aggregated_texts.items()):
         modality_header = f"*{variable} = {modality}"
         parts.append(f"{modality_header}\n{text.strip()}")
+
+    return "\n\n".join(parts).strip()
+
+
+def build_iramuteq_header(row: pd.Series, variables: Sequence[str]) -> str:
+    """Reconstruire une ligne d'entête IRaMuTeQ à partir d'une ligne du DataFrame."""
+
+    tokens: list[str] = ["****"]
+
+    for variable in variables:
+        value = row.get(variable, "")
+
+        if pd.isna(value) or str(value).strip() == "":
+            continue
+
+        tokens.append(f"*{variable}_{value}")
+
+    header = " ".join(tokens).strip()
+
+    return header if header != "****" else ""
+
+
+def concatenate_texts_with_headers(
+    dataframe: pd.DataFrame, variables: Sequence[str]
+) -> str:
+    """Concaténer les textes selon les variables/modalités sélectionnées.
+
+    Les lignes du DataFrame sont regroupées par combinaison de variables fournies.
+    Pour chaque groupe, la première ligne est reconstituée au format IRaMuTeQ
+    (``**** *variable_modalite``) afin de refléter la sélection effectuée dans
+    l'onglet « Simi cosinus ».
+    """
+
+    if dataframe.empty:
+        return ""
+
+    valid_variables = [var for var in variables if var in dataframe.columns]
+
+    if not valid_variables:
+        return ""
+
+    parts: list[str] = []
+
+    grouped = dataframe.groupby(valid_variables, dropna=False)
+
+    for _, group in grouped:
+        if group.empty:
+            continue
+
+        header = build_iramuteq_header(group.iloc[0], valid_variables)
+        combined_text = "\n".join(
+            text.strip()
+            for text in group.get("texte", pd.Series(dtype=str)).dropna().astype(str)
+            if text.strip()
+        ).strip()
+
+        if not combined_text:
+            continue
+
+        if header:
+            parts.append(f"{header}\n{combined_text}")
+        else:
+            parts.append(combined_text)
 
     return "\n\n".join(parts).strip()

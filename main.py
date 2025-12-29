@@ -89,9 +89,9 @@ from test_lesch_Kincaid import (
 from souscorpus import build_subcorpus
 from simicosinus import (
     aggregate_texts_by_variable,
+    concatenate_texts_with_headers,
     compute_cosine_similarity_by_variable,
     get_french_stopwords,
-    format_aggregated_texts_for_export,
 )
 from tf_idf import render_tfidf_tab
 from graphiques.densitegraph import (
@@ -1779,8 +1779,8 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
 
         aggregated_texts = aggregate_texts_by_variable(cosine_df, grouping_variable)
 
-        aggregated_export_text = format_aggregated_texts_for_export(
-            aggregated_texts, grouping_variable
+        aggregated_export_text = concatenate_texts_with_headers(
+            cosine_filtered_df, selected_cosine_variables
         )
 
         if aggregated_export_text:
