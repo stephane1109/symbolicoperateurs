@@ -35,6 +35,7 @@ from densite import (
     count_words,
 )
 from fcts_utils import (
+    build_annotation_style_block,
     build_variable_stats,
     render_connectors_reminder,
 )
@@ -78,9 +79,10 @@ def rendu_donnees_brutes(
 
     label_colors = generate_label_colors(filtered_connectors.values())
     label_style_block = build_label_style_block(label_colors)
+    annotation_style_block = build_annotation_style_block(label_style_block)
     annotated_html = annotate_connectors_html(combined_text, filtered_connectors)
 
-    st.markdown(label_style_block, unsafe_allow_html=True)
+    st.markdown(annotation_style_block, unsafe_allow_html=True)
     st.subheader("Connecteurs annotés")
     st.markdown(
         f"<div class='annotated-container'>{annotated_html}</div>",
@@ -90,7 +92,7 @@ def rendu_donnees_brutes(
     <html lang=\"fr\">
     <head>
     <meta charset=\"utf-8\" />
-    {label_style_block}
+    {annotation_style_block}
     </head>
     <body>
     <div class='annotated-container'>{annotated_html}</div>
