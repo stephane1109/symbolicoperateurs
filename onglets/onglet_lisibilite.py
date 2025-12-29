@@ -24,7 +24,6 @@ import streamlit as st
 from densite import build_text_from_dataframe
 from fcts_utils import render_connectors_reminder
 from test_lesch_Kincaid import (
-    READABILITY_SCALE,
     compute_flesch_kincaid_metrics,
     get_readability_band,
     interpret_reading_ease,
@@ -33,6 +32,10 @@ from test_lesch_Kincaid import (
 
 def rendu_lisibilite(tab, df: pd.DataFrame, filtered_connectors: Dict[str, str]) -> None:
     st.subheader("Test de lisibilité (Flesch-Kincaid)")
+    st.markdown(
+        "Le calcul est réalisé à partir du texte composé uniquement des connecteurs sélectionnés.\n"
+        "Les scores indiquent simplement la facilité de lecture estimée du corpus filtré."
+    )
     render_connectors_reminder(filtered_connectors)
 
     st.markdown("### Sélection des variables/modalités")
@@ -111,36 +114,6 @@ def rendu_lisibilite(tab, df: pd.DataFrame, filtered_connectors: Dict[str, str])
     st.caption(
         "Les scores de lisibilité sont calculés sur la base du texte filtré, en utilisant les variables/modalités sélectionnées."
     )
-
-    st.markdown("### Position sur l'échelle de lisibilité")
-    readability_scale_df = pd.DataFrame(READABILITY_SCALE).sort_values(
-        by="min", ascending=False
-    )
-    readability_scale_df["niveau_ordre"] = readability_scale_df["niveau"]
-
-    scale_chart = alt.Chart(readability_scale_df).mark_bar().encode(
-        y=alt.Y(
-            "niveau_ordre:N",
-            title="Niveau de lecture",
-            sort=readability_scale_df["niveau"].tolist(),
-        ),
-        x=alt.X(
-            "min:Q",
-            title="Flesch Reading Ease",
-            scale=alt.Scale(domain=[0, 100]),
-        ),
-        x2="max:Q",
-        color=alt.Color("niveau:N", legend=None),
-        tooltip=["niveau", "range", "description"],
-    )
-
-    score_rule = (
-        alt.Chart(pd.DataFrame({"score": [ease_score]}))
-        .mark_rule(color="red", strokeWidth=2)
-        .encode(x="score:Q", tooltip=[alt.Tooltip("score:Q", format=".2f")])
-    )
-
-    st.altair_chart(scale_chart + score_rule, use_container_width=True)
 
     readability_per_modality: List[Dict[str, float | str]] = []
 
