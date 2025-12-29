@@ -1751,7 +1751,16 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
             )
             return
 
-        grouping_variable = selected_cosine_variables[0]
+        grouping_variable = st.selectbox(
+            "Variable utilisée pour regrouper les textes",
+            options=selected_cosine_variables,
+            index=0,
+            help=(
+                "Choisissez la variable dont les modalités serviront à concaténer les "
+                "textes avant le calcul TF-IDF et l'export."
+            ),
+        )
+
         st.caption(
             "Les textes seront regroupés par modalité de la variable "
             f"**{grouping_variable}** avant le calcul TF-IDF."
