@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from typing import Dict, List
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -48,6 +49,7 @@ def rendu_lisibilite(tab, df: pd.DataFrame, filtered_connectors: Dict[str, str])
     )
 
     readability_filtered_df = df.copy()
+    readability_modalities_selection: Dict[str, List[str]] = {}
 
     for variable in readability_selected_variables:
         modality_options = sorted(
@@ -59,6 +61,7 @@ def rendu_lisibilite(tab, df: pd.DataFrame, filtered_connectors: Dict[str, str])
             default=modality_options,
             help="Filtrer les textes utilisés pour le test de lisibilité.",
         )
+        readability_modalities_selection[variable] = selected_modalities
         if selected_modalities:
             readability_filtered_df = readability_filtered_df[
                 readability_filtered_df[variable].isin(selected_modalities)
@@ -117,3 +120,99 @@ def rendu_lisibilite(tab, df: pd.DataFrame, filtered_connectors: Dict[str, str])
     st.caption(
         "Les scores de lisibilité sont calculés sur la base du texte filtré, en utilisant les variables/modalités sélectionnées."
     )
+
+    st.markdown("### Position sur l'échelle de lisibilité")
+    readability_scale_df = pd.DataFrame(READABILITY_SCALE).sort_values(
+        by="min", ascending=False
+    )
+    readability_scale_df["niveau_ordre"] = readability_scale_df["niveau"]
+
+    scale_chart = alt.Chart(readability_scale_df).mark_bar().encode(
+        y=alt.Y(
+            "niveau_ordre:N",
+            title="Niveau de lecture",
+            sort=readability_scale_df["niveau"].tolist(),
+        ),
+        x=alt.X(
+            "min:Q",
+            title="Flesch Reading Ease",
+            scale=alt.Scale(domain=[0, 100]),
+        ),
+        x2="max:Q",
+        color=alt.Color("niveau:N", legend=None),
+        tooltip=["niveau", "range", "description"],
+    )
+
+    score_rule = (
+        alt.Chart(pd.DataFrame({"score": [ease_score]}))
+        .mark_rule(color="red", strokeWidth=2)
+        .encode(x="score:Q", tooltip=[alt.Tooltip("score:Q", format=".2f")])
+    )
+
+    st.altair_chart(scale_chart + score_rule, use_container_width=True)
+
+    readability_per_modality: List[Dict[str, float | str]] = []
+
+    for variable, selected_modalities in readability_modalities_selection.items():
+        for modality in selected_modalities:
+            modality_df = readability_filtered_df[
+                readability_filtered_df[variable] == modality
+            ]
+            modality_text = build_text_from_dataframe(modality_df)
+            if not modality_text:
+                continue
+
+            modality_metrics = compute_flesch_kincaid_metrics(modality_text)
+            readability_per_modality.append(
+                {
+                    "variable": variable,
+                    "modalite": modality,
+                    "reading_ease": modality_metrics.get("reading_ease", 0.0),
+                    "grade_level": modality_metrics.get("grade_level", 0.0),
+                }
+            )
+
+    if readability_per_modality:
+        st.markdown("### Score de lisibilité par modalité")
+        modality_scores_df = pd.DataFrame(readability_per_modality)
+        modality_scores_df = modality_scores_df.sort_values(
+            by=["variable", "reading_ease"], ascending=[True, False]
+        )
+
+        display_df = modality_scores_df.rename(
+            columns={
+                "variable": "Variable",
+                "modalite": "Modalité",
+                "reading_ease": "Indice de lisibilité",
+                "grade_level": "Niveau scolaire (grade)",
+            }
+        )
+        display_df["Indice de lisibilité"] = display_df["Indice de lisibilité"].apply(
+            lambda score: f"{score:.2f}"
+        )
+        display_df["Niveau scolaire (grade)"] = display_df[
+            "Niveau scolaire (grade)"
+        ].apply(lambda score: f"{score:.2f}")
+
+        st.dataframe(display_df, use_container_width=True)
+
+        modality_chart = alt.Chart(modality_scores_df).mark_bar().encode(
+            x=alt.X("reading_ease:Q", title="Flesch Reading Ease"),
+            y=alt.Y("modalite:N", sort="-x", title="Modalité"),
+            color=alt.Color("variable:N", title="Variable"),
+            tooltip=[
+                "variable",
+                "modalite",
+                alt.Tooltip("reading_ease:Q", title="Indice", format=".2f"),
+                alt.Tooltip("grade_level:Q", title="Grade", format=".2f"),
+            ],
+        )
+
+        st.altair_chart(
+            modality_chart.facet(row=alt.Row("variable:N", title="Variable")),
+            use_container_width=True,
+        )
+    else:
+        st.info(
+            "Aucun score modalité n'a pu être calculé avec la sélection actuelle."
+        )
