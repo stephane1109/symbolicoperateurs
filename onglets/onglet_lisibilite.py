@@ -88,7 +88,7 @@ def rendu_lisibilite(tab, df: pd.DataFrame, filtered_connectors: Dict[str, str])
     readability_description = interpret_reading_ease(ease_score)
 
     st.markdown(
-        f"**Interprétation** : {readability_description} (échelle : {READABILITY_SCALE.get(readability_band, '')})"
+        f"**Interprétation** : {readability_description} (échelle : {readability_band.get('range', '')})"
     )
 
     st.markdown("### Paramètres utilisés")
