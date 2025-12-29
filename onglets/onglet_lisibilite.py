@@ -108,15 +108,6 @@ def rendu_lisibilite(tab, df: pd.DataFrame, filtered_connectors: Dict[str, str])
         f"**Interprétation** : {readability_description} (échelle : {readability_band.get('range', '')})"
     )
 
-    st.markdown("### Paramètres utilisés")
-    st.write(
-        {
-            "Mots": readability_metrics.get("word_count", 0),
-            "Phrases": readability_metrics.get("sentence_count", 0),
-            "Syllabes": readability_metrics.get("syllable_count", 0),
-        }
-    )
-
     st.caption(
         "Les scores de lisibilité sont calculés sur la base du texte filtré, en utilisant les variables/modalités sélectionnées."
     )
