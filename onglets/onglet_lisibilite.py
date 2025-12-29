@@ -183,7 +183,9 @@ def rendu_lisibilite(tab, df: pd.DataFrame, filtered_connectors: Dict[str, str])
         )
         display_df["Niveau scolaire (grade)"] = display_df[
             "Niveau scolaire (grade)"
-        ].apply(lambda score: f"{score:.2f}")
+        ].apply(
+            lambda score: f"Niveau {max(round(score), 0)}eme"
+        )
 
         st.dataframe(display_df, use_container_width=True)
 
