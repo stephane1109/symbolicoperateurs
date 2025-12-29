@@ -86,17 +86,40 @@ def rendu_ngram(tab, filtered_df: pd.DataFrame, filtered_connectors: Dict[str, s
             escape(context_text),
         )
 
+    def _clean_context_text(context_text: str, header: str) -> str:
+        if not context_text:
+            return ""
+
+        cleaned = context_text
+
+        if header:
+            header = header.strip()
+            separator_candidates = [" – ", " - ", " — ", " : "]
+
+            for separator in separator_candidates:
+                prefix = f"{header}{separator}"
+                if cleaned.startswith(prefix):
+                    cleaned = cleaned[len(prefix) :]
+                    break
+            else:
+                if cleaned.startswith(header):
+                    cleaned = cleaned[len(header) :].lstrip(" –—-:")
+
+        return cleaned.strip()
+
     def _format_context_block(context_entry: dict, ngram_value: str) -> str:
-        context_text = str(context_entry.get("contexte", "")).strip()
+        raw_context = str(context_entry.get("contexte", "")).strip()
+        header_value = str(context_entry.get("entete", "") or "").strip()
+
+        context_text = _clean_context_text(raw_context, header_value)
         if not context_text:
             return ""
 
         highlighted = _highlight_context(context_text, ngram_value)
         header_parts: list[str] = []
 
-        entete = str(context_entry.get("entete", "") or "").strip()
-        if entete:
-            header_parts.append(entete)
+        if header_value:
+            header_parts.append(header_value)
 
         modalities = context_entry.get("modalites", []) or []
         if modalities:
