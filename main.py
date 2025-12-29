@@ -677,21 +677,25 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
                 column for column in filtered_df.columns if column not in ("texte", "entete")
             ]
 
+            if not hash_variables:
+                st.info("Aucune variable n'a été trouvée dans le fichier importé.")
+                return
+
             selected_hash_variables = st.multiselect(
                 "Variables à filtrer pour la LMS",
                 hash_variables,
                 default=hash_variables,
                 help=(
-                    "Choisissez les variables à filtrer. Laisser vide pour utiliser l'ensemble"
-                    " du corpus actuellement chargé."
+                    "Sélectionnez les variables et modalités à inclure avant de calculer la "
+                    "LMS."
                 ),
             )
 
             if not selected_hash_variables:
                 st.info(
-                    "Aucune variable sélectionnée : la LMS sera calculée sur tous les textes "
-                    "affichés dans l'onglet « Données brutes »"
+                    "Sélectionnez au moins une variable pour calculer la LMS."
                 )
+                return
 
             hash_modality_filters: Dict[str, List[str]] = {}
             hash_filtered_df = filtered_df.copy()
