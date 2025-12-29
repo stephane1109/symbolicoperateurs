@@ -75,7 +75,8 @@ from test_lesch_Kincaid import (
 )
 from tf_idf import render_tfidf_tab
 
-BASE_DIR = Path(__file__).resolve().parent
+# Dossier racine de l'application (un niveau au-dessus du répertoire des onglets)
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 def parse_upload(content: str) -> Tuple[List[dict], pd.DataFrame]:
