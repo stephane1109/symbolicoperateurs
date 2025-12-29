@@ -224,12 +224,14 @@ def rendu_donnees_brutes(
 
     stats_df = count_connectors(combined_text, filtered_connectors)
 
-    if not stats_df.empty:
-        stats_df = stats_df.sort_values("occurrences", ascending=False).reset_index(drop=True)
-
     if stats_df.empty:
         st.info("Aucun connecteur trouvé dans le texte sélectionné.")
     else:
+        stats_df = (
+            stats_df.sort_values("occurrences", ascending=False)
+            .reset_index(drop=True)
+        )
+
         st.dataframe(stats_df, use_container_width=True)
 
         st.subheader("Fréquences des connecteurs")
