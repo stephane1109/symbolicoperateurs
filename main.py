@@ -88,9 +88,9 @@ from test_lesch_Kincaid import (
 )
 from souscorpus import build_subcorpus
 from simicosinus import (
-    aggregate_texts_by_variable,
+    aggregate_texts_by_variables,
     concatenate_texts_with_headers,
-    compute_cosine_similarity_by_variable,
+    compute_cosine_similarity_matrix,
     get_french_stopwords,
 )
 from tf_idf import render_tfidf_tab
@@ -1695,8 +1695,8 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
     with tabs[12]:
         st.subheader("Similarité cosinus")
         st.write(
-            "Comparer la similarité cosinus entre les variables en "
-            "concaténant l'intégralité des textes par modalité."
+            "Comparer la similarité cosinus entre les variables sélectionnées en "
+            "concaténant l'intégralité des textes par combinaison de modalités."
         )
 
         st.subheader("Sélection des variables/modalités")
@@ -1751,21 +1751,6 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
             )
             return
 
-        grouping_variable = st.selectbox(
-            "Variable utilisée pour regrouper les textes",
-            options=selected_cosine_variables,
-            index=0,
-            help=(
-                "Choisissez la variable dont les modalités serviront à concaténer les "
-                "textes avant le calcul TF-IDF et l'export."
-            ),
-        )
-
-        st.caption(
-            "Les textes seront regroupés par modalité de la variable "
-            f"**{grouping_variable}** avant le calcul TF-IDF."
-        )
-
         cosine_df = cosine_filtered_df
 
         apply_stopwords = st.checkbox(
@@ -1777,7 +1762,9 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
             ),
         )
 
-        aggregated_texts = aggregate_texts_by_variable(cosine_df, grouping_variable)
+        aggregated_texts = aggregate_texts_by_variables(
+            cosine_df, selected_cosine_variables
+        )
 
         aggregated_export_text = concatenate_texts_with_headers(
             cosine_filtered_df, selected_cosine_variables
@@ -1785,34 +1772,38 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
 
         if aggregated_export_text:
             st.download_button(
-                label="Télécharger les textes concaténés par modalité",
+                label="Télécharger les textes concaténés par sélection",
                 data=aggregated_export_text,
                 file_name="textes_par_modalite.txt",
                 mime="text/plain",
                 help=(
-                    "Export des textes regroupés par modalité pour vérifier la composition "
-                    "de la matrice TF-IDF."
+                    "Export des textes regroupés selon les variables et modalités choisies "
+                    "pour vérifier la composition de la matrice TF-IDF."
                 ),
             )
 
         if len(aggregated_texts) < 2:
             st.info(
-                "Au moins deux modalités doivent contenir du texte pour calculer la similarité cosinus."
+                "Au moins deux groupes de modalités doivent contenir du texte pour calculer la similarité cosinus."
             )
             return
 
+        group_labels = sorted(aggregated_texts.keys())
+        ordered_texts = {label: aggregated_texts[label] for label in group_labels}
         texts_summary = pd.DataFrame(
             {
-                "Modalité": list(aggregated_texts.keys()),
-                "Mots": [len(text.split()) for text in aggregated_texts.values()],
+                "Groupe": group_labels,
+                "Mots": [len(aggregated_texts[label].split()) for label in group_labels],
             }
-        ).sort_values("Modalité")
+        )
 
         st.markdown("### Textes regroupés")
         st.dataframe(texts_summary, use_container_width=True)
 
-        similarity_df = compute_cosine_similarity_by_variable(
-            cosine_df, grouping_variable, use_stopwords=apply_stopwords
+        stop_words = get_french_stopwords() if apply_stopwords else None
+
+        similarity_df = compute_cosine_similarity_matrix(
+            ordered_texts, stop_words=stop_words
         )
 
         if similarity_df.empty:
@@ -1824,8 +1815,8 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
 
         similarity_long = (
             similarity_df.reset_index()
-            .rename(columns={"index": "Modalité"})
-            .melt(id_vars="Modalité", var_name="Comparée à", value_name="Similarité")
+            .rename(columns={"index": "Groupe"})
+            .melt(id_vars="Groupe", var_name="Comparé à", value_name="Similarité")
         )
 
         modalities_order = similarity_df.index.tolist()
@@ -1834,8 +1825,8 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
             alt.Chart(similarity_long)
             .mark_rect()
             .encode(
-                x=alt.X("Modalité:N", sort=modalities_order),
-                y=alt.Y("Comparée à:N", sort=modalities_order),
+                x=alt.X("Groupe:N", sort=modalities_order),
+                y=alt.Y("Comparé à:N", sort=modalities_order),
                 color=alt.Color(
                     "Similarité:Q",
                     scale=alt.Scale(
@@ -1844,7 +1835,7 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
                     ),
                     title="Cosinus",
                 ),
-                tooltip=["Modalité", "Comparée à", alt.Tooltip("Similarité:Q", format=".4f")],
+                tooltip=["Groupe", "Comparé à", alt.Tooltip("Similarité:Q", format=".4f")],
             )
             .properties(
                 title="Carte de chaleur des similarités",
