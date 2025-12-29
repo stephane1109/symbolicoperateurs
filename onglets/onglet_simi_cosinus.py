@@ -31,9 +31,27 @@ from simicosinus import (
 def rendu_simi_cosinus(tab, df: pd.DataFrame) -> None:
     st.subheader("Simi cosinus")
 
-    selected_cosine_variables = [
+    cosine_variables = [
         column for column in df.columns if column not in ("texte", "entete")
     ]
+
+    if not cosine_variables:
+        st.info("Aucune variable n'a été trouvée dans le fichier importé.")
+        return
+
+    selected_cosine_variables = st.multiselect(
+        "Variables à filtrer pour la similarité cosinus",
+        cosine_variables,
+        default=cosine_variables,
+        help=(
+            "Sélectionnez les variables à prendre en compte puis choisissez les modalités "
+            "à conserver pour chacune d'elles."
+        ),
+    )
+
+    if not selected_cosine_variables:
+        st.info("Sélectionnez au moins une variable pour calculer la similarité cosinus.")
+        return
 
     cosine_filtered_df = df.copy()
     for variable in selected_cosine_variables:
