@@ -15,6 +15,7 @@ annotations et statistiques associées.
 """
 from __future__ import annotations
 
+from html import escape
 from pathlib import Path
 from typing import List
 
@@ -37,6 +38,34 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 def rendu_regex_motifs(tab, combined_text: str) -> None:
     st.subheader("Regex motifs")
+
+    texte_html = f"""<!DOCTYPE html>
+    <html lang=\"fr\">
+    <head>
+    <meta charset=\"utf-8\" />
+    </head>
+    <body>
+    <pre>{escape(combined_text)}</pre>
+    </body>
+    </html>"""
+
+    col_html, col_txt = st.columns(2)
+
+    with col_html:
+        st.download_button(
+            label="Télécharger le texte (HTML)",
+            data=texte_html,
+            file_name="corpus_combine.html",
+            mime="text/html",
+        )
+
+    with col_txt:
+        st.download_button(
+            label="Télécharger le texte (TXT)",
+            data=combined_text,
+            file_name="corpus_combine.txt",
+            mime="text/plain",
+        )
 
     st.markdown(
         """
