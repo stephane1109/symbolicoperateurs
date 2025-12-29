@@ -136,6 +136,18 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
     hash_text = concatenate_texts_with_headers(
         hash_filtered_df, selected_hash_variables
     )
+
+    if hash_text:
+        st.download_button(
+            label="Télécharger les textes concaténés par sélection",
+            data=hash_text,
+            file_name="textes_par_modalite.txt",
+            mime="text/plain",
+            help=(
+                "Export des textes regroupés selon les variables et modalités choisies "
+                "pour vérifier la composition de la LMS."
+            ),
+        )
     segment_lengths = compute_segment_word_lengths(
         hash_text, filtered_connectors, segmentation_mode
     )
