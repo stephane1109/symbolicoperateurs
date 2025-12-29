@@ -52,6 +52,59 @@ def get_french_stopwords() -> List[str]:
         return stopwords.words("french")
 
 
+def aggregate_texts_by_variables(
+    dataframe: pd.DataFrame, variables: Sequence[str]
+) -> Dict[str, str]:
+    """Assembler les textes par combinaison de variables/modalités.
+
+    Les groupes sont nommés en concaténant les couples ``variable = valeur`` pour
+    chaque modalité non vide. Les groupes sans texte sont ignorés afin de
+    conserver uniquement les contenus exploitables pour la similarité cosinus.
+    """
+
+    if dataframe.empty:
+        return {}
+
+    valid_variables = [var for var in variables if var in dataframe.columns]
+
+    if not valid_variables:
+        return {}
+
+    aggregated_texts: Dict[str, str] = {}
+
+    grouped = dataframe.groupby(valid_variables, dropna=False)
+
+    for group_values, subset in grouped:
+        values = (
+            group_values
+            if isinstance(group_values, tuple)
+            else (group_values,)
+        )
+        combination = dict(zip(valid_variables, values, strict=True))
+
+        label_parts: list[str] = []
+        for variable, value in combination.items():
+            if pd.isna(value) or str(value).strip() == "":
+                continue
+            label_parts.append(f"{variable} = {value}")
+
+        label = " | ".join(label_parts) if label_parts else "Non spécifié"
+
+        texts = (
+            subset.get("texte", pd.Series(dtype=str))
+            .dropna()
+            .astype(str)
+            .map(str.strip)
+        )
+
+        combined_text = " ".join(text for text in texts if text)
+
+        if combined_text:
+            aggregated_texts[label] = combined_text
+
+    return aggregated_texts
+
+
 def compute_cosine_similarity_matrix(
     texts_by_group: Dict[str, str], stop_words: Iterable[str] | None = None
 ) -> pd.DataFrame:
