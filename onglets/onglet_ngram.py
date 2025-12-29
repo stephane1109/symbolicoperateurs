@@ -54,12 +54,16 @@ def rendu_ngram(tab, filtered_df: pd.DataFrame, filtered_connectors: Dict[str, s
         value=False,
     )
 
-    results_by_size = compute_ngram_statistics(
+    ngram_stats = compute_ngram_statistics(
         ngram_filtered_df,
-        variables=selected_ngram_variables,
-        search_pattern=search_pattern,
-        hide_non_matches=hide_non_matches,
+        min_n=3,
+        max_n=6,
     )
+
+    results_by_size = {
+        size: ngram_stats[ngram_stats["Taille"] == size].reset_index(drop=True)
+        for size in range(3, 7)
+    }
 
     def _highlight_context(context_text: str, ngram_value: str) -> str:
         pattern = build_ngram_pattern(ngram_value.split())
