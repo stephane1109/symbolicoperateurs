@@ -8,8 +8,8 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from analyses import generate_label_colors
-from fcts_utils import build_annotation_style_block, build_label_style_block
+from analyses import build_label_style_block, generate_label_colors
+from fcts_utils import build_annotation_style_block
 from regexanalyse import (
     count_segments_by_pattern,
     highlight_matches_html,
