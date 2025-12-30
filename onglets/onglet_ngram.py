@@ -12,6 +12,7 @@ en filtrant par variables et en appliquant éventuellement des motifs regex.
 from __future__ import annotations
 
 from html import escape
+import re
 from typing import Dict, List
 
 import altair as alt
@@ -248,9 +249,10 @@ def rendu_ngram(tab, filtered_df: pd.DataFrame, filtered_connectors: Dict[str, s
                 match_mask = display_df["N-gram"].str.contains(
                     search_pattern, case=False, regex=True
                 )
-            except Exception:
+            except re.error:
+                safe_pattern = re.escape(search_pattern)
                 match_mask = display_df["N-gram"].str.contains(
-                    search_pattern, case=False, regex=True
+                    safe_pattern, case=False, regex=True
                 )
 
             if hide_non_matches:
