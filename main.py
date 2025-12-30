@@ -33,6 +33,54 @@ from onglets import (  # noqa: E402
 )
 
 
+TMP_UPLOAD_PATH = Path("/tmp/iramuteq_last_upload.txt")
+
+
+def _load_uploaded_content(uploaded_file: st.runtime.uploaded_file_manager.UploadedFile | None) -> str | None:
+    """Load content from upload, session state or a temporary cache.
+
+    Order of precedence:
+    1. Fresh upload from the user.
+    2. Content preserved in ``st.session_state`` during reruns.
+    3. Last uploaded content persisted in ``/tmp`` while the container is alive.
+    """
+
+    if uploaded_file:
+        try:
+            content = uploaded_file.getvalue().decode("utf-8")
+        except UnicodeDecodeError:
+            st.error("Impossible de décoder le fichier téléversé en UTF-8.")
+            return None
+
+        st.session_state["uploaded_content"] = content
+        st.session_state["uploaded_filename"] = uploaded_file.name
+
+        try:
+            TMP_UPLOAD_PATH.write_text(content, encoding="utf-8")
+        except OSError:
+            st.warning("Le fichier n'a pas pu être mis en cache localement, seul st.session_state sera utilisé.")
+
+        return content
+
+    # Pas d'upload en cours : chercher dans la session ou le cache local
+    cached_content = st.session_state.get("uploaded_content")
+    if cached_content:
+        return cached_content
+
+    if TMP_UPLOAD_PATH.exists():
+        try:
+            content = TMP_UPLOAD_PATH.read_text(encoding="utf-8")
+        except OSError:
+            st.warning("Impossible de relire le cache local, merci de re-téléverser le fichier.")
+            return None
+
+        st.session_state["uploaded_content"] = content
+        st.info("Fichier rechargé automatiquement depuis le cache local.")
+        return content
+
+    return None
+
+
 def main() -> None:
     st.set_page_config(page_title="Symbolic Connectors", layout="wide")
 
@@ -54,6 +102,7 @@ Pour l’instant, l’application repose sur un fichier dictionnaire.json (visib
     )
 
     uploaded_file = st.file_uploader("Fichier IRaMuTeQ", type=["txt"])  # type: ignore[assignment]
+    content = _load_uploaded_content(uploaded_file)
 
     tabs = st.tabs(
         [
@@ -73,7 +122,7 @@ Pour l’instant, l’application repose sur un fichier dictionnaire.json (visib
         ]
     )
 
-    if not uploaded_file:
+    if content is None:
         upload_message = (
             "Téléversez un fichier texte IRaMuTeQ pour accéder aux analyses disponibles dans les onglets."
         )
@@ -88,7 +137,6 @@ Pour l’instant, l’application repose sur un fichier dictionnaire.json (visib
 
         return
 
-    content = uploaded_file.read().decode("utf-8")
     records, df = parse_upload(content)
 
     if not records:
