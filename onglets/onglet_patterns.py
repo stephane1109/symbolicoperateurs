@@ -59,11 +59,68 @@ def rendu_patterns(
         "Motif ou signe à rechercher", placeholder="?", key="simple_pattern_query"
     )
 
+    options_col1, options_col2 = st.columns(2)
+
+    with options_col1:
+        min_occurrences = st.number_input(
+            "Fréquence minimale du motif par segment",
+            min_value=1,
+            value=1,
+            step=1,
+            help="Nombre d'occurrences requises dans un segment pour l'afficher.",
+        )
+
+    with options_col2:
+        show_only_matching_texts = st.checkbox(
+            "Afficher uniquement les textes contenant le motif",
+            value=False,
+            help="Filtre le corpus et les résultats pour ne conserver que les textes où le motif apparaît.",
+        )
+
     if not pattern_query:
         return
 
+    enriched_segments: List[dict] = []
+    segment_counter = 1
+    matched_rows: List[pd.Series] = []
+
+    for _, row in filtered_df.iterrows():
+        row_text = build_text_from_dataframe(pd.DataFrame([row]))
+
+        if not row_text:
+            continue
+
+        modalities_label = format_modalities_for_row(row, selected_variables)
+
+        row_segments = find_pattern_segments(row_text, pattern_query)
+        filtered_segments = [
+            segment
+            for segment in row_segments
+            if segment.get("occurrences", 0) >= min_occurrences
+        ]
+
+        if filtered_segments:
+            matched_rows.append(row)
+
+        for segment in filtered_segments:
+            enriched_segments.append(
+                {
+                    "modalites": modalities_label,
+                    "segment_id": segment_counter,
+                    "segment": segment.get("segment"),
+                    "occurrences": segment.get("occurrences", 0),
+                }
+            )
+            segment_counter += 1
+
+    text_to_annotate = (
+        build_text_from_dataframe(pd.DataFrame(matched_rows))
+        if show_only_matching_texts
+        else combined_text
+    )
+
     pattern_annotation_style = build_annotation_style_block("")
-    annotated_pattern_html = annotate_user_pattern_html(combined_text, pattern_query)
+    annotated_pattern_html = annotate_user_pattern_html(text_to_annotate, pattern_query)
 
     st.subheader("Texte annoté par motif")
     st.markdown(pattern_annotation_style, unsafe_allow_html=True)
@@ -89,30 +146,6 @@ def rendu_patterns(
         file_name="texte_annotes_motif.html",
         mime="text/html",
     )
-
-    enriched_segments: List[dict] = []
-    segment_counter = 1
-
-    for _, row in filtered_df.iterrows():
-        row_text = build_text_from_dataframe(pd.DataFrame([row]))
-
-        if not row_text:
-            continue
-
-        modalities_label = format_modalities_for_row(row, selected_variables)
-
-        row_segments = find_pattern_segments(row_text, pattern_query)
-
-        for segment in row_segments:
-            enriched_segments.append(
-                {
-                    "modalites": modalities_label,
-                    "segment_id": segment_counter,
-                    "segment": segment.get("segment"),
-                    "occurrences": segment.get("occurrences", 0),
-                }
-            )
-            segment_counter += 1
 
     if not enriched_segments:
         st.info("Aucun segment ne contient ce motif dans le texte filtré.")
