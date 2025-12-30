@@ -13,9 +13,6 @@ from pathlib import Path
 from html import escape
 from typing import Dict, Iterable
 
-
-NEWLINE_CONNECTORS = {"\n", "\r\n"}
-
 import pandas as pd
 
 
@@ -99,9 +96,23 @@ def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
     if not cleaned_connectors:
         return escape(text)
 
+    newline_label = "retour à la ligne"
+    has_newline_label = any(
+        label and label.lower() == newline_label for label in cleaned_connectors.values()
+    )
+
+    if has_newline_label:
+        cleaned_connectors.setdefault("\n", "RETOUR À LA LIGNE")
+        cleaned_connectors.setdefault("\r\n", "RETOUR À LA LIGNE")
+
     normalized_text = re.sub(r"<br\s*/?>", "\n", text, flags=re.IGNORECASE)
     pattern = _build_connector_pattern(cleaned_connectors)
     lower_map = {key.lower(): value for key, value in cleaned_connectors.items()}
+    newline_connectors = {
+        key
+        for key, label in cleaned_connectors.items()
+        if label and label.lower() == newline_label
+    }
 
     def _replacer(match: re.Match[str]) -> str:
         matched_connector = match.group(0)
@@ -109,7 +120,7 @@ def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
         safe_label = escape(label)
         label_class = _slugify_label(label)
 
-        is_newline = matched_connector in NEWLINE_CONNECTORS
+        is_newline = matched_connector in newline_connectors
         connector_display = "↵" if is_newline else escape(matched_connector)
         connector_markup = (
             f'<span class="connector-annotation connector-{label_class}">'
