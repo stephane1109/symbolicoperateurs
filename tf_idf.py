@@ -146,10 +146,46 @@ def render_tfidf_tab(dataframe: pd.DataFrame) -> None:
         st.info("Aucune donnée disponible après filtrage.")
         return
 
-    variables = [column for column in dataframe.columns if column not in ("texte", "entete")]
-    if not variables:
+    available_variables = [
+        column for column in dataframe.columns if column not in ("texte", "entete")
+    ]
+    if not available_variables:
         st.info("Aucune variable disponible pour calculer le TF-IDF.")
         return
+
+    st.markdown("**Filtres par variables et modalités**")
+    selected_filter_variables = st.multiselect(
+        "Variables utilisées pour filtrer les textes",
+        available_variables,
+        default=available_variables,
+        help=(
+            "Choisissez les variables qui doivent être filtrées avant de calculer le TF-IDF, "
+            "puis sélectionnez les modalités à conserver pour chacune d'elles."
+        ),
+    )
+
+    filtered_df = dataframe.copy()
+    for variable in selected_filter_variables:
+        modality_options = sorted(filtered_df[variable].dropna().astype(str).unique().tolist())
+        selected_modalities = st.multiselect(
+            f"Modalités à inclure pour {variable}",
+            modality_options,
+            default=modality_options,
+            help="Modalités conservées avant le calcul du TF-IDF.",
+        )
+
+        if selected_modalities:
+            filtered_df = filtered_df[
+                filtered_df[variable].astype(str).isin(selected_modalities)
+            ]
+        else:
+            filtered_df = filtered_df.iloc[0:0]
+
+    if filtered_df.empty:
+        st.info("Aucun texte ne correspond aux filtres sélectionnés.")
+        return
+
+    variables = [column for column in filtered_df.columns if column not in ("texte", "entete")]
 
     variable_choice = st.selectbox(
         "Variable à analyser",
@@ -158,7 +194,7 @@ def render_tfidf_tab(dataframe: pd.DataFrame) -> None:
     )
 
     modality_options = sorted(
-        dataframe[variable_choice].dropna().astype(str).unique().tolist()
+        filtered_df[variable_choice].dropna().astype(str).unique().tolist()
     )
     selected_modalities = st.multiselect(
         "Modalités incluses",
@@ -182,7 +218,7 @@ def render_tfidf_tab(dataframe: pd.DataFrame) -> None:
     )
 
     tfidf_scores = compute_tfidf_scores(
-        dataframe,
+        filtered_df,
         variable_choice,
         selected_modalities=selected_modalities or None,
         use_stopwords=use_stopwords,
