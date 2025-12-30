@@ -17,7 +17,6 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -162,22 +161,6 @@ def rendu_lisibilite(tab, df: pd.DataFrame, filtered_connectors: Dict[str, str])
 
         st.dataframe(display_df, use_container_width=True)
 
-        modality_chart = alt.Chart(modality_scores_df).mark_bar().encode(
-            x=alt.X("reading_ease:Q", title="Flesch Reading Ease"),
-            y=alt.Y("modalite:N", sort="-x", title="Modalité"),
-            color=alt.Color("variable:N", title="Variable"),
-            tooltip=[
-                "variable",
-                "modalite",
-                alt.Tooltip("reading_ease:Q", title="Indice", format=".2f"),
-                alt.Tooltip("grade_level:Q", title="Grade", format=".2f"),
-            ],
-        )
-
-        st.altair_chart(
-            modality_chart.facet(row=alt.Row("variable:N", title="Variable")),
-            use_container_width=True,
-        )
     else:
         st.info(
             "Aucun score modalité n'a pu être calculé avec la sélection actuelle."
