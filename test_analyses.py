@@ -4,7 +4,7 @@ from pathlib import Path
 
 import json
 
-from analyses import annotate_connectors_html, load_connectors
+from analyses import annotate_connectors_html, count_connectors, load_connectors
 
 
 def test_load_connectors_preserves_newline_entries(tmp_path: Path):
@@ -30,3 +30,14 @@ def test_annotate_connectors_html_displays_newline_connector():
     assert "connector-retour-la-ligne" in html
     assert "↵" in html
     assert "<br />Corps" in html
+
+
+def test_newline_after_starred_line_is_ignored():
+    text = "**** *model_gpt *prompt_1\nTexte\nFin"
+    connectors = {"\n": "RETOUR À LA LIGNE"}
+
+    html = annotate_connectors_html(text, connectors)
+    stats = count_connectors(text, connectors)
+
+    assert html.count("RETOUR À LA LIGNE") == 1
+    assert stats.loc[0, "occurrences"] == 1
