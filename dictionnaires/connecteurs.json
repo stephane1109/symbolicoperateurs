@@ -84,5 +84,8 @@
   "de facon que": "ALORS",
   "c'est pourquoi": "ALORS",
   "ceci explique pourquoi": "ALORS",
-  "en cas de": "ALORS"
+  "en cas de": "ALORS",
+
+  "\n": "RETOUR À LA LIGNE",
+  "\r\n": "RETOUR À LA LIGNE"
 }
