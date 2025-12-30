@@ -185,24 +185,6 @@ def render_tfidf_tab(dataframe: pd.DataFrame) -> None:
         st.info("Aucun texte ne correspond aux filtres sélectionnés.")
         return
 
-    variables = [column for column in filtered_df.columns if column not in ("texte", "entete")]
-
-    variable_choice = st.selectbox(
-        "Variable à analyser",
-        variables,
-        help="Choisissez la variable dont vous souhaitez comparer les modalités.",
-    )
-
-    modality_options = sorted(
-        filtered_df[variable_choice].dropna().astype(str).unique().tolist()
-    )
-    selected_modalities = st.multiselect(
-        "Modalités incluses",
-        modality_options,
-        default=modality_options,
-        help="Limitez le calcul aux modalités sélectionnées.",
-    )
-
     top_n = st.slider(
         "Nombre de termes à afficher",
         min_value=5,
@@ -217,24 +199,43 @@ def render_tfidf_tab(dataframe: pd.DataFrame) -> None:
         help="Retire les mots vides avant le calcul des scores TF-IDF.",
     )
 
-    tfidf_scores = compute_tfidf_scores(
-        filtered_df,
-        variable_choice,
-        selected_modalities=selected_modalities or None,
-        use_stopwords=use_stopwords,
-        top_n=top_n,
-    )
+    analysis_variables = selected_filter_variables or [
+        column for column in filtered_df.columns if column not in ("texte", "entete")
+    ]
 
-    if not tfidf_scores:
-        st.info("Aucun terme significatif trouvé pour les paramètres sélectionnés.")
-        return
+    for variable_choice in analysis_variables:
+        st.markdown(f"### Modalités incluses – {variable_choice}")
+        modality_options = sorted(
+            filtered_df[variable_choice].dropna().astype(str).unique().tolist()
+        )
+        selected_modalities = st.multiselect(
+            "Modalités incluses",
+            modality_options,
+            default=modality_options,
+            help="Limitez le calcul aux modalités sélectionnées.",
+            key=f"tfidf_modalities_{variable_choice}",
+        )
 
-    tfidf_df = build_tfidf_dataframe(tfidf_scores)
-    st.dataframe(
-        tfidf_df.sort_values(["modalite", "score_tfidf"], ascending=[True, False]),
-        use_container_width=True,
-    )
+        tfidf_scores = compute_tfidf_scores(
+            filtered_df,
+            variable_choice,
+            selected_modalities=selected_modalities or None,
+            use_stopwords=use_stopwords,
+            top_n=top_n,
+        )
 
-    for modality in sorted(tfidf_scores.keys()):
-        st.markdown(f"### Nuage de mots – {variable_choice} / {modality}")
-        render_wordcloud(tfidf_scores.get(modality, []))
+        if not tfidf_scores:
+            st.info(
+                "Aucun terme significatif trouvé pour les paramètres sélectionnés.",
+            )
+            continue
+
+        tfidf_df = build_tfidf_dataframe(tfidf_scores)
+        st.dataframe(
+            tfidf_df.sort_values(["modalite", "score_tfidf"], ascending=[True, False]),
+            use_container_width=True,
+        )
+
+        for modality in sorted(tfidf_scores.keys()):
+            st.markdown(f"#### Nuage de mots – {variable_choice} / {modality}")
+            render_wordcloud(tfidf_scores.get(modality, []))
