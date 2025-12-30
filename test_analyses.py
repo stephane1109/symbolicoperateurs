@@ -13,6 +13,7 @@ def test_load_connectors_preserves_newline_entries(tmp_path: Path):
         " si": "CONDITION",
         "\n": "RETOUR À LA LIGNE",
         "\r\n": "RETOUR À LA LIGNE",
+        "<br>": "RETOUR À LA LIGNE",
         "": "IGNORED",
     }
 
@@ -24,6 +25,7 @@ def test_load_connectors_preserves_newline_entries(tmp_path: Path):
         "si": "CONDITION",
         "\n": "RETOUR À LA LIGNE",
         "\r\n": "RETOUR À LA LIGNE",
+        "<br>": "RETOUR À LA LIGNE",
     }
 
 
@@ -33,4 +35,21 @@ def test_annotate_connectors_html_displays_newline_connector():
     assert "Titre" in html
     assert "connector-retour-la-ligne" in html
     assert "↵" in html
-    assert "<br />\nCorps" in html
+    assert "<br" not in html
+    assert "Corps" in html
+
+
+def test_annotate_connectors_html_converts_br_to_newline_connector():
+    html = annotate_connectors_html("Intro<br>Suite", {"\n": "RETOUR À LA LIGNE"})
+
+    assert "connector-retour-la-ligne" in html
+    assert "↵" in html
+    assert "<br" not in html
+
+
+def test_annotate_connectors_html_supports_br_rule_from_dictionary():
+    html = annotate_connectors_html("Intro<br>Suite", {"<br>": "RETOUR À LA LIGNE"})
+
+    assert "connector-retour-la-ligne" in html
+    assert "↵" in html
+    assert "<br" not in html
