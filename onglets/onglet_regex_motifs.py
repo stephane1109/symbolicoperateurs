@@ -140,7 +140,7 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
     highlighted_segments = [
         highlight_matches_html(segment, regex_patterns) for segment in segments
     ]
-    highlighted_corpus = "<br /><br />".join(highlighted_segments)
+    highlighted_corpus = "<br />".join(highlighted_segments)
     st.subheader("Corpus annoté (motifs regex)")
     st.markdown(
         f"<div class='annotated-container'>{highlighted_corpus}</div>",
