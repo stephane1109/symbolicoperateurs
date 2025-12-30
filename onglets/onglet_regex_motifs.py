@@ -128,8 +128,10 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
 
     st.markdown(regex_annotation_style, unsafe_allow_html=True)
 
-    highlighted_corpus = highlight_matches_html(combined_text, regex_patterns)
-    st.markdown("Corpus annoté (motifs regex)")
+    regex_ready_text = " ".join(line.strip() for line in combined_text.splitlines() if line.strip())
+
+    highlighted_corpus = highlight_matches_html(regex_ready_text, regex_patterns)
+    st.subheader("Corpus annoté (motifs regex)")
     st.markdown(
         f"<div class='annotated-container'>{highlighted_corpus}</div>",
         unsafe_allow_html=True,
@@ -154,7 +156,7 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
         key="download-regex-annotated-html",
     )
 
-    segments = split_segments(combined_text)
+    segments = split_segments(regex_ready_text)
     segment_rows = summarize_matches_by_segment(segments, regex_patterns)
 
     st.markdown("---")
