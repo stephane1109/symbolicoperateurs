@@ -14,7 +14,8 @@ from html import escape
 from typing import Dict, Iterable
 
 
-NEWLINE_CONNECTORS = {"\n", "\r\n"}
+NEWLINE_CANONICAL = "\n"
+NEWLINE_ALIASES = {"\n", "\r\n"}
 
 import pandas as pd
 
@@ -34,15 +35,16 @@ def load_connectors(path: Path) -> Dict[str, str]:
     cleaned_connectors: Dict[str, str] = {}
 
     for key, value in connectors.items():
-        # Conserver explicitement les connecteurs représentant des retours à la ligne.
-        if key in {"\n", "\r\n"}:
-            cleaned_connectors[key] = value
-            continue
-
         stripped_key = key.strip(" \t")
 
-        if stripped_key:
-            cleaned_connectors[stripped_key] = value
+        if not stripped_key:
+            continue
+
+        if stripped_key in NEWLINE_ALIASES:
+            cleaned_connectors[NEWLINE_CANONICAL] = value
+            continue
+
+        cleaned_connectors[stripped_key] = value
 
     return cleaned_connectors
 
@@ -53,7 +55,7 @@ def _connector_to_regex(connector: str) -> str:
     if not connector:
         return ""
 
-    if connector in {"\n", "\r\n"}:
+    if connector == NEWLINE_CANONICAL:
         return r"\r?\n"
 
     escaped = re.escape(connector)
@@ -100,7 +102,15 @@ def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
         return escape(text)
 
     pattern = _build_connector_pattern(cleaned_connectors)
-    lower_map = {key.lower(): value for key, value in cleaned_connectors.items()}
+    lower_map: Dict[str, str] = {}
+
+    for key, value in cleaned_connectors.items():
+        lower_map[key.lower()] = value
+
+        if key == NEWLINE_CANONICAL:
+            # Autoriser la correspondance avec les deux représentations (Unix et Windows).
+            for alias in NEWLINE_ALIASES:
+                lower_map[alias] = value
 
     def _replacer(match: re.Match[str]) -> str:
         matched_connector = match.group(0)
@@ -108,7 +118,7 @@ def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
         safe_label = escape(label)
         label_class = _slugify_label(label)
 
-        is_newline = matched_connector in NEWLINE_CONNECTORS
+        is_newline = matched_connector in NEWLINE_ALIASES
         connector_display = "↵" if is_newline else escape(matched_connector)
         connector_markup = (
             f'<span class="connector-annotation connector-{label_class}">'
@@ -181,7 +191,14 @@ def count_connectors_by_label(text: str, connectors: Dict[str, str]) -> Dict[str
         return {}
 
     pattern = _build_connector_pattern(cleaned_connectors)
-    lower_map = {key.lower(): value for key, value in cleaned_connectors.items()}
+    lower_map: Dict[str, str] = {}
+
+    for key, value in cleaned_connectors.items():
+        lower_map[key.lower()] = value
+
+        if key == NEWLINE_CANONICAL:
+            for alias in NEWLINE_ALIASES:
+                lower_map[alias] = value
     label_counts: Dict[str, int] = {}
 
     for match in pattern.finditer(text):
