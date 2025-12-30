@@ -152,12 +152,13 @@ def render_lexicon_norm_tab(
         # on les ramène à une base de 1 000 mots pour aligner le graphique.
         norm_density_df["densite"] = norm_density_df["densite"] / 1000.0
 
+        unchecked_labels = {"WorldLex_FR__BlogFreq"}
         selected_labels = []
         for _, row in norm_density_df.iterrows():
             checkbox_label = row["label"]
             if st.checkbox(
                 checkbox_label,
-                value=True,
+                value=checkbox_label not in unchecked_labels,
                 key=f"lexicon-norm-{row['label']}",
             ):
                 selected_labels.append(row)
