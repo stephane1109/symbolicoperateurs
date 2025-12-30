@@ -99,6 +99,7 @@ def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
     if not cleaned_connectors:
         return escape(text)
 
+    normalized_text = re.sub(r"<br\s*/?>", "\n", text, flags=re.IGNORECASE)
     pattern = _build_connector_pattern(cleaned_connectors)
     lower_map = {key.lower(): value for key, value in cleaned_connectors.items()}
 
@@ -118,19 +119,17 @@ def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
         )
 
         if is_newline:
-            # Conserver le saut de ligne dans le texte final tout en affichant le
-            # connecteur pour le rendre visible dans l'interface, sans retour à
-            # la ligne dans l'affichage.
+            # Afficher le connecteur sans insérer de saut de ligne dans le rendu.
             return f"{connector_markup} "
 
         return connector_markup
 
-    escaped_text = escape(text)
+    escaped_text = escape(normalized_text)
     annotated = pattern.sub(_replacer, escaped_text)
 
-    # Supprimer les retours à la ligne dans l'affichage : ils sont signalés par
-    # le connecteur dédié plutôt que par une nouvelle ligne.
-    return annotated.replace("\r\n", " ").replace("\n", " ")
+    # Éviter l'insertion de retours à la ligne HTML tout en conservant la
+    # lisibilité du texte.
+    return annotated.replace("\r\n", "\n").replace("\n", " ")
 
 
 def count_connectors(text: str, connectors: Dict[str, str]) -> pd.DataFrame:
