@@ -58,7 +58,7 @@ def rendu_connecteurs(tab) -> None:
         )
         available_connectors = {}
 
-    allowed_labels = {"ALTERNATIVE", "CONDITION", "ALORS", "AND"}
+    allowed_labels = {"ALTERNATIVE", "CONDITION", "ALORS", "AND", "RETOUR À LA LIGNE"}
     available_connectors = {
         connector: label
         for connector, label in available_connectors.items()

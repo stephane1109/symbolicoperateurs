@@ -31,13 +31,41 @@ def load_connectors(path: Path) -> Dict[str, str]:
     return {key.strip(): value for key, value in connectors.items() if key.strip()}
 
 
+def _connector_to_regex(connector: str) -> str:
+    """Construire une expression régulière pour un connecteur donné."""
+
+    if not connector:
+        return ""
+
+    if connector in {"\n", "\r\n"}:
+        return r"\r?\n"
+
+    escaped = re.escape(connector)
+    needs_boundaries = connector[0].isalnum() and connector[-1].isalnum()
+
+    if needs_boundaries:
+        return rf"\b{escaped}\b"
+
+    return escaped
+
+
 def _build_connector_pattern(connectors: Dict[str, str]) -> re.Pattern[str]:
     """Construire un motif regex qui capture chaque connecteur."""
-    sorted_keys = sorted(connectors.keys(), key=len, reverse=True)
-    escaped = [re.escape(key) for key in sorted_keys]
-    pattern = "|".join(escaped)
 
-    return re.compile(rf"\b({pattern})\b", re.IGNORECASE)
+    patterns = []
+
+    for connector in sorted(connectors.keys(), key=len, reverse=True):
+        regex = _connector_to_regex(connector)
+
+        if regex:
+            patterns.append(regex)
+
+    if not patterns:
+        return re.compile(r"^$")
+
+    pattern = "|".join(patterns)
+
+    return re.compile(rf"({pattern})", re.IGNORECASE)
 
 
 def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
@@ -87,7 +115,12 @@ def count_connectors(text: str, connectors: Dict[str, str]) -> pd.DataFrame:
     rows = []
 
     for connector, label in cleaned_connectors.items():
-        regex = re.compile(rf"\b{re.escape(connector)}\b", re.IGNORECASE)
+        regex_pattern = _connector_to_regex(connector)
+
+        if not regex_pattern:
+            continue
+
+        regex = re.compile(regex_pattern, re.IGNORECASE)
         occurrences = len(regex.findall(text))
 
         if occurrences:
