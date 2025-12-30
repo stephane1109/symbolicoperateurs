@@ -90,6 +90,7 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
             data=texte_html,
             file_name="corpus_combine.html",
             mime="text/html",
+            key="download-combined-html",
         )
 
     with col_txt:
@@ -98,6 +99,7 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
             data=combined_text,
             file_name="corpus_combine.txt",
             mime="text/plain",
+            key="download-combined-txt",
         )
 
     connector_label_colors = generate_label_colors(filtered_connectors.values())
@@ -127,6 +129,7 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
             data=annotated_connectors_doc,
             file_name="texte_annote_connecteurs.html",
             mime="text/html",
+            key="download-annotated-connectors-html",
         )
 
     with download_connect_txt:
@@ -135,6 +138,7 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
             data=annotated_connectors_text,
             file_name="texte_annote_connecteurs.txt",
             mime="text/plain",
+            key="download-annotated-connectors-txt",
         )
 
     st.markdown(
@@ -182,6 +186,7 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
         data=downloadable_regex_html,
         file_name="corpus_regex_annote.html",
         mime="text/html",
+        key="download-regex-annotated-html",
     )
 
     segments = split_segments(combined_text)
