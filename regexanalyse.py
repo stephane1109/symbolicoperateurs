@@ -61,12 +61,12 @@ def _slugify_identifier(value: str) -> str:
     return slug or "motif"
 
 
-def highlight_matches_html(text: str, patterns: Sequence[RegexPattern]) -> str:
-    """Retourner le texte en HTML avec surlignage des motifs détectés."""
+def _highlight_single_segment(segment: str, patterns: Sequence[RegexPattern]) -> str:
+    """Colorer un segment individuel sans chevauchement entre phrases."""
 
     matches = []
     for pattern in patterns:
-        for match in pattern.compiled.finditer(text):
+        for match in pattern.compiled.finditer(segment):
             matches.append(
                 {
                     "start": match.start(),
@@ -78,7 +78,7 @@ def highlight_matches_html(text: str, patterns: Sequence[RegexPattern]) -> str:
             )
 
     if not matches:
-        return escape(text).replace("\n", "<br />\n")
+        return escape(segment).replace("\n", "<br />\n")
 
     matches.sort(key=lambda item: (item["start"], -(item["end"] - item["start"])))
 
@@ -89,7 +89,7 @@ def highlight_matches_html(text: str, patterns: Sequence[RegexPattern]) -> str:
         if match["start"] < cursor:
             continue
 
-        highlighted_parts.append(escape(text[cursor : match["start"]]))
+        highlighted_parts.append(escape(segment[cursor : match["start"]]))
         label_class = _slugify_identifier(match["label"])
         highlighted_parts.append(
             "<span class=\"connector-annotation connector-"
@@ -98,9 +98,29 @@ def highlight_matches_html(text: str, patterns: Sequence[RegexPattern]) -> str:
         )
         cursor = match["end"]
 
-    highlighted_parts.append(escape(text[cursor:]))
+    highlighted_parts.append(escape(segment[cursor:]))
 
     return "".join(highlighted_parts).replace("\n", "<br />\n")
+
+
+def highlight_matches_html(text: str, patterns: Sequence[RegexPattern]) -> str:
+    """Retourner le texte en HTML avec surlignage des motifs détectés.
+
+    Les expressions régulières sont appliquées segment par segment afin de
+    respecter les bornes de ponctuation et éviter des captures qui
+    traverseraient plusieurs phrases.
+    """
+
+    segments = split_segments(text)
+
+    if not segments:
+        return escape(text).replace("\n", "<br />\n")
+
+    highlighted_segments = [
+        _highlight_single_segment(segment, patterns) for segment in segments
+    ]
+
+    return "<br /><br />".join(highlighted_segments)
 
 
 def summarize_matches_by_segment(
