@@ -50,3 +50,16 @@ def test_punctuation_segments_must_touch_connectors():
         "Ensuite",
         "tu veux",
     ]
+
+
+def test_newline_connectors_are_recognized():
+    connectors = {"\n": "RETOUR À LA LIGNE", "\r\n": "RETOUR À LA LIGNE"}
+    text = "Première ligne\nDeuxième ligne\nTroisième ligne"
+
+    segments = hash_module.split_segments_by_connectors(text, connectors)
+
+    assert [segment.strip() for segment in segments] == [
+        "Première ligne",
+        "Deuxième ligne",
+        "Troisième ligne",
+    ]
