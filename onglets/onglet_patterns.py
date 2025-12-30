@@ -113,9 +113,10 @@ def rendu_patterns(
             )
             segment_counter += 1
 
+    should_restrict_text = show_only_matching_texts or min_occurrences > 1
     text_to_annotate = (
         build_text_from_dataframe(pd.DataFrame(matched_rows))
-        if show_only_matching_texts
+        if should_restrict_text
         else combined_text
     )
 
