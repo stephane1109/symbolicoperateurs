@@ -16,14 +16,19 @@ annotations et statistiques associées.
 from __future__ import annotations
 
 from html import escape
+import re
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 import altair as alt
 import pandas as pd
 import streamlit as st
 
-from analyses import build_label_style_block, generate_label_colors
+from analyses import (
+    annotate_connectors_html,
+    build_label_style_block,
+    generate_label_colors,
+)
 from fcts_utils import build_annotation_style_block
 from regexanalyse import (
     count_segments_by_pattern,
@@ -36,7 +41,35 @@ from regexanalyse import (
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-def rendu_regex_motifs(tab, combined_text: str) -> None:
+def _build_plain_annotated_text(
+    text: str, connectors: Dict[str, str]
+) -> str:
+    """Annoter un texte en insérant les labels des connecteurs en clair.
+
+    Les connecteurs détectés sont préfixés par leur label entre crochets afin de
+    conserver l'information d'annotation dans un format texte simple.
+    """
+
+    cleaned_connectors = {key: value for key, value in connectors.items() if key and value}
+
+    if not text or not cleaned_connectors:
+        return text
+
+    sorted_keys = sorted(cleaned_connectors.keys(), key=len, reverse=True)
+    escaped_connectors = "|".join(re.escape(key) for key in sorted_keys)
+    pattern = re.compile(rf"\b({escaped_connectors})\b", re.IGNORECASE)
+    label_lookup = {key.lower(): value for key, value in cleaned_connectors.items()}
+
+    def _replacer(match: re.Match[str]) -> str:
+        connector = match.group(0)
+        label = label_lookup.get(connector.lower(), "")
+
+        return f"[{label}] {connector}" if label else connector
+
+    return pattern.sub(_replacer, text)
+
+
+def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, str]) -> None:
     st.subheader("Regex motifs")
 
     texte_html = f"""<!DOCTYPE html>
@@ -64,6 +97,43 @@ def rendu_regex_motifs(tab, combined_text: str) -> None:
             label="Télécharger le texte (TXT)",
             data=combined_text,
             file_name="corpus_combine.txt",
+            mime="text/plain",
+        )
+
+    connector_label_colors = generate_label_colors(filtered_connectors.values())
+    connector_label_style = build_label_style_block(connector_label_colors)
+    connector_annotation_style = build_annotation_style_block(connector_label_style)
+    annotated_connectors_html = annotate_connectors_html(combined_text, filtered_connectors)
+    annotated_connectors_text = _build_plain_annotated_text(
+        combined_text, filtered_connectors
+    )
+
+    annotated_connectors_doc = f"""<!DOCTYPE html>
+    <html lang=\"fr\">
+    <head>
+    <meta charset=\"utf-8\" />
+    {connector_annotation_style}
+    </head>
+    <body>
+    <div class='annotated-container'>{annotated_connectors_html}</div>
+    </body>
+    </html>"""
+
+    download_connect_html, download_connect_txt = st.columns(2)
+
+    with download_connect_html:
+        st.download_button(
+            label="Télécharger le texte annoté (HTML)",
+            data=annotated_connectors_doc,
+            file_name="texte_annote_connecteurs.html",
+            mime="text/html",
+        )
+
+    with download_connect_txt:
+        st.download_button(
+            label="Télécharger le texte annoté (TXT)",
+            data=annotated_connectors_text,
+            file_name="texte_annote_connecteurs.txt",
             mime="text/plain",
         )
 

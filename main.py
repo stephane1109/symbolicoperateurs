@@ -124,7 +124,7 @@ Pour l’instant, l’application repose sur un fichier dictionnaire.json (visib
         rendu_hash(tabs[6], filtered_df, filtered_connectors, combined_text)
 
     with tabs[7]:
-        rendu_regex_motifs(tabs[7], combined_text)
+        rendu_regex_motifs(tabs[7], combined_text, filtered_connectors)
 
     with tabs[8]:
         rendu_patterns(tabs[8], filtered_df, combined_text, selected_variables)
