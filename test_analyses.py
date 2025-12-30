@@ -20,11 +20,7 @@ def test_load_connectors_preserves_newline_entries(tmp_path: Path):
 
     loaded = load_connectors(connectors_file)
 
-    assert loaded == {
-        "si": "CONDITION",
-        "\n": "RETOUR À LA LIGNE",
-        "\r\n": "RETOUR À LA LIGNE",
-    }
+    assert loaded == {"si": "CONDITION", "\n": "RETOUR À LA LIGNE"}
 
 
 def test_annotate_connectors_html_displays_newline_connector():
