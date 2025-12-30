@@ -28,7 +28,20 @@ def load_connectors(path: Path) -> Dict[str, str]:
     with path.open(encoding="utf-8") as handle:
         connectors = json.load(handle)
 
-    return {key.strip(): value for key, value in connectors.items() if key.strip()}
+    cleaned_connectors: Dict[str, str] = {}
+
+    for key, value in connectors.items():
+        # Conserver explicitement les connecteurs représentant des retours à la ligne.
+        if key in {"\n", "\r\n"}:
+            cleaned_connectors[key] = value
+            continue
+
+        stripped_key = key.strip(" \t")
+
+        if stripped_key:
+            cleaned_connectors[stripped_key] = value
+
+    return cleaned_connectors
 
 
 def _connector_to_regex(connector: str) -> str:
