@@ -17,6 +17,8 @@ from typing import Dict, Iterable
 NEWLINE_CANONICAL = "\n"
 NEWLINE_ALIASES = {"\n", "\r\n"}
 
+IGNORED_NEWLINE_PATTERN = re.compile(r"^\*{4}.*?(\r?\n)", re.MULTILINE)
+
 import pandas as pd
 
 
@@ -86,6 +88,23 @@ def _build_connector_pattern(connectors: Dict[str, str]) -> re.Pattern[str]:
     return re.compile(rf"({pattern})", re.IGNORECASE)
 
 
+def _find_ignored_newlines(text: str) -> set[int]:
+    """Repérer les retours à la ligne qui suivent une ligne étoilée.
+
+    Les lignes commençant par ``****`` décrivent une métadonnée et leur retour
+    à la ligne ne doit ni être compté ni être annoté comme connecteur.
+    """
+
+    ignored_positions: set[int] = set()
+
+    for match in IGNORED_NEWLINE_PATTERN.finditer(text):
+        # Le groupe capture uniquement le retour à la ligne pour cibler
+        # précisément la position à ignorer.
+        ignored_positions.add(match.start(1))
+
+    return ignored_positions
+
+
 def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
     """Retourner une version HTML du texte annoté avec les labels des connecteurs.
 
@@ -100,6 +119,8 @@ def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
     cleaned_connectors = {key: value for key, value in connectors.items() if key}
     if not cleaned_connectors:
         return escape(text)
+
+    ignored_newline_positions = _find_ignored_newlines(text)
 
     pattern = _build_connector_pattern(cleaned_connectors)
     lower_map: Dict[str, str] = {}
@@ -119,6 +140,8 @@ def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
         label_class = _slugify_label(label)
 
         is_newline = matched_connector in NEWLINE_ALIASES
+        if is_newline and match.start() in ignored_newline_positions:
+            return "<br />"
         connector_display = "↵" if is_newline else escape(matched_connector)
         connector_markup = (
             f'<span class="connector-annotation connector-{label_class}">'
@@ -148,6 +171,7 @@ def count_connectors(text: str, connectors: Dict[str, str]) -> pd.DataFrame:
 
     cleaned_connectors = {key: value for key, value in connectors.items() if key}
     rows = []
+    ignored_newline_positions = _find_ignored_newlines(text)
 
     for connector, label in cleaned_connectors.items():
         regex_pattern = _connector_to_regex(connector)
@@ -156,7 +180,14 @@ def count_connectors(text: str, connectors: Dict[str, str]) -> pd.DataFrame:
             continue
 
         regex = re.compile(regex_pattern, re.IGNORECASE)
-        occurrences = len(regex.findall(text))
+        if connector == NEWLINE_CANONICAL:
+            occurrences = sum(
+                1
+                for match in regex.finditer(text)
+                if match.start() not in ignored_newline_positions
+            )
+        else:
+            occurrences = len(regex.findall(text))
 
         if occurrences:
             rows.append(
@@ -190,6 +221,7 @@ def count_connectors_by_label(text: str, connectors: Dict[str, str]) -> Dict[str
     if not text or not cleaned_connectors:
         return {}
 
+    ignored_newline_positions = _find_ignored_newlines(text)
     pattern = _build_connector_pattern(cleaned_connectors)
     lower_map: Dict[str, str] = {}
 
@@ -203,6 +235,8 @@ def count_connectors_by_label(text: str, connectors: Dict[str, str]) -> Dict[str
 
     for match in pattern.finditer(text):
         matched_connector = match.group(0)
+        if matched_connector in NEWLINE_ALIASES and match.start() in ignored_newline_positions:
+            continue
         label = lower_map.get(matched_connector.lower())
 
         if label:
