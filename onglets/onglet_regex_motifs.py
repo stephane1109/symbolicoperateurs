@@ -16,7 +16,8 @@ annotations et statistiques associées.
 from __future__ import annotations
 
 from html import escape
-import re
+import io
+import zipfile
 from pathlib import Path
 from typing import Dict, List
 
@@ -39,34 +40,6 @@ from regexanalyse import (
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-
-def _build_plain_annotated_text(
-    text: str, connectors: Dict[str, str]
-) -> str:
-    """Annoter un texte en insérant les labels des connecteurs en clair.
-
-    Les connecteurs détectés sont préfixés par leur label entre crochets afin de
-    conserver l'information d'annotation dans un format texte simple.
-    """
-
-    cleaned_connectors = {key: value for key, value in connectors.items() if key and value}
-
-    if not text or not cleaned_connectors:
-        return text
-
-    sorted_keys = sorted(cleaned_connectors.keys(), key=len, reverse=True)
-    escaped_connectors = "|".join(re.escape(key) for key in sorted_keys)
-    pattern = re.compile(rf"\b({escaped_connectors})\b", re.IGNORECASE)
-    label_lookup = {key.lower(): value for key, value in cleaned_connectors.items()}
-
-    def _replacer(match: re.Match[str]) -> str:
-        connector = match.group(0)
-        label = label_lookup.get(connector.lower(), "")
-
-        return f"[{label}] {connector}" if label else connector
-
-    return pattern.sub(_replacer, text)
 
 
 def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, str]) -> None:
@@ -106,10 +79,6 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
     connector_label_style = build_label_style_block(connector_label_colors)
     connector_annotation_style = build_annotation_style_block(connector_label_style)
     annotated_connectors_html = annotate_connectors_html(combined_text, filtered_connectors)
-    annotated_connectors_text = _build_plain_annotated_text(
-        combined_text, filtered_connectors
-    )
-
     annotated_connectors_doc = f"""<!DOCTYPE html>
     <html lang=\"fr\">
     <head>
@@ -121,25 +90,21 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
     </body>
     </html>"""
 
-    download_connect_html, download_connect_txt = st.columns(2)
+    connector_bundle = io.BytesIO()
 
-    with download_connect_html:
-        st.download_button(
-            label="Télécharger le texte annoté (HTML)",
-            data=annotated_connectors_doc,
-            file_name="texte_annote_connecteurs.html",
-            mime="text/html",
-            key="download-annotated-connectors-html",
-        )
+    with zipfile.ZipFile(connector_bundle, "w") as bundle:
+        bundle.writestr("texte_annote_connecteurs.html", annotated_connectors_doc)
+        bundle.writestr("texte_sans_connecteurs.txt", combined_text)
 
-    with download_connect_txt:
-        st.download_button(
-            label="Télécharger le texte annoté (TXT)",
-            data=annotated_connectors_text,
-            file_name="texte_annote_connecteurs.txt",
-            mime="text/plain",
-            key="download-annotated-connectors-txt",
-        )
+    connector_bundle.seek(0)
+
+    st.download_button(
+        label="Télécharger le texte (HTML + TXT)",
+        data=connector_bundle.getvalue(),
+        file_name="texte_connecteurs.zip",
+        mime="application/zip",
+        key="download-annotated-connectors-bundle",
+    )
 
     st.markdown(
         """
