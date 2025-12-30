@@ -63,6 +63,7 @@ def build_annotation_style_block(label_style_block: str) -> str:
         line-height: 1.6;
         font-size: 15px;
         margin-bottom: 24px;
+        white-space: pre-wrap;
     }}
     {label_style_block}
     </style>
