@@ -33,4 +33,4 @@ def test_annotate_connectors_html_displays_newline_connector():
     assert "Titre" in html
     assert "connector-retour-la-ligne" in html
     assert "↵" in html
-    assert "<br />\nCorps" in html
+    assert "<br />Corps" in html

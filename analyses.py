@@ -121,7 +121,7 @@ def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
             # Conserver le saut de ligne visuellement en ajoutant un saut HTML
             # explicite. Le connecteur reste affiché pour indiquer l'emplacement
             # exact du retour à la ligne dans le texte source.
-            return f"{connector_markup}<br />\n"
+            return f"{connector_markup}<br />"
 
         return connector_markup
 
