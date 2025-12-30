@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 from typing import Dict
+from textwrap import dedent
 
 import streamlit as st
 
@@ -83,6 +84,19 @@ def rendu_connecteurs(tab) -> None:
         default=previously_selected,
         help="Les connecteurs des labels sélectionnés seront utilisés dans tous les onglets.",
         key="connectors_labels_multiselect",
+    )
+
+    st.markdown(
+        dedent(
+            """
+            Les connecteurs logiques peuvent être regroupés selon leur fonction, tout en tenant compte de leur stabilité d’interprétation en contexte.
+            - Le connecteur « CONDITION » (si…) renvoie aux expressions introduisant une condition et reste généralement assez stable dans son usage et son interprétation.
+            - Le connecteur « ALTERNATIVE » (sinon) doit, en revanche, être mobilisé avec prudence, car certaines formes peuvent être ambiguës : par exemple, l’expression « soit » peut marquer une alternative dans la structure « soit… soit… », mais aussi fonctionner comme un adverbe d’affirmation (« Bon, soit ; admettons. »). Dans ce cas, le recours à une bibliothèque NLP permettrait d’affiner la désambiguïsation.
+            - Le connecteur « ALORS » relève des connecteurs de conséquence et demeure lui aussi relativement stable dans son utilisation et son interprétation.
+            - Le connecteur « AND » est à utiliser avec précaution, car il peut produire une surreprésentation dans le texte, notamment lorsque sa fréquence ne correspond pas à une fonction argumentative réelle.
+            - Le connecteur « retour à la ligne » (marqué par un <br> dans le code) est à considérer comme expérimental et doit être utilisé avec prudence, car il relève davantage d’une segmentation typographique que d’un connecteur logique au sens strict.
+            """
+        )
     )
 
     filtered_connectors = {
