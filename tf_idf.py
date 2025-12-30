@@ -146,8 +146,9 @@ def render_tfidf_tab(dataframe: pd.DataFrame) -> None:
         st.info("Aucune donnée disponible après filtrage.")
         return
 
+    excluded_variables = {"texte", "entete", "model"}
     available_variables = [
-        column for column in dataframe.columns if column not in ("texte", "entete")
+        column for column in dataframe.columns if column not in excluded_variables
     ]
     if not available_variables:
         st.info("Aucune variable disponible pour calculer le TF-IDF.")
@@ -200,7 +201,7 @@ def render_tfidf_tab(dataframe: pd.DataFrame) -> None:
     )
 
     analysis_variables = selected_filter_variables or [
-        column for column in filtered_df.columns if column not in ("texte", "entete")
+        column for column in filtered_df.columns if column not in excluded_variables
     ]
 
     for variable_choice in analysis_variables:
