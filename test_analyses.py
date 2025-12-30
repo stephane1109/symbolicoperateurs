@@ -4,7 +4,7 @@ from pathlib import Path
 
 import json
 
-from analyses import load_connectors
+from analyses import annotate_connectors_html, load_connectors
 
 
 def test_load_connectors_preserves_newline_entries(tmp_path: Path):
@@ -25,3 +25,12 @@ def test_load_connectors_preserves_newline_entries(tmp_path: Path):
         "\n": "RETOUR À LA LIGNE",
         "\r\n": "RETOUR À LA LIGNE",
     }
+
+
+def test_annotate_connectors_html_displays_newline_connector():
+    html = annotate_connectors_html("Titre\nCorps", {"\n": "RETOUR À LA LIGNE"})
+
+    assert "Titre" in html
+    assert "connector-retour-la-ligne" in html
+    assert "↵" in html
+    assert "<br />\nCorps" in html
