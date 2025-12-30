@@ -59,6 +59,20 @@ def _format_segment_with_markers(
     return " ".join(parts)
 
 
+def _wrap_connector_regex(key: str) -> str:
+    """Encadrer un connecteur de bornes si sa forme le permet."""
+
+    escaped = re.escape(key)
+
+    # Les connecteurs composés uniquement de ponctuation ou d'espaces (ex. retours
+    # à la ligne) ne doivent pas être encadrés par des bornes de mots car ils ne
+    # seraient jamais reconnus avec \b.
+    if not re.search(r"\w", key):
+        return escaped
+
+    return rf"\b{escaped}\b"
+
+
 def _build_connector_pattern(connectors: Dict[str, str]) -> re.Pattern[str] | None:
     """Construire un motif regex sécurisé pour tous les connecteurs fournis."""
 
@@ -68,10 +82,10 @@ def _build_connector_pattern(connectors: Dict[str, str]) -> re.Pattern[str] | No
         return None
 
     sorted_keys = sorted(cleaned, key=len, reverse=True)
-    escaped = [re.escape(key) for key in sorted_keys]
+    escaped = [_wrap_connector_regex(key) for key in sorted_keys]
     pattern = "|".join(escaped)
 
-    return re.compile(rf"\b({pattern})\b", re.IGNORECASE)
+    return re.compile(rf"({pattern})", re.IGNORECASE)
 
 
 def _build_boundary_pattern(
@@ -109,7 +123,7 @@ def _is_connector(boundary: str | None, connector_pattern: re.Pattern[str] | Non
     if not boundary or connector_pattern is None:
         return False
 
-    return connector_pattern.fullmatch(boundary.strip()) is not None
+    return connector_pattern.fullmatch(boundary) is not None
 
 
 def _segments_with_boundaries(
