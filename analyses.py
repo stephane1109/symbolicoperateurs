@@ -13,6 +13,9 @@ from pathlib import Path
 from html import escape
 from typing import Dict, Iterable
 
+
+NEWLINE_CONNECTORS = {"\n", "\r\n"}
+
 import pandas as pd
 
 
@@ -103,15 +106,23 @@ def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
         matched_connector = match.group(0)
         label = lower_map.get(matched_connector.lower(), "")
         safe_label = escape(label)
-        safe_connector = escape(matched_connector)
         label_class = _slugify_label(label)
 
-        return (
-            f'<span class="connector-annotation connector-{label_class}">'
-            f'<span class="connector-label">{safe_label}</span>'
-            f'<span class="connector-text">{safe_connector}</span>'
+        is_newline = matched_connector in NEWLINE_CONNECTORS
+        connector_display = "↵" if is_newline else escape(matched_connector)
+        connector_markup = (
+            f'<span class="connector-annotation connector-{label_class}">' 
+            f'<span class="connector-label">{safe_label}</span>' 
+            f'<span class="connector-text">{connector_display}</span>' 
             "</span>"
         )
+
+        if is_newline:
+            # Conserver le saut de ligne dans le texte final tout en affichant le
+            # connecteur pour le rendre visible dans l'interface.
+            return f"{connector_markup}{matched_connector}"
+
+        return connector_markup
 
     escaped_text = escape(text)
     annotated = pattern.sub(_replacer, escaped_text)
