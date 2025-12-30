@@ -111,25 +111,26 @@ def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
         is_newline = matched_connector in NEWLINE_CONNECTORS
         connector_display = "↵" if is_newline else escape(matched_connector)
         connector_markup = (
-            f'<span class="connector-annotation connector-{label_class}">' 
-            f'<span class="connector-label">{safe_label}</span>' 
-            f'<span class="connector-text">{connector_display}</span>' 
+            f'<span class="connector-annotation connector-{label_class}">'
+            f'<span class="connector-label">{safe_label}</span>'
+            f'<span class="connector-text">{connector_display}</span>'
             "</span>"
         )
 
         if is_newline:
             # Conserver le saut de ligne dans le texte final tout en affichant le
-            # connecteur pour le rendre visible dans l'interface.
-            return f"{connector_markup}{matched_connector}"
+            # connecteur pour le rendre visible dans l'interface, sans retour à
+            # la ligne dans l'affichage.
+            return f"{connector_markup} "
 
         return connector_markup
 
     escaped_text = escape(text)
     annotated = pattern.sub(_replacer, escaped_text)
 
-    # Préserver les retours à la ligne dans la sortie HTML pour que la première
-    # ligne d'en-tête soit suivie d'une nouvelle ligne dans l'affichage Streamlit.
-    return annotated.replace("\n", "<br />\n")
+    # Supprimer les retours à la ligne dans l'affichage : ils sont signalés par
+    # le connecteur dédié plutôt que par une nouvelle ligne.
+    return annotated.replace("\r\n", " ").replace("\n", " ")
 
 
 def count_connectors(text: str, connectors: Dict[str, str]) -> pd.DataFrame:

@@ -66,7 +66,8 @@ def rendu_donnees_brutes(
 
     st.subheader("Texte combiné")
     if combined_text:
-        st.text_area("", combined_text, height=200)
+        flattened_text = combined_text.replace("\r\n", "\n").replace("\n", " ↵ ")
+        st.text_area("", flattened_text, height=200)
     else:
         st.info("Aucun texte ne correspond aux filtres sélectionnés.")
         return None
