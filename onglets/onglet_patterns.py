@@ -14,7 +14,7 @@ et leurs métadonnées.
 """
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import List
 
 import altair as alt
 import pandas as pd
@@ -44,6 +44,12 @@ def format_modalities_for_row(row: pd.Series, variables: List[str]) -> str:
     return header or "Non spécifié"
 
 
+def _strip_empty_lines(text: str) -> str:
+    """Remove empty or whitespace-only lines to streamline the display."""
+
+    return "\n".join(line for line in text.splitlines() if line.strip())
+
+
 def rendu_patterns(
     tab,
     filtered_df: pd.DataFrame,
@@ -59,23 +65,11 @@ def rendu_patterns(
         "Motif ou signe à rechercher", placeholder="?", key="simple_pattern_query"
     )
 
-    options_col1, options_col2 = st.columns(2)
-
-    with options_col1:
-        min_occurrences = st.number_input(
-            "Fréquence minimale du motif par segment",
-            min_value=1,
-            value=1,
-            step=1,
-            help="Nombre d'occurrences requises dans un segment pour l'afficher.",
-        )
-
-    with options_col2:
-        show_only_matching_texts = st.checkbox(
-            "Afficher uniquement les textes contenant le motif",
-            value=False,
-            help="Filtre le corpus et les résultats pour ne conserver que les textes où le motif apparaît.",
-        )
+    show_only_matching_texts = st.checkbox(
+        "Afficher uniquement les textes contenant le motif",
+        value=False,
+        help="Filtre le corpus et les résultats pour ne conserver que les textes où le motif apparaît.",
+    )
 
     if not pattern_query:
         return
@@ -93,16 +87,10 @@ def rendu_patterns(
         modalities_label = format_modalities_for_row(row, selected_variables)
 
         row_segments = find_pattern_segments(row_text, pattern_query)
-        filtered_segments = [
-            segment
-            for segment in row_segments
-            if segment.get("occurrences", 0) >= min_occurrences
-        ]
-
-        if filtered_segments:
+        if row_segments:
             matched_rows.append(row)
 
-        for segment in filtered_segments:
+        for segment in row_segments:
             enriched_segments.append(
                 {
                     "modalites": modalities_label,
@@ -113,7 +101,7 @@ def rendu_patterns(
             )
             segment_counter += 1
 
-    should_restrict_text = show_only_matching_texts or min_occurrences > 1
+    should_restrict_text = show_only_matching_texts
     text_to_annotate = (
         build_text_from_dataframe(pd.DataFrame(matched_rows))
         if should_restrict_text
@@ -121,7 +109,8 @@ def rendu_patterns(
     )
 
     pattern_annotation_style = build_annotation_style_block("")
-    annotated_pattern_html = annotate_user_pattern_html(text_to_annotate, pattern_query)
+    cleaned_text = _strip_empty_lines(text_to_annotate)
+    annotated_pattern_html = annotate_user_pattern_html(cleaned_text, pattern_query)
 
     st.subheader("Texte annoté par motif")
     st.markdown(pattern_annotation_style, unsafe_allow_html=True)
