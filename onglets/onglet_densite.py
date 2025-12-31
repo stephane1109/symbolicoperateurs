@@ -28,9 +28,9 @@ from densite import (
     compute_density_per_modality_by_label,
     compute_total_connectors,
     count_words,
-    filter_dataframe_by_modalities,
 )
 from fcts_utils import render_connectors_reminder
+from simicosinus import concatenate_texts_with_headers
 from graphiques.densitegraph import build_connector_density_chart, build_density_chart
 
 
@@ -45,47 +45,86 @@ def rendu_densite(tab, df: pd.DataFrame, filtered_connectors: Dict[str, str]) ->
         return
 
     st.subheader("Sélection des variables/modalités")
-    density_variables = [column for column in df.columns if column not in ("texte", "entete")]
-    default_density_index = 0 if not density_variables else 1
-    density_variable_choice = st.selectbox(
-        "Variable à filtrer pour la densité",
-        ["(Aucune)"] + density_variables,
-        index=default_density_index,
-        help="Choisissez une variable pour restreindre le calcul à certaines modalités.",
+    density_variables = [
+        column for column in df.columns if column not in ("texte", "entete")
+    ]
+
+    if not density_variables:
+        st.info("Aucune variable n'a été trouvée dans le fichier importé.")
+        return
+
+    selected_density_variables = st.multiselect(
+        "Variables à filtrer pour la densité",
+        density_variables,
+        default=density_variables,
+        help=(
+            "Sélectionnez les variables et modalités à inclure avant de calculer la "
+            "densité."
+        ),
     )
 
-    density_modalities: List[str] = []
+    if not selected_density_variables:
+        st.info("Sélectionnez au moins une variable pour calculer la densité.")
+        return
 
-    if density_variable_choice != "(Aucune)":
-        modality_options = sorted(df[density_variable_choice].dropna().unique().tolist())
-        density_modalities = st.multiselect(
-            "Modalités à inclure",
+    density_modality_filters: Dict[str, List[str]] = {}
+    density_filtered_df = df.copy()
+
+    for variable in selected_density_variables:
+        modality_options = sorted(
+            density_filtered_df[variable].dropna().unique().tolist()
+        )
+        selected_modalities = st.multiselect(
+            f"Modalités à inclure pour {variable}",
             modality_options,
             default=modality_options,
-            help="Sélectionnez une ou plusieurs modalités pour filtrer l'analyse de densité.",
+            help=(
+                "Sélectionnez les modalités dont les textes seront pris en compte pour"
+                " cette variable."
+            ),
         )
+        density_modality_filters[variable] = selected_modalities
 
-    density_filtered_df = filter_dataframe_by_modalities(
-        df,
-        None if density_variable_choice == "(Aucune)" else density_variable_choice,
-        density_modalities or None,
+        if selected_modalities:
+            density_filtered_df = density_filtered_df[
+                density_filtered_df[variable].isin(selected_modalities)
+            ]
+        else:
+            density_filtered_df = density_filtered_df.iloc[0:0]
+
+    if density_filtered_df.empty:
+        st.info(
+            "Aucun texte ne correspond aux filtres appliqués. Ajustez vos sélections pour"
+            " continuer."
+        )
+        return
+
+    density_text = concatenate_texts_with_headers(
+        density_filtered_df, selected_density_variables
     )
+    if density_text:
+        st.download_button(
+            label="Télécharger les textes concaténés par sélection",
+            data=density_text,
+            file_name="textes_par_modalite.txt",
+            mime="text/plain",
+            help=(
+                "Export des textes regroupés selon les variables et modalités choisies "
+                "pour vérifier la composition de la densité."
+            ),
+        )
+    else:
+        st.info(
+            "Impossible de générer le texte concaténé pour les données filtrées. Vérifiez"
+            " vos sélections."
+        )
 
     density_text = build_text_from_dataframe(density_filtered_df)
     if not density_text:
-        st.info("Aucun texte disponible avec les modalités sélectionnées pour calculer la densité.")
+        st.info(
+            "Aucun texte disponible avec les modalités sélectionnées pour calculer la densité."
+        )
         return
-
-    st.download_button(
-        label="Télécharger le texte",
-        data=density_text,
-        file_name="texte_filtre_densite.txt",
-        mime="text/plain",
-        help="Récupérez le texte correspondant aux variables/modalités sélectionnées pour vérifier le filtrage.",
-    )
-    st.caption(
-        "Utilisez ce bouton pour vérifier facilement le contenu exact retenu après votre sélection de variables et modalités."
-    )
 
     base = 1000
 
@@ -106,21 +145,35 @@ def rendu_densite(tab, df: pd.DataFrame, filtered_connectors: Dict[str, str]) ->
         "Un score élevé signale un texte plus riche en connecteurs logiques."
     )
 
-    per_modality_df = compute_density_per_modality(
-        density_filtered_df,
-        None if density_variable_choice == "(Aucune)" else density_variable_choice,
-        filtered_connectors,
-        base=base,
-    )
-    per_modality_label_df = compute_density_per_modality_by_label(
-        density_filtered_df,
-        None if density_variable_choice == "(Aucune)" else density_variable_choice,
-        filtered_connectors,
-        base=base,
-    )
+    for variable in selected_density_variables:
+        st.markdown(f"### Analyse par variable : {variable}")
 
-    if not per_modality_df.empty:
-        st.subheader("Densité par modalité sélectionnée")
+        per_modality_df = compute_density_per_modality(
+            density_filtered_df,
+            variable,
+            filtered_connectors,
+            base=base,
+        )
+        per_modality_label_df = compute_density_per_modality_by_label(
+            density_filtered_df,
+            variable,
+            filtered_connectors,
+            base=base,
+        )
+
+        if per_modality_df.empty:
+            selected_modalities = density_modality_filters.get(variable, [])
+            if selected_modalities:
+                st.info(
+                    "Aucun texte ne correspond aux modalités choisies : impossible de calculer la densité."
+                )
+            else:
+                st.info(
+                    "Aucune modalité n'a été trouvée pour cette variable dans les données sélectionnées."
+                )
+            continue
+
+        st.subheader(f"Modalité(s) sélectionnée(s) de la variable : {variable}")
         modality_display_df = per_modality_df.copy()
         modality_display_df["densite"] = modality_display_df["densite"].apply(
             lambda value: f"{value:.2f}"
