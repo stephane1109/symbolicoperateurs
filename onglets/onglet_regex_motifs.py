@@ -45,12 +45,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, str]) -> None:
     st.subheader("Regex motifs")
 
-    def _normalize_corpus_text(text: str) -> str:
-        """Supprimer les retours et lignes vides pour une annotation homogène."""
-
-        cleaned_lines = [line.strip() for line in text.splitlines() if line.strip()]
-        return " ".join(cleaned_lines)
-
     texte_html = f"""<!DOCTYPE html>
     <html lang=\"fr\">
     <head>
@@ -134,13 +128,11 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
 
     st.markdown(regex_annotation_style, unsafe_allow_html=True)
 
-    regex_ready_text = _normalize_corpus_text(combined_text)
+    regex_ready_text = combined_text
     segments = split_segments(regex_ready_text)
 
-    highlighted_segments = [
-        highlight_matches_html(segment, regex_patterns) for segment in segments
-    ]
-    highlighted_corpus = "<br />".join(highlighted_segments)
+    highlighted_corpus = highlight_matches_html(regex_ready_text, regex_patterns)
+    highlighted_corpus = highlighted_corpus.replace("<br /><br />", " ")
     st.subheader("Corpus annoté (motifs regex)")
     st.markdown(
         f"<div class='annotated-container'>{highlighted_corpus}</div>",
