@@ -84,6 +84,16 @@ def _load_uploaded_content(uploaded_file: st.runtime.uploaded_file_manager.Uploa
 def main() -> None:
     st.set_page_config(page_title="Symbolic Connectors", layout="wide")
 
+    # Purge automatiquement les caches Streamlit et le cache local à chaque chargement.
+    st.cache_data.clear()
+    st.cache_resource.clear()
+    try:
+        TMP_UPLOAD_PATH.unlink(missing_ok=True)
+    except OSError:
+        st.warning("Le cache local n'a pas pu être supprimé, mais les caches Streamlit ont été vidés.")
+    else:
+        st.caption("Caches Streamlit vidés et cache local réinitialisé.")
+
     st.title("Symbolic Connectors")
     st.markdown(
         """Symbolic Connectors : ce titre renvoie au courant symbolique en IA, qui s’appuie sur une logique de programme et de règles (par opposition au connexionnisme, plus proche de l’analogie avec le cerveau). Le nom convient bien à l’objectif de cette application : repérer, dans les réponses des grands modèles de langage (LLM), des traces de “langage machine”, en particulier des structures linguistiques proches de la programmation. (logique conditionnelle - si, alors, sinon, ou, et…).
