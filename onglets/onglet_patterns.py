@@ -44,12 +44,6 @@ def format_modalities_for_row(row: pd.Series, variables: List[str]) -> str:
     return header or "Non spécifié"
 
 
-def _strip_empty_lines(text: str) -> str:
-    """Remove empty or whitespace-only lines to streamline the display."""
-
-    return "\n".join(line for line in text.splitlines() if line.strip())
-
-
 def rendu_patterns(
     tab,
     filtered_df: pd.DataFrame,
@@ -109,8 +103,7 @@ def rendu_patterns(
     )
 
     pattern_annotation_style = build_annotation_style_block("")
-    cleaned_text = _strip_empty_lines(text_to_annotate)
-    annotated_pattern_html = annotate_user_pattern_html(cleaned_text, pattern_query)
+    annotated_pattern_html = annotate_user_pattern_html(text_to_annotate, pattern_query)
 
     st.subheader("Texte annoté par motif")
     st.markdown(pattern_annotation_style, unsafe_allow_html=True)
