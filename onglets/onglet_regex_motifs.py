@@ -19,7 +19,7 @@ from html import escape
 import io
 import zipfile
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
 
 import altair as alt
 import pandas as pd
@@ -42,24 +42,10 @@ from regexanalyse import (
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-def _remove_empty_lines(text: str) -> str:
-    """Return the text without empty lines, including those with NBSP only."""
-
-    cleaned_lines: List[str] = []
-
-    for line in text.splitlines():
-        normalized_line = line.replace("\u00A0", " ").strip()
-
-        if normalized_line:
-            cleaned_lines.append(line)
-
-    return "\n".join(cleaned_lines)
-
-
 def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, str]) -> None:
     st.subheader("Regex motifs")
 
-    cleaned_text = _remove_empty_lines(combined_text)
+    cleaned_text = combined_text.replace("\r\n", "\n")
 
     texte_html = f"""<!DOCTYPE html>
     <html lang=\"fr\">
@@ -148,7 +134,6 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
     segments = split_segments(regex_ready_text)
 
     highlighted_corpus = highlight_matches_html(regex_ready_text, regex_patterns)
-    highlighted_corpus = highlighted_corpus.replace("<br /><br />", " ")
     st.subheader("Corpus annoté (motifs regex)")
     st.markdown(
         f"<div class='annotated-container'>{highlighted_corpus}</div>",
