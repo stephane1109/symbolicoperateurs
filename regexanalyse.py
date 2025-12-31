@@ -103,24 +103,42 @@ def _highlight_single_segment(segment: str, patterns: Sequence[RegexPattern]) ->
     return "".join(highlighted_parts).replace("\n", "<br />\n")
 
 
+def _split_text_with_delimiters(text: str) -> List[str]:
+    """Découper le texte en conservant les séparateurs.
+
+    Cette variante de ``split_segments`` garde les espaces et retours à la
+    ligne séparant les phrases pour permettre de reconstruire le texte HTML
+    sans ajouter de lignes vides ni de sauts de ligne artificiels.
+    """
+
+    return re.split(r"(?<=[.!?;:\n])(\s+)", text)
+
+
 def highlight_matches_html(text: str, patterns: Sequence[RegexPattern]) -> str:
     """Retourner le texte en HTML avec surlignage des motifs détectés.
 
     Les expressions régulières sont appliquées segment par segment afin de
     respecter les bornes de ponctuation et éviter des captures qui
-    traverseraient plusieurs phrases.
+    traverseraient plusieurs phrases. L'affichage conserve l'agencement du
+    texte d'origine (pas de lignes vides ajoutées).
     """
 
-    segments = split_segments(text)
+    parts = _split_text_with_delimiters(text)
 
-    if not segments:
+    if not parts:
         return escape(text).replace("\n", "<br />\n")
 
-    highlighted_segments = [
-        _highlight_single_segment(segment, patterns) for segment in segments
-    ]
+    highlighted_parts: List[str] = []
 
-    return "<br /><br />".join(highlighted_segments)
+    for index, part in enumerate(parts):
+        if index % 2 == 0:
+            if not part:
+                continue
+            highlighted_parts.append(_highlight_single_segment(part, patterns))
+        else:
+            highlighted_parts.append(escape(part).replace("\r\n", "\n").replace("\n", "<br />\n"))
+
+    return "".join(highlighted_parts)
 
 
 def summarize_matches_by_segment(
