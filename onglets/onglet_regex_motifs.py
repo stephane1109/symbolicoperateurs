@@ -42,10 +42,18 @@ from regexanalyse import (
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _normalize_text_without_blank_lines(text: str) -> str:
+    """Nettoyer le texte pour supprimer les lignes vides et unifier les sauts de ligne."""
+
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    non_empty_lines = [line for line in normalized.split("\n") if line.strip()]
+    return "\n".join(non_empty_lines)
+
+
 def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, str]) -> None:
     st.subheader("Regex motifs")
 
-    cleaned_text = combined_text.replace("\r\n", "\n")
+    cleaned_text = _normalize_text_without_blank_lines(combined_text)
 
     texte_html = f"""<!DOCTYPE html>
     <html lang=\"fr\">
@@ -130,12 +138,9 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
 
     st.markdown(regex_annotation_style, unsafe_allow_html=True)
 
-    regex_ready_text = "\n".join(
-        line for line in cleaned_text.splitlines() if line.strip()
-    )
-    segments = split_segments(regex_ready_text)
+    segments = split_segments(cleaned_text)
 
-    highlighted_corpus = highlight_matches_html(regex_ready_text, regex_patterns)
+    highlighted_corpus = highlight_matches_html(cleaned_text, regex_patterns)
     st.subheader("Corpus annoté (motifs regex)")
     st.markdown(
         f"<div class='annotated-container'>{highlighted_corpus}</div>",
