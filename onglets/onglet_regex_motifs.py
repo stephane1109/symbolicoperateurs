@@ -45,16 +45,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, str]) -> None:
     st.subheader("Regex motifs")
 
-    cleaned_lines: List[str] = []
-
-    for line in combined_text.splitlines():
-        if not line.strip():
-            continue
-
-        cleaned_lines.append(line)
-
-        if line.lstrip().startswith("****"):
-            cleaned_lines.append("")
+    cleaned_lines: List[str] = [line for line in combined_text.splitlines() if line.strip()]
 
     cleaned_text = "\n".join(cleaned_lines)
 
