@@ -78,7 +78,7 @@ def _highlight_single_segment(segment: str, patterns: Sequence[RegexPattern]) ->
             )
 
     if not matches:
-        return escape(segment).replace("\n", "<br />\n")
+        return escape(segment)
 
     matches.sort(key=lambda item: (item["start"], -(item["end"] - item["start"])))
 
@@ -100,7 +100,7 @@ def _highlight_single_segment(segment: str, patterns: Sequence[RegexPattern]) ->
 
     highlighted_parts.append(escape(segment[cursor:]))
 
-    return "".join(highlighted_parts).replace("\n", "<br />\n")
+    return "".join(highlighted_parts)
 
 
 def _split_text_with_delimiters(text: str) -> List[str]:
@@ -126,7 +126,7 @@ def highlight_matches_html(text: str, patterns: Sequence[RegexPattern]) -> str:
     parts = _split_text_with_delimiters(text)
 
     if not parts:
-        return escape(text).replace("\n", "<br />\n")
+        return escape(text)
 
     highlighted_parts: List[str] = []
 
@@ -136,7 +136,7 @@ def highlight_matches_html(text: str, patterns: Sequence[RegexPattern]) -> str:
                 continue
             highlighted_parts.append(_highlight_single_segment(part, patterns))
         else:
-            highlighted_parts.append(escape(part).replace("\r\n", "\n").replace("\n", "<br />\n"))
+            highlighted_parts.append(escape(part))
 
     return "".join(highlighted_parts)
 

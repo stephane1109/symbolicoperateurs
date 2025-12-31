@@ -161,9 +161,10 @@ def annotate_connectors_html(text: str, connectors: Dict[str, str]) -> str:
     escaped_text = escape(text)
     annotated = pattern.sub(_replacer, escaped_text)
 
-    # Conserver la structure du texte en convertissant les retours à la ligne
-    # restants en balises HTML.
-    return annotated.replace("\r\n", "\n").replace("\n", "<br />\n")
+    # Conserver la structure du texte tout en évitant les retours à la ligne
+    # doublés par le CSS `white-space: pre-wrap`. On normalise seulement les
+    # sauts Windows pour préserver l'affichage dans l'HTML brut.
+    return annotated.replace("\r\n", "\n")
 
 
 def count_connectors(text: str, connectors: Dict[str, str]) -> pd.DataFrame:
