@@ -12,7 +12,6 @@ en filtrant par variables et en appliquant éventuellement des motifs regex.
 from __future__ import annotations
 
 from html import escape
-import re
 from typing import Dict, List
 
 import altair as alt
@@ -55,15 +54,6 @@ def rendu_ngram(tab, filtered_df: pd.DataFrame, filtered_connectors: Dict[str, s
     if ngram_filtered_df.empty:
         st.info("Aucun texte ne correspond aux filtres sélectionnés pour les N-grams.")
         return
-
-    search_pattern = st.text_input(
-        "Filtrer les N-grams par motif (regex)",
-        help="Filtrer les N-grams affichés en fonction d'un motif regex (optionnel).",
-    )
-    hide_non_matches = st.checkbox(
-        "Masquer les N-grams qui ne correspondent pas au motif",
-        value=False,
-    )
 
     ngram_stats = compute_ngram_statistics(
         ngram_filtered_df,
@@ -243,34 +233,6 @@ def rendu_ngram(tab, filtered_df: pd.DataFrame, filtered_connectors: Dict[str, s
             lambda value: value if len(value) <= 140 else value[:140].rstrip() + "…"
         )
         display_df = display_df.fillna("")
-
-        if search_pattern.strip():
-            try:
-                match_mask = display_df["N-gram"].str.contains(
-                    search_pattern, case=False, regex=True
-                )
-            except re.error:
-                safe_pattern = re.escape(search_pattern)
-                match_mask = display_df["N-gram"].str.contains(
-                    safe_pattern, case=False, regex=True
-                )
-
-            if hide_non_matches:
-                display_df = display_df[match_mask].copy()
-                match_mask = match_mask.reindex(display_df.index).fillna(False)
-        else:
-            match_mask = pd.Series(False, index=display_df.index)
-
-        if display_df.empty:
-            st.info(
-                "Aucun N-gram ne correspond au motif recherché pour cette taille."
-            )
-            continue
-
-        if "Contexte" in display_df.columns:
-            display_df["Contexte"] = display_df["Contexte"].where(
-                match_mask, "(hors filtre)"
-            )
 
         st.dataframe(display_df.drop(columns=["Occurrences détaillées"], errors="ignore"), use_container_width=True)
 
