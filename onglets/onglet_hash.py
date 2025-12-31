@@ -116,6 +116,7 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
                 "Sélectionnez les modalités dont les textes seront pris en compte pour"
                 " cette variable."
             ),
+            key=f"modalites_{variable}",
         )
         hash_modality_filters[variable] = selected_modalities
 
