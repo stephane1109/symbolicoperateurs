@@ -45,13 +45,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, str]) -> None:
     st.subheader("Regex motifs")
 
+    cleaned_text = "\n".join(line for line in combined_text.splitlines() if line.strip())
+
     texte_html = f"""<!DOCTYPE html>
     <html lang=\"fr\">
     <head>
     <meta charset=\"utf-8\" />
     </head>
     <body>
-    <pre>{escape(combined_text)}</pre>
+    <pre>{escape(cleaned_text)}</pre>
     </body>
     </html>"""
 
@@ -69,7 +71,7 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
     with col_txt:
         st.download_button(
             label="Télécharger le texte (TXT)",
-            data=combined_text,
+            data=cleaned_text,
             file_name="corpus_combine.txt",
             mime="text/plain",
             key="download-combined-txt",
@@ -78,7 +80,7 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
     connector_label_colors = generate_label_colors(filtered_connectors.values())
     connector_label_style = build_label_style_block(connector_label_colors)
     connector_annotation_style = build_annotation_style_block(connector_label_style)
-    annotated_connectors_html = annotate_connectors_html(combined_text, filtered_connectors)
+    annotated_connectors_html = annotate_connectors_html(cleaned_text, filtered_connectors)
     annotated_connectors_doc = f"""<!DOCTYPE html>
     <html lang=\"fr\">
     <head>
@@ -94,7 +96,7 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
 
     with zipfile.ZipFile(connector_bundle, "w") as bundle:
         bundle.writestr("texte_annote_connecteurs.html", annotated_connectors_doc)
-        bundle.writestr("texte_sans_connecteurs.txt", combined_text)
+        bundle.writestr("texte_sans_connecteurs.txt", cleaned_text)
 
     connector_bundle.seek(0)
 
@@ -128,7 +130,7 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
 
     st.markdown(regex_annotation_style, unsafe_allow_html=True)
 
-    regex_ready_text = combined_text
+    regex_ready_text = cleaned_text
     segments = split_segments(regex_ready_text)
 
     highlighted_corpus = highlight_matches_html(regex_ready_text, regex_patterns)
