@@ -42,12 +42,24 @@ from regexanalyse import (
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _remove_empty_lines(text: str) -> str:
+    """Return the text without empty lines, including those with NBSP only."""
+
+    cleaned_lines: List[str] = []
+
+    for line in text.splitlines():
+        normalized_line = line.replace("\u00A0", " ").strip()
+
+        if normalized_line:
+            cleaned_lines.append(line)
+
+    return "\n".join(cleaned_lines)
+
+
 def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, str]) -> None:
     st.subheader("Regex motifs")
 
-    cleaned_lines: List[str] = [line for line in combined_text.splitlines() if line.strip()]
-
-    cleaned_text = "\n".join(cleaned_lines)
+    cleaned_text = _remove_empty_lines(combined_text)
 
     texte_html = f"""<!DOCTYPE html>
     <html lang=\"fr\">
