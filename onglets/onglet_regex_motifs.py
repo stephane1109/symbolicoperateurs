@@ -130,7 +130,9 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
 
     st.markdown(regex_annotation_style, unsafe_allow_html=True)
 
-    regex_ready_text = cleaned_text
+    regex_ready_text = "\n".join(
+        line for line in cleaned_text.splitlines() if line.strip()
+    )
     segments = split_segments(regex_ready_text)
 
     highlighted_corpus = highlight_matches_html(regex_ready_text, regex_patterns)
