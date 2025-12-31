@@ -146,7 +146,7 @@ def render_tfidf_tab(dataframe: pd.DataFrame) -> None:
         st.info("Aucune donnée disponible après filtrage.")
         return
 
-    excluded_variables = {"texte", "entete", "model"}
+    excluded_variables = {"texte", "entete"}
     available_variables = [
         column for column in dataframe.columns if column not in excluded_variables
     ]
