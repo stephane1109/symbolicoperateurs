@@ -137,9 +137,9 @@ def rendu_patterns(
     </html>"""
 
     st.download_button(
-        label="Télécharger le texte annoté par motif",
+        label="Télécharger le texte annoté par patterns",
         data=annotated_download,
-        file_name="texte_annotes_motif.html",
+        file_name="texte_annotes_patterns.html",
         mime="text/html",
     )
 
