@@ -140,9 +140,9 @@ ponctuation forte (., ?, !, ;, :) ferme aussi le segment.
 
     if hash_text:
         st.download_button(
-            label="Télécharger les textes concaténés par sélection",
+            label="Télécharger les textes concaténés",
             data=hash_text,
-            file_name="textes_par_modalite.txt",
+            file_name="textes_concatenation_hash.txt",
             mime="text/plain",
             help=(
                 "Export des textes regroupés selon les variables et modalités choisies "
