@@ -76,6 +76,7 @@ def rendu_patterns(
     if not pattern_query:
         return
 
+    cleaned_combined_text = _normalize_text_without_blank_lines(combined_text)
     enriched_segments: List[dict] = []
     segment_counter = 1
     matched_rows: List[pd.Series] = []
@@ -106,10 +107,12 @@ def rendu_patterns(
             segment_counter += 1
 
     should_restrict_text = show_only_matching_texts
-    text_to_annotate = _normalize_text_without_blank_lines(
-        build_text_from_dataframe(pd.DataFrame(matched_rows))
+    text_to_annotate = (
+        _normalize_text_without_blank_lines(
+            build_text_from_dataframe(pd.DataFrame(matched_rows))
+        )
         if should_restrict_text
-        else combined_text
+        else cleaned_combined_text
     )
 
     pattern_annotation_style = build_annotation_style_block("")

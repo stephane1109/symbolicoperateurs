@@ -193,22 +193,23 @@ def annotate_user_pattern_html(text: str, query: str, *, ignore_case: bool = Tru
     """Annoter le texte avec le motif fourni par l'utilisateur.
 
     Les occurrences sont surlignées avec une classe CSS réutilisable dans l'interface
-    Streamlit. Les sauts de ligne sont convertis en balises `<br>` afin de préserver
-    les en-têtes IRaMuTeQ (**** *variables/modalités) et la structure du texte.
+    Streamlit. Les retours à la ligne sont conservés tels quels ; l'affichage dans
+    Streamlit repose sur `white-space: pre-wrap` pour respecter la structure du
+    texte sans ajouter de lignes vides.
     """
 
     if not text:
         return ""
 
     if not query:
-        return escape(text).replace("\n", "<br />\n")
+        return escape(text)
 
     flags = re.IGNORECASE if ignore_case else 0
     pattern = re.compile(re.escape(query), flags)
     matches = list(pattern.finditer(text))
 
     if not matches:
-        return escape(text).replace("\n", "<br />\n")
+        return escape(text)
 
     fragments: List[str] = []
     cursor = 0
@@ -230,4 +231,4 @@ def annotate_user_pattern_html(text: str, query: str, *, ignore_case: bool = Tru
 
     fragments.append(escape(text[cursor:]))
 
-    return "".join(fragments).replace("\n", "<br />\n")
+    return "".join(fragments)
