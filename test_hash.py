@@ -52,6 +52,23 @@ def test_punctuation_segments_must_touch_connectors():
     ]
 
 
+def test_metadata_line_removed_for_claude_model():
+    connectors = {"mais": "adversatif"}
+    text = "\n".join(
+        [
+            "**** *model_claude *prompt_1 []",
+            "Ceci est un texte mais pas un autre",
+        ]
+    )
+
+    segments = hash_module.split_segments_by_connectors(text, connectors)
+
+    assert [segment.strip() for segment in segments] == [
+        "Ceci est un texte",
+        "pas un autre",
+    ]
+
+
 def test_newline_connectors_are_recognized():
     connectors = {"\n": "RETOUR À LA LIGNE", "\r\n": "RETOUR À LA LIGNE"}
     text = "Première ligne\nDeuxième ligne\nTroisième ligne"

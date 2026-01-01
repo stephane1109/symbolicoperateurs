@@ -19,7 +19,10 @@ from densite import build_text_from_dataframe, filter_dataframe_by_modalities
 SegmentationMode = Literal["connecteurs", "connecteurs_et_ponctuation"]
 
 
-METADATA_LINE_PATTERN = re.compile(r"^\*{4}\s+\*model_gpt\s+\*prompt_1\s*$", re.IGNORECASE)
+METADATA_LINE_PATTERN = re.compile(
+    r"^\*{4}\s+\*model_(?:gpt|claude)\s+\*prompt_1(?:\s+\[\])?\s*$",
+    re.IGNORECASE,
+)
 
 ECART_TYPE_EXPLANATION = """L'écart-type est une mesure de dispersion. Le rapport entre l'écart-type et la longueur moyenne des segments (LMS) agit comme un indicateur de stabilité : une dispersion faible signale une fluidité de lecture, tandis qu'une dispersion forte révèle une structure hachée et imprévisible.
 Tant que l'écart-type est inférieur à la moyenne, la série est considérée comme relativement "cohérente".
