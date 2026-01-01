@@ -104,9 +104,9 @@ def rendu_densite(tab, df: pd.DataFrame, filtered_connectors: Dict[str, str]) ->
     )
     if density_text:
         st.download_button(
-            label="Télécharger les textes concaténés par sélection",
+            label="Télécharger les textes concaténés",
             data=density_text,
-            file_name="textes_par_modalite.txt",
+            file_name="textes_onglet_densite.txt",
             mime="text/plain",
             help=(
                 "Export des textes regroupés selon les variables et modalités choisies "
