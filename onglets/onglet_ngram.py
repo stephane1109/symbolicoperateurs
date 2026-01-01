@@ -213,7 +213,7 @@ def rendu_ngram(tab, filtered_df: pd.DataFrame, filtered_connectors: Dict[str, s
         data=downloadable_ngram_html,
         file_name="ngrams.html",
         mime="text/html",
-        help="Télécharger tous les N-grams et leurs contextes au format HTML.",
+        help="Télécharger tous les N-grams au format HTML.",
     )
 
     for size in range(3, 7):
