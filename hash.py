@@ -19,7 +19,7 @@ from densite import build_text_from_dataframe, filter_dataframe_by_modalities
 SegmentationMode = Literal["connecteurs", "connecteurs_et_ponctuation"]
 
 
-METADATA_LINE_PATTERN = re.compile(r"^\*{4}\s+\*model_gpt\s+\*prompt_1\s*$", re.IGNORECASE)
+METADATA_LINE_PATTERN = re.compile(r"^\s*\*{4}")
 
 ECART_TYPE_EXPLANATION = """L'écart-type est une mesure de dispersion. Le rapport entre l'écart-type et la longueur moyenne des segments (LMS) agit comme un indicateur de stabilité : une dispersion faible signale une fluidité de lecture, tandis qu'une dispersion forte révèle une structure hachée et imprévisible.
 Tant que l'écart-type est inférieur à la moyenne, la série est considérée comme relativement "cohérente".
@@ -27,18 +27,19 @@ Dès que l'écart-type dépasse la moyenne on bascule dans une instabilité. Cel
 """
 
 
-def _remove_metadata_first_line(text: str) -> str:
-    """Retirer une éventuelle ligne de métadonnées en début de texte."""
+def _remove_metadata_lines(text: str) -> str:
+    """Retirer les lignes de métadonnées en début ou milieu de texte."""
 
-    lines = text.splitlines()
-
-    if not lines:
+    if not text:
         return text
 
-    if METADATA_LINE_PATTERN.match(lines[0].strip()):
-        return "\n".join(lines[1:]).lstrip()
+    lines = text.splitlines()
+    cleaned = [line for line in lines if not METADATA_LINE_PATTERN.match(line)]
 
-    return text
+    if len(cleaned) == len(lines):
+        return text
+
+    return "\n".join(cleaned).lstrip()
 
 
 def _format_segment_with_markers(
@@ -166,7 +167,7 @@ def split_segments_by_connectors(
     if not text:
         return []
 
-    text = _remove_metadata_first_line(text)
+    text = _remove_metadata_lines(text)
 
     connector_pattern = _build_connector_pattern(connectors)
 
@@ -219,7 +220,7 @@ def segments_with_word_lengths(
     if not text:
         return []
 
-    text = _remove_metadata_first_line(text)
+    text = _remove_metadata_lines(text)
 
     connector_pattern = _build_connector_pattern(connectors)
 
