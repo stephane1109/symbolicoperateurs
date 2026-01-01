@@ -102,7 +102,7 @@ def rendu_simi_cosinus(tab, df: pd.DataFrame) -> None:
         st.download_button(
             label="Télécharger les textes concaténés par sélection",
             data=aggregated_export_text,
-            file_name="textes_par_modalite.txt",
+            file_name="textes_concatenation_simicosi.txt",
             mime="text/plain",
             help=(
                 "Export des textes regroupés selon les variables et modalités choisies "
