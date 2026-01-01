@@ -25,6 +25,14 @@ from fcts_utils import build_annotation_style_block
 from pattern import annotate_user_pattern_html, find_pattern_segments
 
 
+def _normalize_text_without_blank_lines(text: str) -> str:
+    """Nettoyer le texte pour supprimer les lignes vides et unifier les sauts de ligne."""
+
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    non_empty_lines = [line for line in normalized.split("\n") if line.strip()]
+    return "\n".join(non_empty_lines)
+
+
 def format_modalities_for_row(row: pd.Series, variables: List[str]) -> str:
     parts: List[str] = []
 
@@ -68,12 +76,15 @@ def rendu_patterns(
     if not pattern_query:
         return
 
+    cleaned_combined_text = _normalize_text_without_blank_lines(combined_text)
     enriched_segments: List[dict] = []
     segment_counter = 1
     matched_rows: List[pd.Series] = []
 
     for _, row in filtered_df.iterrows():
-        row_text = build_text_from_dataframe(pd.DataFrame([row]))
+        row_text = _normalize_text_without_blank_lines(
+            build_text_from_dataframe(pd.DataFrame([row]))
+        )
 
         if not row_text:
             continue
@@ -97,9 +108,11 @@ def rendu_patterns(
 
     should_restrict_text = show_only_matching_texts
     text_to_annotate = (
-        build_text_from_dataframe(pd.DataFrame(matched_rows))
+        _normalize_text_without_blank_lines(
+            build_text_from_dataframe(pd.DataFrame(matched_rows))
+        )
         if should_restrict_text
-        else combined_text
+        else cleaned_combined_text
     )
 
     pattern_annotation_style = build_annotation_style_block("")
