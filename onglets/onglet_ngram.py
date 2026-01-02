@@ -77,30 +77,52 @@ def rendu_ngram(tab, filtered_df: pd.DataFrame, filtered_connectors: Dict[str, s
             escape(context_text),
         )
 
+    def _normalize_header_value(header_value: str) -> str:
+        header_value = header_value.strip()
+
+        if not header_value:
+            return ""
+
+        tokens = header_value.split()
+
+        if tokens and tokens[0] == "****":
+            trimmed_tokens: list[str] = []
+
+            for token in tokens:
+                trimmed_tokens.append(token)
+
+                if token.startswith("*prompt_"):
+                    break
+
+            header_value = " ".join(trimmed_tokens)
+
+        return header_value
+
     def _clean_context_text(context_text: str, header: str) -> str:
         if not context_text:
             return ""
 
         cleaned = context_text
+        normalized_header = _normalize_header_value(header)
 
-        if header:
-            header = header.strip()
+        if normalized_header:
             separator_candidates = [" – ", " - ", " — ", " : "]
 
             for separator in separator_candidates:
-                prefix = f"{header}{separator}"
+                prefix = f"{normalized_header}{separator}"
                 if cleaned.startswith(prefix):
                     cleaned = cleaned[len(prefix) :]
                     break
             else:
-                if cleaned.startswith(header):
-                    cleaned = cleaned[len(header) :].lstrip(" –—-:")
+                if cleaned.startswith(normalized_header):
+                    cleaned = cleaned[len(normalized_header) :].lstrip(" –—-:")
 
         return cleaned.strip()
 
     def _format_context_block(context_entry: dict, ngram_value: str) -> str:
         raw_context = str(context_entry.get("contexte", "")).strip()
-        header_value = str(context_entry.get("entete", "") or "").strip()
+        raw_header_value = str(context_entry.get("entete", "") or "")
+        header_value = _normalize_header_value(raw_header_value)
 
         context_text = _clean_context_text(raw_context, header_value)
         if not context_text:
