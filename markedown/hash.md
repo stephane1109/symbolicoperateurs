@@ -1,4 +1,4 @@
-### Fonctionnement HASH
+### Analyse de l'onglet Hash
 
 - Dans l’onglet **Hash**, le mode « Entre connecteurs uniquement (ignore la ponctuation) » découpe le texte en ne tenant compte que des connecteurs fournis à la fonction, sans ajouter de ponctuation forte ; la regex construit explicitement un motif pour chaque connecteur et l’utilise seule lorsqu’on choisit ce mode. Comme le dictionnaire inclut « retour à la ligne » sous la forme du caractère `\n`, et que la construction de motif accepte les connecteurs faits uniquement d’espaces ou de ponctuation, ce retour à la ligne est bien considéré comme un connecteur dès qu’il est sélectionné dans l’onglet Connecteurs, même quand la ponctuation est ignorée.
 
