@@ -116,7 +116,7 @@ def render_wordcloud(top_terms: List[tuple[str, float]]) -> None:
     ax.imshow(cloud_image, interpolation="bilinear")
     ax.axis("off")
 
-    spacer, container, spacer_2 = st.columns([1, 2, 1])
+    spacer, container, spacer_2 = st.columns([1, 3, 1])
     with container:
         st.pyplot(fig, use_container_width=True)
 
