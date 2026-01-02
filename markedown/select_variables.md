@@ -1,4 +1,4 @@
-### Sélecteurs de variables dans l'interface
+### Sélecteurs de variables de l'interface
 
 #### Sélecteur simple
 - Permet de choisir **une seule variable**.
