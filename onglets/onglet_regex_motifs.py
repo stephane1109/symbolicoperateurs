@@ -65,26 +65,6 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
     </body>
     </html>"""
 
-    col_html, col_txt = st.columns(2)
-
-    with col_html:
-        st.download_button(
-            label="Télécharger le texte (HTML)",
-            data=texte_html,
-            file_name="corpus_combine.html",
-            mime="text/html",
-            key="download-combined-html",
-        )
-
-    with col_txt:
-        st.download_button(
-            label="Télécharger le texte (TXT)",
-            data=cleaned_text,
-            file_name="corpus_combine.txt",
-            mime="text/plain",
-            key="download-combined-txt",
-        )
-
     connector_label_colors = generate_label_colors(filtered_connectors.values())
     connector_label_style = build_label_style_block(connector_label_colors)
     connector_annotation_style = build_annotation_style_block(connector_label_style)
