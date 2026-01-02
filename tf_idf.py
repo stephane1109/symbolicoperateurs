@@ -137,7 +137,7 @@ def render_tfidf_tab(dataframe: pd.DataFrame) -> None:
 
         Dans cette application, chaque modalité concatène l'ensemble de ses textes avant
         le calcul : les scores sont donc basés sur le texte complet de chaque modalité,
-        et non sur des extraits.
+        et non sur des extraits filtrés par les connecteurs.
         """
     )
 
@@ -211,5 +211,5 @@ def render_tfidf_tab(dataframe: pd.DataFrame) -> None:
     )
 
     for modality in sorted(tfidf_scores.keys()):
-        st.markdown(f"#### Nuage de mots – {variable_choice} / {modality}")
+        st.markdown(f"#### Nuage de mots – {variable_choice} : {modality}")
         render_wordcloud(tfidf_scores.get(modality, []))
