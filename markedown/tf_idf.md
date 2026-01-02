@@ -5,6 +5,4 @@
 
 
 
-
-### Réponse directe
 L’onglet “TF-IDF” n’utilise pas le dictionnaire de connecteurs : il analyse les textes tels quels, avec pour seule option la suppression des stopwords français NLTK via la case à cocher. Si cette case n’est pas cochée, les connecteurs restent dans le texte ; si elle l’est, seuls les stopwords NLTK sont retirés (pas les connecteurs spécifiques de votre dictionnaire).
