@@ -86,17 +86,6 @@ def rendu_donnees_brutes(
     st.markdown(annotation_style_block, unsafe_allow_html=True)
     st.subheader("Connecteurs annotés")
 
-    st.download_button(
-        label="Télécharger le texte annoté (HTML)",
-        data=downloadable_html,
-        file_name="texte_annote_connecteurs.html",
-        mime="text/html",
-    )
-  
-    st.markdown(
-        f"<div class='annotated-container'>{annotated_html}</div>",
-        unsafe_allow_html=True,
-    )
     downloadable_html = f"""<!DOCTYPE html>
     <html lang=\"fr\">
     <head>
@@ -108,6 +97,10 @@ def rendu_donnees_brutes(
     </body>
     </html>"""
 
+    st.markdown(
+        f"<div class='annotated-container'>{annotated_html}</div>",
+        unsafe_allow_html=True,
+    )
     st.download_button(
         label="Télécharger le texte annoté (HTML)",
         data=downloadable_html,
