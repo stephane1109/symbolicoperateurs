@@ -8,4 +8,4 @@
 #### Sélecteur multi-variables
 - Autorise la sélection de **plusieurs variables** à la fois.
 - Les modalités choisies pour chaque variable sont **croisées** entre elles : on observe ainsi les combinaisons.
-- Utile pour comparer des segments ou créer des sous-corpus selon plusieurs critères simultanés.
+- Utile pour comparer les interactions (var 1 × var 2).
