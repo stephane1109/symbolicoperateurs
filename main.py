@@ -96,13 +96,13 @@ def main() -> None:
 
     st.title("Symbolic Connectors")
     st.markdown(
-        """"Symbolic Connectors : ce titre renvoie au courant symbolique en IA, qui s’appuie sur une logique de programme et de règles (par opposition au connexionnisme, plus proche de l’analogie avec le cerveau). 
+        """Symbolic Connectors : ce titre renvoie au courant symbolique en IA, qui s’appuie sur une logique de programme et de règles (par opposition au connexionnisme, plus proche de l’analogie avec le cerveau). 
         
     Le nom convient bien à l’objectif de cette application : repérer, dans les réponses des grands modèles de langage (LLM), des traces de “langage machine”, en particulier des structures linguistiques proches de la programmation. (logique conditionnelle - si, alors, sinon, ou, et…).
 
     Pour des raisons d’interopérabilité, le corpus doit être formaté selon les exigences d’IRaMuTeQ : chaque texte commence par une ligne d’en-tête du type `**** *variable_modalité`.
 
-    Pour l’instant, l’application repose sur un fichier `connecteurs.json` (visible dans le repertoire Github : `/dictionnaires/connecteurs.json`) et sur des règles regex. À terme, l’idéal serait de généraliser l’approche avec une bibliothèque NLP (par exemple spaCy et/ou BERT), afin de rendre la détection moins rigide que des motifs regex. Mais je suis limité par l’hébergement sur Streamlit Cloud (version gratuite), qui impose des ressources restreintes. Toutefois, les stopwords sont filtrés avec NLTK (léger), et l’onglet « patterns » s’appuie sur spaCy.""""
+    Pour l’instant, l’application repose sur un fichier `connecteurs.json` (visible dans le repertoire Github : `/dictionnaires/connecteurs.json`) et sur des règles regex. À terme, l’idéal serait de généraliser l’approche avec une bibliothèque NLP (par exemple spaCy et/ou BERT), afin de rendre la détection moins rigide que des motifs regex. Mais je suis limité par l’hébergement sur Streamlit Cloud (version gratuite), qui impose des ressources restreintes. Toutefois, les stopwords sont filtrés avec NLTK (léger), et l’onglet « patterns » s’appuie sur spaCy."""
     )
     st.caption("[www.codeandcortex.fr](https://www.codeandcortex.fr)")
     st.markdown("---")
