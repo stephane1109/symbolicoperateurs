@@ -21,7 +21,7 @@ from densite import (
 def load_norms_from_lexicon(
     lexicon_path: Path, connectors: Dict[str, str]
 ) -> pd.DataFrame:
-    """Charger les normes disponibles à partir du dictionnaire lexicographique."""
+    """Charger les normes disponibles à partir du dictionnaire OpenLexicon."""
 
     if not lexicon_path.exists():
         return pd.DataFrame(columns=["label", "densite", "occurrences"])
