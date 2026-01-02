@@ -14,5 +14,3 @@
   - **ALORS** : « alors », « donc », « dès lors », « des lors », « par conséquent », « par consequent », « en conséquence », « en consequence », « de ce fait », « ainsi », « dans ce cas », « en ce cas », « auquel cas », « de sorte que », « de façon que », « de facon que », « c'est pourquoi », « ceci explique pourquoi », « en cas de ».
 
   - **RETOUR À LA LIGNE** : le caractère de nouvelle ligne `\n`.
-
-- L’onglet Connecteurs rappelle que le connecteur « retour à la ligne » (affiché comme `<br>` dans l’interface) est expérimental et à utiliser avec prudence, car il correspond davantage à une segmentation typographique qu’à un connecteur logique.
