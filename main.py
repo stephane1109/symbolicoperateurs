@@ -102,7 +102,7 @@ L’application a été développée pour explorer une hypothèse liée aux rép
 
 Pour des raisons d’interopérabilité, le corpus doit être formaté selon les exigences d’IRaMuTeQ : chaque texte commence par une ligne d’en-tête du type **** *variable_modalité.
 
-Pour l’instant, l’application repose sur un fichier dictionnaire.json (visible dans l’onglet « Connecteurs ») et sur des règles regex. À terme, l’idéal serait de généraliser l’approche avec une bibliothèque NLP (par exemple spaCy et/ou BERT), afin de rendre la détection moins rigide que des motifs regex. Mais je suis limité par l’hébergement sur Streamlit Cloud (version gratuite), qui impose des ressources restreintes. Toutefois, les stopwords sont filtrés avec NLTK (léger), et l’onglet « patterns » s’appuie sur spaCy."""
+Pour l’instant, l’application repose sur un fichier `connecteurs.json` (visible dans l’onglet « Connecteurs ») et sur des règles regex. À terme, l’idéal serait de généraliser l’approche avec une bibliothèque NLP (par exemple spaCy et/ou BERT), afin de rendre la détection moins rigide que des motifs regex. Mais je suis limité par l’hébergement sur Streamlit Cloud (version gratuite), qui impose des ressources restreintes. Toutefois, les stopwords sont filtrés avec NLTK (léger), et l’onglet « patterns » s’appuie sur spaCy."""
     )
     st.caption("[www.codeandcortex.fr](https://www.codeandcortex.fr)")
     st.markdown("---")
