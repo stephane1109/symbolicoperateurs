@@ -249,11 +249,6 @@ def rendu_ngram(tab, filtered_df: pd.DataFrame, filtered_connectors: Dict[str, s
             continue
 
         display_df = ngram_results.copy()
-
-        full_context = display_df.get("Contexte", pd.Series(dtype=str))
-        display_df["Contexte (aperçu)"] = full_context.fillna("").apply(
-            lambda value: value if len(value) <= 140 else value[:140].rstrip() + "…"
-        )
         display_df = display_df.fillna("")
 
         st.dataframe(display_df.drop(columns=["Occurrences détaillées"], errors="ignore"), use_container_width=True)
