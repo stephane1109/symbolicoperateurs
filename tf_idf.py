@@ -112,13 +112,12 @@ def render_wordcloud(top_terms: List[tuple[str, float]]) -> None:
     wordcloud = WordCloud(width=800, height=500, background_color="white")
     cloud_image = wordcloud.generate_from_frequencies(frequencies)
 
-    fig, ax = plt.subplots(figsize=(10, 6), dpi=100)
+    fig, ax = plt.subplots(figsize=(8, 5), dpi=100)
     ax.imshow(cloud_image, interpolation="bilinear")
     ax.axis("off")
+    fig.tight_layout()
 
-    spacer, container, spacer_2 = st.columns([1, 3, 1])
-    with container:
-        st.pyplot(fig, use_container_width=True)
+    st.pyplot(fig, use_container_width=True)
 
     plt.close(fig)
 
