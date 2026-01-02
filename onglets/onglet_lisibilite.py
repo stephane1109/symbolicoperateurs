@@ -17,12 +17,14 @@ from __future__ import annotations
 
 from typing import Dict, List
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 
 from densite import build_text_from_dataframe
 from fcts_utils import render_connectors_reminder
 from test_lesch_Kincaid import (
+    READABILITY_SCALE,
     compute_flesch_kincaid_metrics,
     get_readability_band,
     interpret_reading_ease,
@@ -109,6 +111,56 @@ def rendu_lisibilite(tab, df: pd.DataFrame, filtered_connectors: Dict[str, str])
     st.markdown(
         f"**Interprétation** : {readability_description} (échelle : {readability_band.get('range', '')})"
     )
+
+    st.markdown("#### Échelle visuelle du score de lisibilité")
+    readability_scale_df = pd.DataFrame(READABILITY_SCALE)
+    readability_scale_df["band"] = "Échelle Flesch Reading Ease"
+
+    bands_chart = (
+        alt.Chart(readability_scale_df)
+        .mark_bar(height=45)
+        .encode(
+            x=alt.X(
+                "min:Q",
+                title="Indice de lisibilité (Flesch Reading Ease)",
+                scale=alt.Scale(domain=[0, 100]),
+            ),
+            x2="max:Q",
+            y=alt.Y("band:N", title=None, axis=None),
+            color=alt.Color(
+                "range:N",
+                title="Plages de lisibilité",
+                sort="descending",
+                scale=alt.Scale(scheme="blues"),
+            ),
+            tooltip=[
+                alt.Tooltip("range:N", title="Plage"),
+                alt.Tooltip("niveau:N", title="Niveau"),
+                alt.Tooltip("description:N", title="Description"),
+            ],
+        )
+    )
+
+    score_df = pd.DataFrame(
+        {"score": [ease_score], "band": ["Échelle Flesch Reading Ease"]}
+    )
+    score_marker = (
+        alt.Chart(score_df)
+        .mark_rule(color="black", strokeWidth=3, strokeDash=[6, 4])
+        .encode(
+            x=alt.X("score:Q", title="Indice de lisibilité (Flesch Reading Ease)"),
+            y=alt.Y("band:N"),
+            tooltip=[alt.Tooltip("score:Q", title="Score", format=".2f")],
+        )
+    )
+
+    score_label = (
+        alt.Chart(score_df)
+        .mark_text(align="left", dx=5, dy=-10, fontWeight="bold")
+        .encode(x="score:Q", y="band:N", text=alt.Text("score:Q", format=".2f"))
+    )
+
+    st.altair_chart((bands_chart + score_marker + score_label), use_container_width=True)
 
     st.caption(
         "Les scores de lisibilité sont calculés sur la base du texte filtré, en utilisant les variables/modalités sélectionnées."
