@@ -166,6 +166,16 @@ def rendu_lisibilite(tab, df: pd.DataFrame, filtered_connectors: Dict[str, str])
         "Les scores de lisibilité sont calculés sur la base du texte filtré, en utilisant les variables/modalités sélectionnées."
     )
 
+    st.markdown("#### Tableau de référence (source : Wikipédia)")
+    readability_reference_df = readability_scale_df.rename(
+        columns={
+            "range": "Score",
+            "niveau": "Niveau scolaire",
+            "description": "Notes",
+        }
+    )[["Score", "Niveau scolaire", "Notes"]]
+    st.table(readability_reference_df)
+
     readability_per_modality: List[Dict[str, float | str]] = []
 
     for variable, selected_modalities in readability_modalities_selection.items():
