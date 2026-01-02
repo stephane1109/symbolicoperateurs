@@ -25,6 +25,20 @@ from ngram import build_ngram_pattern, compute_ngram_statistics
 def rendu_ngram(tab, filtered_df: pd.DataFrame, filtered_connectors: Dict[str, str]) -> None:
     st.subheader("N-gram")
 
+    st.markdown(
+        """
+        <style>
+        .ngram-context-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #dc2626;
+            margin: 16px 0 8px 0;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     ngram_variables = [column for column in filtered_df.columns if column not in ("texte", "entete")]
     selected_ngram_variables = st.multiselect(
         "Variables à filtrer pour les N-grams",
@@ -260,7 +274,11 @@ def rendu_ngram(tab, filtered_df: pd.DataFrame, filtered_connectors: Dict[str, s
             if not detailed_contexts:
                 continue
 
-            st.markdown(f"**Contexte pour : {ngram_value}**")
+            ngram_title = escape(str(ngram_value))
+            st.markdown(
+                f"<div class=\"ngram-context-title\">Contexte pour : {ngram_title}</div>",
+                unsafe_allow_html=True,
+            )
             for context_entry in detailed_contexts:
                 context_html = _format_context_block(context_entry, ngram_value)
                 if context_html:
