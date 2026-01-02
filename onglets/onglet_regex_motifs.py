@@ -16,8 +16,6 @@ annotations et statistiques associées.
 from __future__ import annotations
 
 from html import escape
-import io
-import zipfile
 from pathlib import Path
 from typing import Dict
 
@@ -80,20 +78,12 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
     </body>
     </html>"""
 
-    connector_bundle = io.BytesIO()
-
-    with zipfile.ZipFile(connector_bundle, "w") as bundle:
-        bundle.writestr("texte_annote_connecteurs.html", annotated_connectors_doc)
-        bundle.writestr("texte_sans_connecteurs.txt", cleaned_text)
-
-    connector_bundle.seek(0)
-
     st.download_button(
-        label="Télécharger le texte (HTML + TXT)",
-        data=connector_bundle.getvalue(),
-        file_name="texte_connecteurs.zip",
-        mime="application/zip",
-        key="download-annotated-connectors-bundle",
+        label="Télécharger le texte annoté (HTML)",
+        data=annotated_connectors_doc,
+        file_name="texte_annote_connecteurs.html",
+        mime="text/html",
+        key="download-annotated-connectors-html",
     )
 
     st.markdown(
