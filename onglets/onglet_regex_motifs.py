@@ -15,7 +15,6 @@ annotations et statistiques associées.
 """
 from __future__ import annotations
 
-from html import escape
 from pathlib import Path
 from typing import Dict
 
@@ -23,11 +22,7 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from analyses import (
-    annotate_connectors_html,
-    build_label_style_block,
-    generate_label_colors,
-)
+from analyses import build_label_style_block, generate_label_colors
 from fcts_utils import build_annotation_style_block
 from regexanalyse import (
     count_segments_by_pattern,
@@ -48,43 +43,12 @@ def _normalize_text_without_blank_lines(text: str) -> str:
     return "\n".join(non_empty_lines)
 
 
-def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, str]) -> None:
+def rendu_regex_motifs(
+    tab, combined_text: str, _filtered_connectors: Dict[str, str]
+) -> None:
     st.subheader("Regex motifs")
 
     cleaned_text = _normalize_text_without_blank_lines(combined_text)
-
-    texte_html = f"""<!DOCTYPE html>
-    <html lang=\"fr\">
-    <head>
-    <meta charset=\"utf-8\" />
-    </head>
-    <body>
-    <pre>{escape(cleaned_text)}</pre>
-    </body>
-    </html>"""
-
-    connector_label_colors = generate_label_colors(filtered_connectors.values())
-    connector_label_style = build_label_style_block(connector_label_colors)
-    connector_annotation_style = build_annotation_style_block(connector_label_style)
-    annotated_connectors_html = annotate_connectors_html(cleaned_text, filtered_connectors)
-    annotated_connectors_doc = f"""<!DOCTYPE html>
-    <html lang=\"fr\">
-    <head>
-    <meta charset=\"utf-8\" />
-    {connector_annotation_style}
-    </head>
-    <body>
-    <div class='annotated-container'>{annotated_connectors_html}</div>
-    </body>
-    </html>"""
-
-    st.download_button(
-        label="Télécharger le texte annoté (HTML)",
-        data=annotated_connectors_doc,
-        file_name="texte_annote_connecteurs.html",
-        mime="text/html",
-        key="download-annotated-connectors-html",
-    )
 
     st.markdown(
         """
@@ -106,11 +70,31 @@ def rendu_regex_motifs(tab, combined_text: str, filtered_connectors: Dict[str, s
     regex_label_style = build_label_style_block(regex_label_colors)
     regex_annotation_style = build_annotation_style_block(regex_label_style)
 
+    highlighted_corpus = highlight_matches_html(cleaned_text, regex_patterns)
+
+    regex_annotated_doc = f"""<!DOCTYPE html>
+    <html lang=\"fr\">
+    <head>
+    <meta charset=\"utf-8\" />
+    {regex_annotation_style}
+    </head>
+    <body>
+    <div class='annotated-container'>{highlighted_corpus}</div>
+    </body>
+    </html>"""
+
+    st.download_button(
+        label="Télécharger le texte annoté (HTML)",
+        data=regex_annotated_doc,
+        file_name="texte_annote_motifs_regex.html",
+        mime="text/html",
+        key="download-annotated-regex-html",
+    )
+
     st.markdown(regex_annotation_style, unsafe_allow_html=True)
 
     segments = split_segments(cleaned_text)
 
-    highlighted_corpus = highlight_matches_html(cleaned_text, regex_patterns)
     st.subheader("Corpus annoté (motifs regex)")
     st.markdown(
         f"<div class='annotated-container'>{highlighted_corpus}</div>",
