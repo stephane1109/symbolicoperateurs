@@ -34,6 +34,7 @@ from onglets import (  # noqa: E402
 
 
 TMP_UPLOAD_PATH = Path("/tmp/iramuteq_last_upload.txt")
+APP_VERSION = "0.1.0-beta"
 
 
 def _load_uploaded_content(uploaded_file: st.runtime.uploaded_file_manager.UploadedFile | None) -> str | None:
@@ -116,6 +117,7 @@ def main() -> None:
         "s’appuie sur spaCy."
     )
     st.caption("[www.codeandcortex.fr](https://www.codeandcortex.fr)")
+    st.caption(f"Version {APP_VERSION} (développement en cours)")
     st.markdown("---")
     st.write(
         "Téléversez un fichier texte IRaMuTeQ. Chaque article doit démarrer par "
