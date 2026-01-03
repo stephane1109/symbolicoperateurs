@@ -21,9 +21,8 @@ SegmentationMode = Literal["connecteurs", "connecteurs_et_ponctuation"]
 
 METADATA_LINE_PATTERN = re.compile(r"^\s*\*{4}")
 
-ECART_TYPE_EXPLANATION = """L'écart-type est une mesure de dispersion. Le rapport entre l'écart-type et la longueur moyenne des segments (LMS) agit comme un indicateur de stabilité : une dispersion faible signale une fluidité de lecture, tandis qu'une dispersion forte révèle une structure hachée et imprévisible.
-Tant que l'écart-type est inférieur à la moyenne, la série est considérée comme relativement "cohérente".
-Dès que l'écart-type dépasse la moyenne on bascule dans une instabilité. Cela signifie que la variation est plus grande que la mesure elle-même.
+ECART_TYPE_EXPLANATION = """L'écart-type est une mesure de dispersion. L’écart-type mesure à quel point la longueur des segments varie autour de la LMS : plus il est élevé, plus les segments sont hétérogènes. 
+Pour comparer des variables ayant des LMS différentes, le rapport écart-type/LMS indique la dispersion relative : faible = segmentation régulière, élevé = segmentation plus irrégulière.
 """
 
 
