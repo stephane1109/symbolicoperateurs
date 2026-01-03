@@ -117,7 +117,7 @@ def main() -> None:
         "s’appuie sur spaCy."
     )
     st.caption("[www.codeandcortex.fr](https://www.codeandcortex.fr)")
-    st.caption(f"Version {APP_VERSION} (développement en cours)")
+    st.caption(f"Version {APP_VERSION} (dév en cours - 03-01-2026)")
     st.markdown("---")
     st.write(
         "Téléversez un fichier texte IRaMuTeQ. Chaque article doit démarrer par "
