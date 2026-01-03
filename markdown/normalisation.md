@@ -22,16 +22,3 @@ L’onglet « Densité » présente la fréquence des connecteurs dans le corp
 5. **Calcul par label de connecteur** (si appliqué) :
    - Lorsqu’un connecteur est associé à un label (catégorie), la densité peut être ventilée par label en reprenant la même formule de normalisation sur 1 000 mots pour chaque groupe (`compute_density_by_label`, `compute_density_per_modality_by_label`).
 
-## Pourquoi une base 1 000 ?
-
-Normaliser sur 1 000 mots fournit une mesure intuitive « pour mille » qui facilite la comparaison entre sous-corpus de tailles différentes. Cette base est paramétrable, mais l’interface la fixe à 1 000 pour conserver une échelle cohérente entre les tableaux et les graphiques de l’onglet.
-
-## Résultat affiché dans l’onglet
-
-L’onglet « Densité » affiche donc, pour chaque modalité (et éventuellement pour chaque label de connecteur) :
-
-- la densité normalisée sur 1 000 mots ;
-- le nombre total de mots du sous-corpus ;
-- le nombre total de connecteurs trouvés.
-
-Ces valeurs permettent de comparer directement les modalités, même lorsque leur volume textuel diffère fortement, en s’appuyant sur une métrique homogène et normalisée.
