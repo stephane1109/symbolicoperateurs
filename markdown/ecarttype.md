@@ -14,4 +14,4 @@
 - La LMS elle-même est la moyenne simple des longueurs (en mots) des segments obtenus après nettoyage et tokenisation du texte ; elle est calculée en même temps que l'écart-type pour chaque modalité.
 - En résumé, la **longueur du trait** représente l'intervalle « moyenne ± écart-type » des longueurs de segments pour une modalité donnée, et le **point** indique où se situe la moyenne dans cet intervalle.
 
-![Exemple de barre d'erreur montrant la moyenne et l'intervalle LMS ± σ](ecarttype_hash.svg)
+![Exemple de barre d'erreur montrant la moyenne et l'intervalle LMS ± σ](ecarttype_hash.png)
