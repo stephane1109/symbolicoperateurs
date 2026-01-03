@@ -91,18 +91,10 @@ def rendu_lisibilite(tab, df: pd.DataFrame, filtered_connectors: Dict[str, str])
         return
 
     ease_score = readability_metrics.get("reading_ease", 0.0)
-    grade_score = readability_metrics.get("grade_level", 0.0)
-
-    col1, col2 = st.columns(2)
-    col1.metric(
+    st.metric(
         "Flesch Reading Ease",
         f"{ease_score:.2f}",
         help="Indice mesurant la facilité de lecture (plus il est élevé, plus le texte est facile).",
-    )
-    col2.metric(
-        "Flesch-Kincaid Grade",
-        f"{grade_score:.2f}",
-        help="Niveau scolaire approximatif nécessaire pour comprendre le texte.",
     )
 
     readability_band = get_readability_band(ease_score)
@@ -170,10 +162,9 @@ def rendu_lisibilite(tab, df: pd.DataFrame, filtered_connectors: Dict[str, str])
     readability_reference_df = readability_scale_df.rename(
         columns={
             "range": "Score",
-            "niveau": "Niveau scolaire",
             "description": "Notes",
         }
-    )[["Score", "Niveau scolaire", "Notes"]]
+    )[["Score", "Notes"]]
     st.table(readability_reference_df)
 
     readability_per_modality: List[Dict[str, float | str]] = []
@@ -193,7 +184,6 @@ def rendu_lisibilite(tab, df: pd.DataFrame, filtered_connectors: Dict[str, str])
                     "variable": variable,
                     "modalite": modality,
                     "reading_ease": modality_metrics.get("reading_ease", 0.0),
-                    "grade_level": modality_metrics.get("grade_level", 0.0),
                 }
             )
 
@@ -209,18 +199,11 @@ def rendu_lisibilite(tab, df: pd.DataFrame, filtered_connectors: Dict[str, str])
                 "variable": "Variable",
                 "modalite": "Modalité",
                 "reading_ease": "Indice de lisibilité",
-                "grade_level": "Niveau scolaire (grade)",
             }
         )
         display_df["Indice de lisibilité"] = display_df["Indice de lisibilité"].apply(
             lambda score: f"{score:.2f}"
         )
-        display_df["Niveau scolaire (grade)"] = display_df[
-            "Niveau scolaire (grade)"
-        ].apply(
-            lambda score: f"Niveau {max(round(score), 0)}eme"
-        )
-
         st.dataframe(display_df, use_container_width=True)
 
     else:
