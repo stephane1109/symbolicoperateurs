@@ -68,7 +68,7 @@ ponctuation forte (. / ? / ! / ; /:) ferme aussi le segment.
     segmentation_mode = segmentation_labels[segmentation_choice]
 
     tokenization_labels: Dict[str, TokenizationMode] = {
-        "Regex (Tokenisé une regex \b\w+\b)": "regex",
+        "Regex (Tokenisation avec une regex \b\w+\b)": "regex",
         "spaCy (fr_core_news_md - Tokenisation plus précise)": "spacy",
     }
     tokenization_choice = st.radio(
