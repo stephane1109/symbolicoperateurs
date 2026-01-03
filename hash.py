@@ -9,14 +9,18 @@ from __future__ import annotations
 
 import re
 from statistics import mean
+from functools import lru_cache
 from typing import Dict, Iterable, List, Literal, Optional
 
 import pandas as pd
+
+import spacy
 
 from densite import build_text_from_dataframe, filter_dataframe_by_modalities
 
 
 SegmentationMode = Literal["connecteurs", "connecteurs_et_ponctuation"]
+TokenizationMode = Literal["regex", "spacy"]
 
 
 METADATA_LINE_PATTERN = re.compile(r"^\s*\*{4}")
@@ -113,8 +117,55 @@ def _build_boundary_pattern(
     )
 
 
-def _tokenize(text: str) -> List[str]:
+@lru_cache(maxsize=1)
+def _get_spacy_tokenizer():
+    """Charger et mettre en cache le tokenizer spaCy français.
+
+    On exclut les composants coûteux pour ne garder que la tokenisation. Si le
+    modèle n'est pas installé, une RuntimeError explicite est levée pour être
+    relayée dans l'interface.
+    """
+
+    try:
+        nlp = spacy.load(
+            "fr_core_news_md",
+            exclude=[
+                "parser",
+                "ner",
+                "lemmatizer",
+                "attribute_ruler",
+                "textcat",
+                "tok2vec",
+                "morphologizer",
+                "senter",
+            ],
+        )
+    except OSError as exc:
+        raise RuntimeError(
+            "Le modèle spaCy 'fr_core_news_md' est manquant : installez-le pour utiliser la tokenisation spaCy."
+        ) from exc
+
+    return nlp.tokenizer
+
+
+def _tokenize_regex(text: str) -> List[str]:
     return re.findall(r"\b\w+\b", text, flags=re.UNICODE)
+
+
+def _tokenize_spacy(text: str) -> List[str]:
+    tokenizer = _get_spacy_tokenizer()
+    return [
+        token.text
+        for token in tokenizer(text)
+        if not token.is_space and not token.is_punct
+    ]
+
+
+def _tokenize(text: str, tokenization_mode: TokenizationMode) -> List[str]:
+    if tokenization_mode == "spacy":
+        return _tokenize_spacy(text)
+
+    return _tokenize_regex(text)
 
 
 def _is_connector(boundary: str | None, connector_pattern: re.Pattern[str] | None) -> bool:
@@ -195,15 +246,25 @@ def split_segments_by_connectors(
 
 
 def compute_segment_word_lengths(
-    text: str, connectors: Dict[str, str], segmentation_mode: SegmentationMode = "connecteurs"
+    text: str,
+    connectors: Dict[str, str],
+    segmentation_mode: SegmentationMode = "connecteurs",
+    tokenization_mode: TokenizationMode = "regex",
 ) -> List[int]:
-    """Obtenir la longueur (en mots) de chaque segment selon le mode de segmentation."""
+    """Obtenir la longueur (en mots) de chaque segment selon le mode de segmentation.
+
+    Args:
+        text: Texte complet à découper.
+        connectors: Dictionnaire des connecteurs logiques.
+        segmentation_mode: Mode de découpe (avec ou sans ponctuation forte).
+        tokenization_mode: Méthode de comptage des mots (regex simple ou spaCy).
+    """
 
     segments = split_segments_by_connectors(text, connectors, segmentation_mode)
     lengths = []
 
     for segment in segments:
-        tokens = _tokenize(segment)
+        tokens = _tokenize(segment, tokenization_mode)
 
         if tokens:
             lengths.append(len(tokens))
@@ -212,7 +273,10 @@ def compute_segment_word_lengths(
 
 
 def segments_with_word_lengths(
-    text: str, connectors: Dict[str, str], segmentation_mode: SegmentationMode = "connecteurs"
+    text: str,
+    connectors: Dict[str, str],
+    segmentation_mode: SegmentationMode = "connecteurs",
+    tokenization_mode: TokenizationMode = "regex",
 ) -> List[Dict[str, str | int]]:
     """Retourner chaque segment avec sa longueur en mots."""
 
@@ -229,7 +293,7 @@ def segments_with_word_lengths(
     connector_found = connector_pattern.search(text)
 
     if connector_found is None:
-        tokens = _tokenize(text)
+        tokens = _tokenize(text, tokenization_mode)
         if tokens:
             return [
                 {
@@ -255,7 +319,7 @@ def segments_with_word_lengths(
     entries: List[Dict[str, str | int]] = []
 
     for segment, previous_connector, next_connector in segments:
-        tokens = _tokenize(segment)
+        tokens = _tokenize(segment, tokenization_mode)
 
         if tokens:
             entries.append(
@@ -274,11 +338,16 @@ def segments_with_word_lengths(
 
 
 def average_segment_length(
-    text: str, connectors: Dict[str, str], segmentation_mode: SegmentationMode = "connecteurs"
+    text: str,
+    connectors: Dict[str, str],
+    segmentation_mode: SegmentationMode = "connecteurs",
+    tokenization_mode: TokenizationMode = "regex",
 ) -> float:
     """Calculer la Longueur Moyenne des Segments (LMS)."""
 
-    lengths = compute_segment_word_lengths(text, connectors, segmentation_mode)
+    lengths = compute_segment_word_lengths(
+        text, connectors, segmentation_mode, tokenization_mode
+    )
 
     if not lengths:
         return 0.0
@@ -292,6 +361,7 @@ def average_segment_length_by_modality(
     connectors: Dict[str, str],
     modalities: Optional[Iterable[str]] = None,
     segmentation_mode: SegmentationMode = "connecteurs",
+    tokenization_mode: TokenizationMode = "regex",
 ) -> pd.DataFrame:
     """Calculer la LMS par modalité pour une variable donnée."""
 
@@ -307,7 +377,9 @@ def average_segment_length_by_modality(
 
     for modality, subset in filtered_df.groupby(variable):
         text_value = build_text_from_dataframe(subset)
-        lengths = compute_segment_word_lengths(text_value, connectors, segmentation_mode)
+        lengths = compute_segment_word_lengths(
+            text_value, connectors, segmentation_mode, tokenization_mode
+        )
         lms_value = float(mean(lengths)) if lengths else 0.0
 
         rows.append(

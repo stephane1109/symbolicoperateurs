@@ -102,3 +102,17 @@ def test_newline_connectors_are_recognized():
         "Deuxième ligne",
         "Troisième ligne",
     ]
+
+
+def test_spacy_tokenization_counts_words_without_punctuation():
+    connectors = {"mais": "adversatif"}
+    text = "Il avance, mais il hésite encore !"
+
+    lengths = hash_module.compute_segment_word_lengths(
+        text,
+        connectors,
+        segmentation_mode="connecteurs_et_ponctuation",
+        tokenization_mode="spacy",
+    )
+
+    assert lengths == [2, 3]

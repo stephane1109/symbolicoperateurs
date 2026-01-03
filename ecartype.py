@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from densite import build_text_from_dataframe, filter_dataframe_by_modalities
-from hash import SegmentationMode, compute_segment_word_lengths
+from hash import SegmentationMode, TokenizationMode, compute_segment_word_lengths
 
 
 def _mean_and_std(lengths: List[int]) -> Tuple[float, float]:
@@ -20,11 +20,16 @@ def _mean_and_std(lengths: List[int]) -> Tuple[float, float]:
 
 
 def compute_length_standard_deviation(
-    text: str, connectors: Dict[str, str], segmentation_mode: SegmentationMode = "connecteurs"
+    text: str,
+    connectors: Dict[str, str],
+    segmentation_mode: SegmentationMode = "connecteurs",
+    tokenization_mode: TokenizationMode = "regex",
 ) -> Tuple[float, float]:
     """Retourner (moyenne, écart-type) des longueurs des segments."""
 
-    lengths = compute_segment_word_lengths(text, connectors, segmentation_mode)
+    lengths = compute_segment_word_lengths(
+        text, connectors, segmentation_mode, tokenization_mode
+    )
     return _mean_and_std(lengths)
 
 
@@ -34,6 +39,7 @@ def standard_deviation_by_modality(
     connectors: Dict[str, str],
     modalities: Optional[Iterable[str]] = None,
     segmentation_mode: SegmentationMode = "connecteurs",
+    tokenization_mode: TokenizationMode = "regex",
 ) -> pd.DataFrame:
     """Calculer LMS et écart-type des segments par modalité."""
 
@@ -49,7 +55,9 @@ def standard_deviation_by_modality(
 
     for modality, subset in filtered_df.groupby(variable):
         text_value = build_text_from_dataframe(subset)
-        lengths = compute_segment_word_lengths(text_value, connectors, segmentation_mode)
+        lengths = compute_segment_word_lengths(
+            text_value, connectors, segmentation_mode, tokenization_mode
+        )
         lms_value, std_value = _mean_and_std(lengths)
 
         rows.append(

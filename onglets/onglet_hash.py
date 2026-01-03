@@ -27,6 +27,7 @@ from fcts_utils import render_connectors_reminder
 from hash import (
     ECART_TYPE_EXPLANATION,
     SegmentationMode,
+    TokenizationMode,
     average_segment_length,
     average_segment_length_by_modality,
     compute_segment_word_lengths,
@@ -66,9 +67,26 @@ ponctuation forte (. / ? / ! / ; /:) ferme aussi le segment.
     )
     segmentation_mode = segmentation_labels[segmentation_choice]
 
-    segment_lengths = compute_segment_word_lengths(
-        combined_text, filtered_connectors, segmentation_mode
+    tokenization_labels: Dict[str, TokenizationMode] = {
+        "Regex (même comportement qu'avant)": "regex",
+        "spaCy (fr_core_news_md)": "spacy",
+    }
+    tokenization_choice = st.radio(
+        "Mode de tokenisation", list(tokenization_labels.keys()), help=(
+            "Choisissez le mode de découpage des mots pour compter la longueur des segments :\n"
+            "- Regex : tokens basés sur une expression régulière (comportement historique).\n"
+            "- spaCy : tokens linguistiques du modèle français fr_core_news_md."
+        ),
     )
+    tokenization_mode = tokenization_labels[tokenization_choice]
+
+    try:
+        segment_lengths = compute_segment_word_lengths(
+            combined_text, filtered_connectors, segmentation_mode, tokenization_mode
+        )
+    except RuntimeError as error:
+        st.error(str(error))
+        return
 
     if not segment_lengths:
         st.info(
@@ -149,9 +167,13 @@ ponctuation forte (. / ? / ! / ; /:) ferme aussi le segment.
                 "pour vérifier la composition de la LMS."
             ),
         )
-    segment_lengths = compute_segment_word_lengths(
-        hash_text, filtered_connectors, segmentation_mode
-    )
+    try:
+        segment_lengths = compute_segment_word_lengths(
+            hash_text, filtered_connectors, segmentation_mode, tokenization_mode
+        )
+    except RuntimeError as error:
+        st.error(str(error))
+        return
 
     if not hash_text or not segment_lengths:
         st.info(
@@ -161,10 +183,10 @@ ponctuation forte (. / ? / ! / ; /:) ferme aussi le segment.
         return
 
     average_length = average_segment_length(
-        hash_text, filtered_connectors, segmentation_mode
+        hash_text, filtered_connectors, segmentation_mode, tokenization_mode
     )
     _, std_dev = compute_length_standard_deviation(
-        hash_text, filtered_connectors, segmentation_mode
+        hash_text, filtered_connectors, segmentation_mode, tokenization_mode
     )
 
     col1, col2 = st.columns(2)
@@ -180,7 +202,7 @@ ponctuation forte (. / ? / ! / ; /:) ferme aussi le segment.
     )
 
     segment_entries = segments_with_word_lengths(
-        hash_text, filtered_connectors, segmentation_mode
+        hash_text, filtered_connectors, segmentation_mode, tokenization_mode
     )
 
     st.markdown("### Segments et longueurs")
@@ -203,6 +225,7 @@ ponctuation forte (. / ? / ! / ; /:) ferme aussi le segment.
             filtered_connectors,
             selected_modalities or None,
             segmentation_mode,
+            tokenization_mode,
         )
 
         if per_modality_hash_df.empty and not selected_modalities:
@@ -253,6 +276,7 @@ ponctuation forte (. / ? / ! / ; /:) ferme aussi le segment.
             filtered_connectors,
             selected_modalities or None,
             segmentation_mode,
+            tokenization_mode,
         )
 
         if not std_by_modality_df.empty:
